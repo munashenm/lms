@@ -1,0 +1,6 @@
+/backup/
+/temp/
+/uploads/
+*.log
+.DS_Store
+Thumbs.db

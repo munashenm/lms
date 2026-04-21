@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "smartschool-re-2411-ab67d",
+  "private_key_id": "ce1d43164535149ba51615d4533245e8b3d4faf9",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDFBfMZuk7uYoOE\nV3E82b6AhRNQRACU9v3/a8/CoM3rWqEE1d6MhnAvFjsb4hTCgRRt7i5DcCDKxkOL\nJtT0ywIiUTyg96d1kScsqi8y7BB/m9JvZ7S9GpwMld1FY33XyB5sCy+Mt/+g8E+2\npWTLy+fOKgrA1zErSJwwzefMJrX5evufiVUWPgf/ZfAMgkRs2e2cNyvwBcwn75/H\noe9YZ5vhCw8BfwagmvTUnEE6oS8Le6IpPvNBSG9sU3K/ETKSwt9NvWFHncFS2gtS\nAu9XOZ/xlUmTBj/jhLO5DstPOLNLEx9iGtZ8dvSAO2XNy4FRYbP7Oi6yPWJ4POHP\nruPlNSW7AgMBAAECggEAG1w5JzB9N5OMqfsuqYGfd9+DEBlxbz5hhW/mWSPVlMJw\nK+i7UA53U8KlkLizo1MjkCSMXicbFq2zwYYx+pCaikN3xO6/XY87vnMfvNWVcPMl\npPzk14Hze7fwE2u+lRGgT+a5wrPmluXoW/fZ6Ic3eKTT+3WmyVj6/7gIYYxapvtT\nrMWAqmKrAw7/MHaS0FQkTsX2aVYPn56OLrx6Xwf9fDLQfiXZvmbaMUKHciW6b81p\nHLOrKwnogZMrQt53U8Fnp7dyYueSue4UffYX95dcy5BSj6NmERV2B7DyvSoLmHjA\njFh8x2RxBzgp3WhldjlDIYQ4pO/alwGF9sXoYp0iKQKBgQDuCasFOfbEwbMImHbG\nTLCV3KGr0kNhxvmMA2p4eDOFG+CK4PQoaT6ZjQ0pjUD/fvltTlQZfWvABMTjIQvR\ntpLg0Bo9JnAL8LWBiai1eVZVtbX9OQ1z2Z2L9tCGofeuevcgUh2ahKX8MpN0QQx0\nTsrtZZlOfcvjWoTKLM2wb2B1DQKBgQDT4/oeeC/R+V+xNUSkfvwfNkBvD9KI0rV/\nxdRdGHNroR/rlfhuw1ATYRRf+jDFtqZatpv7MLfgncUp39mavi594fEOERcMD+ZO\nNGgfqNsX+EaHAEUz/TO3+IEXE61LEGbnGA+ntGKqSJ2W/Lg4HTTgqoSoejBOrqnc\nKebEHKXj5wKBgC8mARbu7T75svGP6W7Lv+pfIjK7Whdi5wjhoFQuUt4ZsHcxqYrb\nlceqVaIWVXqF9ve8nRHTcuU8zJbEc+fdBui6r4fPNkBXNExtLNqNJxmg/WQjydNZ\nlkgj4hfYuwt3Vb20JiL2BT6X8fcD72iWNsGg7yXJ6vmkc0rsZu18khl9AoGBAIiw\nB3jCZW7ZpN5nE4neFPx5feVnWpRDASyUzOLlVAe5YCMUkre5LR3jQUaM2guhQP1B\n0augCO5QOJFDw1dsmgdAysUdRzXTx+jpK8ZIolV7JtwN05avHz7tgzEE04SZ5xfq\n0KaJ2iApSefNzXT9ek/4EC2y7RjE2fSZ3zDhni4/AoGAUimy5W4SLH9BI/aX+B2/\n4PwO2+FuCiBp/4YGteAfN7h1bj7bH7qx4jhTO5QrZ64AU4U6z8K+wbRCmffc3kCn\n5dnCRjC+sn9XZKN+XZ829LAs5qf/CJG9Baq0pUpuUQJjvb9MDqy2pdGJ67kIOje4\ngFB/y4yAljnwUKnwW4rXK+8=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-4pgjo@smartschool-re-2411-ab67d.iam.gserviceaccount.com",
+  "client_id": "113347443702934899025",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-4pgjo%40smartschool-re-2411-ab67d.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
