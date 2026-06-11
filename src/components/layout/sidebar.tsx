@@ -6,6 +6,7 @@ import { Building2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
 import type { NavItem } from "@/lib/navigation";
+import { NavIcon } from "./nav-icon";
 
 interface SidebarProps {
   open: boolean;
@@ -57,7 +58,7 @@ export function Sidebar({ open, onClose, navItems, portalLabel }: SidebarProps) 
                     : "text-white/70 hover:bg-white/10 hover:text-white"
                 )}
               >
-                <item.icon className="h-4 w-4 shrink-0" />
+                <NavIcon name={item.icon} className="h-4 w-4 shrink-0" />
                 {item.label}
               </Link>
             );
