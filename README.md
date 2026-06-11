@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SchoolHub SA
 
-## Getting Started
+Modern School Management System for South African schools, colleges, TVETs and training centres.
 
-First, run the development server:
+Built by **Cyber Developers** to replace the legacy LMS with a clean, fast, mobile-friendly SaaS platform.
+
+## Features (Phase 1)
+
+- Multi-role authentication (8 roles)
+- Admin dashboard with KPIs and charts
+- Student management with POPIA consent tracking
+- SA ID and phone validation
+- ZAR currency formatting
+- Audit trail for compliance
+- Multi-school SaaS-ready architecture
+
+## Tech Stack
+
+- **Frontend:** Next.js 16, React 19, Tailwind CSS 4
+- **Backend:** Next.js API Routes
+- **Database:** PostgreSQL + Prisma ORM
+- **Auth:** JWT (httpOnly cookies) + bcrypt
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- PostgreSQL 15+
+
+### Setup
 
 ```bash
+# Install dependencies
+npm install
+
+# Copy environment file
+cp .env.example .env
+
+# Start PostgreSQL (Docker)
+docker compose up -d
+
+# Generate Prisma client
+npm run db:generate
+
+# Push schema to database
+npm run db:push
+
+# Seed demo data
+npm run db:seed
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Without Docker, install PostgreSQL 15+ locally and set `DATABASE_URL` in `.env`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Open [http://localhost:3000](http://localhost:3000) and sign in with demo credentials.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Demo Credentials
 
-## Learn More
+| Role | Email | Password |
+|------|-------|----------|
+| School Admin | admin@college.co.za | admin123 |
+| Teacher | lecturer@college.co.za | lecturer123 |
+| Student | student@college.co.za | student123 |
+| Parent | parent@college.co.za | parent123 |
+| Finance | finance@college.co.za | finance123 |
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+docs/           Project plan, database schema, UI structure
+prisma/         Schema, migrations, seed data
+src/
+  app/          Next.js pages and API routes
+  components/   UI, layout, dashboard, feature components
+  lib/          Auth, RBAC, validators, utilities
+  generated/    Prisma client output
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Development Phases
 
-## Deploy on Vercel
+| Phase | Status | Modules |
+|-------|--------|---------|
+| 1 | ✅ In progress | Auth, Admin dashboard, Students |
+| 2 | Planned | Teacher/Student portals, Classes, Attendance |
+| 3 | Planned | Marks, Assessments, Report cards |
+| 4 | Planned | Finance, Invoices, Parent portal |
+| 5 | Planned | Analytics, Notifications, Payment gateways |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+See `docs/PROJECT_PLAN.md` for the full roadmap.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## South African Compliance
+
+- POPIA consent tracking and audit logs
+- 13-digit SA ID validation (Luhn algorithm)
+- 10-digit phone validation (starting with 0)
+- CAPS/NSC grade phases and TVET NQF modules
+- ZAR currency with `en-ZA` locale
+- `Africa/Johannesburg` timezone
+
+## License
+
+Proprietary — Cyber Developers © 2026
