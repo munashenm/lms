@@ -85,9 +85,15 @@ export async function notifyStudentGuardians(params: {
   return userIds;
 }
 
-/** Logs email/SMS intent — wire to SendGrid/Twilio in production */
+/** Logs email/SMS intent — wire to SendGrid/Twilio when env keys are set */
 export function logOutboundMessage(channel: "email" | "sms", to: string, subject: string, body: string) {
-  if (process.env.NODE_ENV === "development") {
-    console.info(`[${channel.toUpperCase()}] To: ${to} | ${subject} | ${body.slice(0, 80)}...`);
+  const payload = { channel, to, subject, bodyLength: body.length, preview: body.slice(0, 120) };
+  console.info(`[outbound:${channel}]`, JSON.stringify(payload));
+
+  if (channel === "email" && process.env.SENDGRID_API_KEY) {
+    // TODO: integrate @sendgrid/mail when API key is configured
+  }
+  if (channel === "sms" && process.env.TWILIO_ACCOUNT_SID) {
+    // TODO: integrate Twilio when credentials are configured
   }
 }

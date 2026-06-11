@@ -5,13 +5,28 @@ import { canAccessAdmin, canAccessFinance } from "@/lib/rbac";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { UserRole } from "@prisma/client";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/apply", "/uploads", "/api/webhooks"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/api/auth/login",
+  "/apply",
+  "/about",
+  "/programmes",
+  "/fees",
+  "/contact",
+  "/uploads",
+  "/api/webhooks",
+  "/api/contact",
+  "/api/applications/status",
+  "/sitemap.xml",
+  "/robots.txt",
+];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (
     PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
+    pathname === "/" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon")
   ) {

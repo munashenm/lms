@@ -69,6 +69,26 @@ The reference LMS at `lms.cyberdevelopers.co.za` informs feature scope only — 
 - [ ] Ozow / Yoco live integration
 - [ ] PDF report exports (CSV done; PDF in future iteration)
 
+### Phase 6 — Public Website & Admissions ✅
+- [x] Public marketing site (`/`, `/about`, `/programmes`, `/fees`, `/contact`)
+- [x] Shared public shell (header, footer, staff login CTA)
+- [x] Application status tracker (`/apply/status` + public API)
+- [x] Email/SMS confirmation on application submit (via `logOutboundMessage`)
+- [x] Status update notifications when admissions changes application status
+- [x] Contact form with outbound email logging
+- [x] Apply page integrated with public navigation
+- [x] SEO metadata, sitemap.xml, robots.txt, branded 404 page
+- [x] Admin admissions polish (waitlist, copy ref, public status link)
+- [x] Structured outbound logging (Railway-ready; SendGrid/Twilio env hooks)
+
+### Phase 7 — Suggested Next
+- [ ] Certificates of completion / graduation documents
+- [ ] Timetable v2 (student view enhancements, room conflicts)
+- [ ] HR leave applications & staff attendance
+- [ ] Full income/expense accounting (beyond student fees)
+- [ ] Live SendGrid/Twilio integration
+- [ ] Ozow / Yoco live payment integration
+
 ---
 
 ## Role Matrix

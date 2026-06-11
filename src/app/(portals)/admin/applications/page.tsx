@@ -27,9 +27,14 @@ export default async function ApplicationsPage() {
             {applications.length} applications · {pending} pending review
           </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/apply" target="_blank">View Public Form</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/apply" target="_blank">Public Form</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/apply/status" target="_blank">Status Tracker</Link>
+          </Button>
+        </div>
       </div>
       <ApplicationReview applications={applications} />
     </div>

@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ROLE_DASHBOARD } from "@/lib/constants";
-import { Building2, Database } from "lucide-react";
+import { Building2, Database, ArrowLeft } from "lucide-react";
 import { APP_NAME, APP_TAGLINE, COMPANY_NAME } from "@/lib/constants";
 import { isDatabaseReachable } from "@/lib/db-health";
 
@@ -69,6 +70,12 @@ export default async function LoginPage() {
             </div>
           )}
           <LoginForm dbReady={dbOk} />
+          <p className="text-center text-sm text-muted">
+            <Link href="/" className="inline-flex items-center gap-1 hover:text-primary">
+              <ArrowLeft className="h-3 w-3" />
+              Back to public site
+            </Link>
+          </p>
         </div>
       </div>
     </div>

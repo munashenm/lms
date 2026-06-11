@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,15 @@ interface School {
   city: string | null;
 }
 
-export function ApplyForm({ schools }: { schools: School[] }) {
+export function ApplyForm({
+  schools,
+  initialSchoolSlug,
+  initialCourse,
+}: {
+  schools: School[];
+  initialSchoolSlug?: string;
+  initialCourse?: string;
+}) {
   const [loading, setLoading] = useState(false);
   const [referenceNo, setReferenceNo] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -60,6 +69,11 @@ export function ApplyForm({ schools }: { schools: School[] }) {
             <p className="text-xs text-muted mt-4">
               Keep this reference number to track your application status.
             </p>
+            <Button variant="outline" className="mt-4" asChild>
+              <Link href={`/apply/status?ref=${encodeURIComponent(referenceNo)}`}>
+                Track Application
+              </Link>
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -75,7 +89,7 @@ export function ApplyForm({ schools }: { schools: School[] }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Institution *</Label>
-            <Select name="schoolSlug" required>
+            <Select name="schoolSlug" required defaultValue={initialSchoolSlug ?? ""}>
               <option value="">Select school/college...</option>
               {schools.map((s) => (
                 <option key={s.slug} value={s.slug}>
@@ -115,7 +129,7 @@ export function ApplyForm({ schools }: { schools: School[] }) {
             </div>
             <div className="space-y-2">
               <Label>Course Applying For</Label>
-              <Input name="courseApplied" placeholder="e.g. Information Technology" />
+              <Input name="courseApplied" placeholder="e.g. Information Technology" defaultValue={initialCourse ?? ""} />
             </div>
           </div>
           <div className="space-y-2">

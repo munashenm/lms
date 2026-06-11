@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { applicationSchema } from "@/lib/validators";
 import { notifySchoolRoles } from "@/lib/notifications";
+import { sendApplicationConfirmation } from "@/lib/application-notify";
 import { UserRole } from "@prisma/client";
 
 export async function GET() {
@@ -64,6 +65,17 @@ export async function POST(request: NextRequest) {
     message: `${parsed.data.firstName} ${parsed.data.lastName} submitted application ${referenceNo}.`,
     type: "ADMISSION",
     link: "/admin/applications",
+  });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin;
+  sendApplicationConfirmation({
+    referenceNo,
+    firstName: parsed.data.firstName,
+    lastName: parsed.data.lastName,
+    email: parsed.data.email,
+    phone: parsed.data.phone,
+    schoolName: school.name,
+    appUrl,
   });
 
   return NextResponse.json({ application, referenceNo }, { status: 201 });
