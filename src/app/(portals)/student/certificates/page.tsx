@@ -7,14 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+type CertificateWithCourse = Prisma.CertificateGetPayload<{
+  include: { course: { select: { name: true } } };
+}>;
 
 export default async function StudentCertificatesPage() {
   const session = await getSession();
   const student = await getStudentForSession(session!);
 
-  let certificates: Awaited<ReturnType<typeof prisma.certificate.findMany>> = [];
+  let certificates: CertificateWithCourse[] = [];
   let loadError: string | null = null;
 
   if (student) {
