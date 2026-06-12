@@ -16,9 +16,10 @@ interface TimetableSlot {
 interface TimetableGridProps {
   slots: TimetableSlot[];
   showClass?: boolean;
+  highlightDay?: string;
 }
 
-export function TimetableGrid({ slots, showClass = false }: TimetableGridProps) {
+export function TimetableGrid({ slots, showClass = false, highlightDay }: TimetableGridProps) {
   if (slots.length === 0) {
     return (
       <Card>
@@ -35,10 +36,13 @@ export function TimetableGrid({ slots, showClass = false }: TimetableGridProps) 
         const daySlots = slots.filter((s) => s.dayOfWeek === day);
         if (daySlots.length === 0) return null;
         return (
-          <Card key={day}>
+          <Card key={day} className={highlightDay === day ? "ring-2 ring-primary/40" : undefined}>
             <CardContent className="p-4">
               <h3 className="font-semibold text-sm mb-3 text-primary">
                 {DAY_LABELS[day]}
+                {highlightDay === day && (
+                  <span className="ml-2 text-xs font-normal text-accent">Today</span>
+                )}
               </h3>
               <div className="space-y-2">
                 {daySlots.map((slot) => (

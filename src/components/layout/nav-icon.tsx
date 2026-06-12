@@ -19,6 +19,7 @@ import {
   Upload,
   Wallet,
   TrendingDown,
+  Palmtree,
   Circle,
   type LucideIcon,
 } from "lucide-react";
@@ -43,6 +44,7 @@ const ICON_MAP: Record<NavIconName, LucideIcon> = {
   Upload,
   Wallet,
   TrendingDown,
+  Palmtree,
 };
 
 interface NavIconProps {

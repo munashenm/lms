@@ -4,6 +4,7 @@ import { getSchoolFilter } from "@/lib/rbac";
 import { Suspense } from "react";
 import { TimetableGrid } from "@/components/academics/timetable-grid";
 import { TimetableForm } from "@/components/academics/timetable-form";
+import { TimetableConflicts } from "@/components/academics/timetable-conflicts";
 import { ClassFilter } from "@/components/academics/class-filter";
 
 interface PageProps {
@@ -51,6 +52,8 @@ export default async function TimetablePage({ searchParams }: PageProps) {
           selectedClassId={selectedClass}
         />
       </Suspense>
+
+      <TimetableConflicts classId={selectedClass} />
 
       <TimetableForm
         classes={classes.map((c) => ({ id: c.id, name: c.name }))}

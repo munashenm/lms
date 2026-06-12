@@ -194,6 +194,36 @@ export const paymentSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const certificateSchema = z.object({
+  studentId: z.string().min(1),
+  type: z.enum(["COMPLETION", "GRADUATION", "MERIT", "ATTENDANCE"]).default("COMPLETION"),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  courseId: z.string().optional(),
+  academicYearId: z.string().optional(),
+});
+
+export const leaveRequestSchema = z.object({
+  type: z.enum(["ANNUAL", "SICK", "FAMILY", "UNPAID", "OTHER"]),
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+  reason: z.string().min(5, "Please provide a reason"),
+});
+
+export const leaveStatusSchema = z.object({
+  status: z.enum(["APPROVED", "REJECTED", "CANCELLED"]),
+  notes: z.string().optional(),
+});
+
+export const ledgerEntrySchema = z.object({
+  type: z.enum(["INCOME", "EXPENSE"]),
+  category: z.string().min(1, "Category is required"),
+  description: z.string().min(1, "Description is required"),
+  amount: z.coerce.number().positive("Amount must be positive"),
+  reference: z.string().optional(),
+  entryDate: z.string().min(1),
+});
+
 export const schoolSettingsSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional().or(z.literal("")),

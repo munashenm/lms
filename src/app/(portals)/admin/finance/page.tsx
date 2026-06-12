@@ -62,6 +62,9 @@ export default async function AdminFinancePage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild>
+            <Link href="/finance/ledger">Income & Expenses</Link>
+          </Button>
+          <Button variant="outline" asChild>
             <Link href="/admin/finance/debtors">Debtors</Link>
           </Button>
           <Button asChild>

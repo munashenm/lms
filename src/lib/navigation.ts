@@ -16,7 +16,8 @@ export type NavIconName =
   | "Award"
   | "Upload"
   | "Wallet"
-  | "TrendingDown";
+  | "TrendingDown"
+  | "Palmtree";
 
 export interface NavItem {
   label: string;
@@ -28,12 +29,14 @@ export const adminNav: NavItem[] = [
   { label: "Dashboard", href: "/admin/dashboard", icon: "LayoutDashboard" },
   { label: "Students", href: "/admin/students", icon: "Users" },
   { label: "Staff", href: "/admin/staff", icon: "UserCheck" },
+  { label: "Leave", href: "/admin/leave", icon: "Palmtree" },
   { label: "Classes", href: "/admin/classes", icon: "GraduationCap" },
   { label: "Subjects", href: "/admin/subjects", icon: "BookOpen" },
   { label: "Timetable", href: "/admin/timetable", icon: "Calendar" },
   { label: "Attendance", href: "/admin/attendance", icon: "ClipboardCheck" },
   { label: "Assessments", href: "/admin/assessments", icon: "FileText" },
   { label: "Report Cards", href: "/admin/report-cards", icon: "Award" },
+  { label: "Certificates", href: "/admin/certificates", icon: "Award" },
   { label: "Applications", href: "/admin/applications", icon: "ClipboardList" },
   { label: "Finance", href: "/admin/finance", icon: "CreditCard" },
   { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
@@ -48,6 +51,7 @@ export const teacherNav: NavItem[] = [
   { label: "Assessments", href: "/teacher/assessments", icon: "FileText" },
   { label: "Timetable", href: "/teacher/timetable", icon: "Calendar" },
   { label: "Attendance", href: "/teacher/attendance", icon: "ClipboardCheck" },
+  { label: "My Leave", href: "/teacher/leave", icon: "Palmtree" },
   { label: "Materials", href: "/teacher/materials", icon: "Upload" },
   { label: "Announcements", href: "/teacher/announcements", icon: "Megaphone" },
 ];
@@ -57,6 +61,7 @@ export const studentNav: NavItem[] = [
   { label: "Results", href: "/student/results", icon: "Award" },
   { label: "Assignments", href: "/student/assignments", icon: "FileText" },
   { label: "Report Cards", href: "/student/report-cards", icon: "Award" },
+  { label: "Certificates", href: "/student/certificates", icon: "Award" },
   { label: "Fees", href: "/student/fees", icon: "CreditCard" },
   { label: "Timetable", href: "/student/timetable", icon: "Calendar" },
   { label: "Subjects", href: "/student/subjects", icon: "BookOpen" },
@@ -70,6 +75,7 @@ export const financeNav: NavItem[] = [
   { label: "Invoices", href: "/finance/invoices", icon: "FileText" },
   { label: "Payments", href: "/finance/payments", icon: "Wallet" },
   { label: "Debtors", href: "/finance/debtors", icon: "TrendingDown" },
+  { label: "Ledger", href: "/finance/ledger", icon: "Wallet" },
 ];
 
 export const parentNav: NavItem[] = [

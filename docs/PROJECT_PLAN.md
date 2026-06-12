@@ -81,11 +81,12 @@ The reference LMS at `lms.cyberdevelopers.co.za` informs feature scope only — 
 - [x] Admin admissions polish (waitlist, copy ref, public status link)
 - [x] Structured outbound logging (Railway-ready; SendGrid/Twilio env hooks)
 
-### Phase 7 — Suggested Next
-- [ ] Certificates of completion / graduation documents
-- [ ] Timetable v2 (student view enhancements, room conflicts)
-- [ ] HR leave applications & staff attendance
-- [ ] Full income/expense accounting (beyond student fees)
+### Phase 7 — Certificates, HR & Accounting ✅
+- [x] Certificates of completion / graduation (PDF + admin issue + student download)
+- [x] Timetable v2 (conflict detection, today view for students)
+- [x] HR leave applications (teacher submit, admin approve/reject)
+- [x] General ledger — income & expenses (`/finance/ledger`)
+- [ ] Staff attendance tracking
 - [ ] Live SendGrid/Twilio integration
 - [ ] Ozow / Yoco live payment integration
 

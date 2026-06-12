@@ -35,7 +35,15 @@ export function TimetableForm({ classes, subjects, teachers, defaultClassId }: T
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(Object.fromEntries(form.entries())),
       });
-      if (!res.ok) throw new Error();
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.conflicts?.length) {
+          toast.error(data.conflicts[0].message ?? "Timetable conflict");
+        } else {
+          toast.error(data.message ?? "Failed to add slot");
+        }
+        return;
+      }
       toast.success("Timetable slot added");
       router.refresh();
       (e.target as HTMLFormElement).reset();
