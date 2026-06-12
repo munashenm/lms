@@ -88,7 +88,7 @@ The reference LMS at `lms.cyberdevelopers.co.za` informs feature scope only — 
 - [x] All staff can apply for leave (`/staff/leave`) — teachers, finance, admissions, admin
 - [x] Sick note upload required for sick leave (PDF/image, max 5 MB)
 - [x] General ledger — income & expenses (`/finance/ledger`)
-- [ ] Staff attendance tracking
+- [x] Staff attendance tracking (`/admin/staff-attendance`, `/staff/attendance` self check-in)
 - [ ] Live SendGrid/Twilio integration
 - [ ] Ozow / Yoco live payment integration
 

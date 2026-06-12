@@ -7,6 +7,7 @@ import { ROLE_DASHBOARD } from "@/lib/constants";
 import type { NavItem } from "@/lib/navigation";
 
 const staffLeaveNav: NavItem[] = [
+  { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
   { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
 ];
 

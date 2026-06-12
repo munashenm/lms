@@ -101,6 +101,23 @@ export const attendanceBulkSchema = z.object({
   ),
 });
 
+export const staffAttendanceBulkSchema = z.object({
+  date: z.string().min(1),
+  records: z.array(
+    z.object({
+      userId: z.string().min(1),
+      status: z.enum(["PRESENT", "ABSENT", "LATE", "ON_LEAVE", "REMOTE"]),
+      checkIn: z.string().optional(),
+      notes: z.string().optional(),
+    })
+  ).min(1),
+});
+
+export const staffAttendanceSelfSchema = z.object({
+  status: z.enum(["PRESENT", "LATE", "REMOTE"]),
+  notes: z.string().optional(),
+});
+
 export const announcementSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
   content: z.string().min(1, "Content is required"),

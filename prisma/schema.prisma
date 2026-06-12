@@ -65,6 +65,14 @@ enum AttendanceStatus {
   EXCUSED
 }
 
+enum StaffAttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  ON_LEAVE
+  REMOTE
+}
+
 enum InvoiceStatus {
   DRAFT
   SENT
@@ -220,6 +228,7 @@ model School {
   certificates    Certificate[]
   leaveRequests   LeaveRequest[]
   ledgerEntries   LedgerEntry[]
+  staffAttendance StaffAttendanceRecord[]
 
   @@index([slug])
   @@map("schools")
@@ -280,6 +289,8 @@ model User {
   leaveReviews       LeaveRequest[] @relation("LeaveReviewer")
   leaveApplications  LeaveRequest[] @relation("LeaveApplicant")
   ledgerEntries      LedgerEntry[]  @relation("LedgerRecorder")
+  staffAttendance    StaffAttendanceRecord[] @relation("StaffAttendanceUser")
+  staffAttendanceMarked StaffAttendanceRecord[] @relation("StaffAttendanceMarker")
 
   @@index([schoolId])
   @@index([role])
@@ -973,6 +984,30 @@ model LeaveRequest {
   @@index([teacherId])
   @@index([userId])
   @@map("leave_requests")
+}
+
+// ─── Staff Attendance ────────────────────────────────────────────────────────
+
+model StaffAttendanceRecord {
+  id         String                @id @default(cuid())
+  schoolId   String
+  userId     String
+  date       DateTime              @db.Date
+  status     StaffAttendanceStatus @default(PRESENT)
+  checkIn    String?
+  checkOut   String?
+  notes      String?
+  markedById String?
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+
+  school     School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user       User   @relation("StaffAttendanceUser", fields: [userId], references: [id], onDelete: Cascade)
+  markedBy   User?  @relation("StaffAttendanceMarker", fields: [markedById], references: [id])
+
+  @@unique([userId, date])
+  @@index([schoolId, date])
+  @@map("staff_attendance_records")
 }
 
 // ─── General Ledger (Income & Expenses) ──────────────────────────────────────
