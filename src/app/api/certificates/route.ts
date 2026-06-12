@@ -5,7 +5,8 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { certificateSchema } from "@/lib/validators";
-import { generateCertificatePdf, CERTIFICATE_TYPE_LABELS } from "@/lib/pdf-certificate";
+import { generateCertificatePdf } from "@/lib/pdf-certificate";
+import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();

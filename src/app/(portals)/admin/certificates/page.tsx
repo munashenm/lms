@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { CERTIFICATE_TYPE_LABELS } from "@/lib/pdf-certificate";
+import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
 
 export default async function CertificatesPage() {
   const session = await getSession();

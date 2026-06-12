@@ -76,10 +76,3 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
 
   return doc.save();
 }
-
-export const CERTIFICATE_TYPE_LABELS: Record<string, string> = {
-  COMPLETION: "Completion",
-  GRADUATION: "Graduation",
-  MERIT: "Merit",
-  ATTENDANCE: "Attendance",
-};

@@ -6,19 +6,28 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { CERTIFICATE_TYPE_LABELS } from "@/lib/pdf-certificate";
+import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
+
+export const dynamic = "force-dynamic";
 
 export default async function StudentCertificatesPage() {
   const session = await getSession();
   const student = await getStudentForSession(session!);
 
-  const certificates = student
-    ? await prisma.certificate.findMany({
+  let certificates: Awaited<ReturnType<typeof prisma.certificate.findMany>> = [];
+  let loadError: string | null = null;
+
+  if (student) {
+    try {
+      certificates = await prisma.certificate.findMany({
         where: { studentId: student.id },
         include: { course: { select: { name: true } } },
         orderBy: { issuedAt: "desc" },
-      })
-    : [];
+      });
+    } catch {
+      loadError = "Certificates are temporarily unavailable. Please try again shortly.";
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -27,7 +36,17 @@ export default async function StudentCertificatesPage() {
         <p className="text-muted text-sm mt-1">Download your issued certificates</p>
       </div>
 
-      {certificates.length === 0 ? (
+      {loadError ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted">{loadError}</CardContent>
+        </Card>
+      ) : !student ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted">
+            Your student profile could not be loaded.
+          </CardContent>
+        </Card>
+      ) : certificates.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted">
             No certificates issued to you yet.
