@@ -30,6 +30,7 @@ export const adminNav: NavItem[] = [
   { label: "Students", href: "/admin/students", icon: "Users" },
   { label: "Staff", href: "/admin/staff", icon: "UserCheck" },
   { label: "Leave", href: "/admin/leave", icon: "Palmtree" },
+  { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
   { label: "Classes", href: "/admin/classes", icon: "GraduationCap" },
   { label: "Subjects", href: "/admin/subjects", icon: "BookOpen" },
   { label: "Timetable", href: "/admin/timetable", icon: "Calendar" },
@@ -51,7 +52,7 @@ export const teacherNav: NavItem[] = [
   { label: "Assessments", href: "/teacher/assessments", icon: "FileText" },
   { label: "Timetable", href: "/teacher/timetable", icon: "Calendar" },
   { label: "Attendance", href: "/teacher/attendance", icon: "ClipboardCheck" },
-  { label: "My Leave", href: "/teacher/leave", icon: "Palmtree" },
+  { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
   { label: "Materials", href: "/teacher/materials", icon: "Upload" },
   { label: "Announcements", href: "/teacher/announcements", icon: "Megaphone" },
 ];
@@ -76,6 +77,7 @@ export const financeNav: NavItem[] = [
   { label: "Payments", href: "/finance/payments", icon: "Wallet" },
   { label: "Debtors", href: "/finance/debtors", icon: "TrendingDown" },
   { label: "Ledger", href: "/finance/ledger", icon: "Wallet" },
+  { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
 ];
 
 export const parentNav: NavItem[] = [

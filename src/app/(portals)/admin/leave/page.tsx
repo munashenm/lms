@@ -10,6 +10,7 @@ export default async function AdminLeavePage() {
   const leaveRequests = await prisma.leaveRequest.findMany({
     where: filter,
     include: {
+      applicant: { select: { firstName: true, lastName: true, role: true, email: true } },
       teacher: { select: { firstName: true, lastName: true, employeeNumber: true, department: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -23,6 +24,9 @@ export default async function AdminLeavePage() {
         <h1 className="text-2xl font-bold">Staff Leave</h1>
         <p className="text-muted text-sm mt-1">
           {leaveRequests.length} requests · {pending} pending approval
+        </p>
+        <p className="text-xs text-muted mt-1">
+          Staff apply at <a href="/staff/leave" className="text-primary hover:underline">/staff/leave</a>
         </p>
       </div>
       <LeaveReview leaveRequests={leaveRequests} admin />

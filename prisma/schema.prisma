@@ -278,6 +278,7 @@ model User {
   notifications Notification[]
   certificatesIssued Certificate[] @relation("CertificateIssuer")
   leaveReviews       LeaveRequest[] @relation("LeaveReviewer")
+  leaveApplications  LeaveRequest[] @relation("LeaveApplicant")
   ledgerEntries      LedgerEntry[]  @relation("LedgerRecorder")
 
   @@index([schoolId])
@@ -945,27 +946,32 @@ model Certificate {
 // ─── HR & Leave ──────────────────────────────────────────────────────────────
 
 model LeaveRequest {
-  id           String      @id @default(cuid())
-  schoolId     String
-  teacherId    String
-  type         LeaveType
-  status       LeaveStatus @default(PENDING)
-  startDate    DateTime
-  endDate      DateTime
-  days         Decimal     @db.Decimal(4, 1)
-  reason       String
-  notes        String?
-  reviewedById String?
-  reviewedAt   DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id               String      @id @default(cuid())
+  schoolId         String
+  userId           String
+  teacherId        String?
+  type             LeaveType
+  status           LeaveStatus @default(PENDING)
+  startDate        DateTime
+  endDate          DateTime
+  days             Decimal     @db.Decimal(4, 1)
+  reason           String
+  notes            String?
+  sickNoteUrl      String?
+  sickNoteFilename String?
+  reviewedById     String?
+  reviewedAt       DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
-  school       School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  teacher      Teacher     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  reviewedBy   User?       @relation("LeaveReviewer", fields: [reviewedById], references: [id])
+  school           School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  applicant        User        @relation("LeaveApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  teacher          Teacher?    @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  reviewedBy       User?       @relation("LeaveReviewer", fields: [reviewedById], references: [id])
 
   @@index([schoolId, status])
   @@index([teacherId])
+  @@index([userId])
   @@map("leave_requests")
 }
 

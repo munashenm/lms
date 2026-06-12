@@ -85,6 +85,8 @@ The reference LMS at `lms.cyberdevelopers.co.za` informs feature scope only — 
 - [x] Certificates of completion / graduation (PDF + admin issue + student download)
 - [x] Timetable v2 (conflict detection, today view for students)
 - [x] HR leave applications (teacher submit, admin approve/reject)
+- [x] All staff can apply for leave (`/staff/leave`) — teachers, finance, admissions, admin
+- [x] Sick note upload required for sick leave (PDF/image, max 5 MB)
 - [x] General ledger — income & expenses (`/finance/ledger`)
 - [ ] Staff attendance tracking
 - [ ] Live SendGrid/Twilio integration

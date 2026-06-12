@@ -42,7 +42,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     },
   });
 
-  if (parsed.data.status === "APPROVED") {
+  if (parsed.data.status === "APPROVED" && existing.teacherId) {
     const now = new Date();
     if (existing.startDate <= now && existing.endDate >= now) {
       await prisma.teacher.update({

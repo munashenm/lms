@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { getSessionFromRequest } from "@/lib/auth";
 import { canAccessAdmin, canAccessFinance } from "@/lib/rbac";
 import { ROLE_DASHBOARD } from "@/lib/constants";
+import { canApplyForLeave } from "@/lib/staff-leave";
 import { UserRole } from "@prisma/client";
 
 const PUBLIC_PATHS = [
@@ -66,6 +67,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/parent") && session.role !== UserRole.PARENT && session.role !== UserRole.SUPER_ADMIN) {
+    return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
+  }
+
+  if (pathname.startsWith("/staff") && !canApplyForLeave(session.role)) {
     return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
   }
 
