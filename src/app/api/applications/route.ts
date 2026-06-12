@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin;
-  sendApplicationConfirmation({
+  await sendApplicationConfirmation({
     referenceNo,
     firstName: parsed.data.firstName,
     lastName: parsed.data.lastName,

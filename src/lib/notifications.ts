@@ -1,5 +1,6 @@
 import { NotificationType, UserRole } from "@prisma/client";
 import { prisma } from "./db";
+import { sendEmailViaSendGrid, sendSmsViaTwilio } from "./outbound-messaging";
 
 interface NotifyUserParams {
   userId: string;
@@ -85,15 +86,31 @@ export async function notifyStudentGuardians(params: {
   return userIds;
 }
 
-/** Logs email/SMS intent — wire to SendGrid/Twilio when env keys are set */
-export function logOutboundMessage(channel: "email" | "sms", to: string, subject: string, body: string) {
+/** Sends email/SMS when credentials are configured; always logs intent for Railway diagnostics */
+export async function sendOutboundMessage(
+  channel: "email" | "sms",
+  to: string,
+  subject: string,
+  body: string
+) {
   const payload = { channel, to, subject, bodyLength: body.length, preview: body.slice(0, 120) };
   console.info(`[outbound:${channel}]`, JSON.stringify(payload));
 
-  if (channel === "email" && process.env.SENDGRID_API_KEY) {
-    // TODO: integrate @sendgrid/mail when API key is configured
-  }
-  if (channel === "sms" && process.env.TWILIO_ACCOUNT_SID) {
-    // TODO: integrate Twilio when credentials are configured
+  try {
+    if (channel === "email" && process.env.SENDGRID_API_KEY) {
+      const result = await sendEmailViaSendGrid(to, subject, body);
+      if (result.sent) console.info(`[outbound:email] delivered to ${to}`);
+      return;
+    }
+    if (channel === "sms" && process.env.TWILIO_ACCOUNT_SID) {
+      const result = await sendSmsViaTwilio(to, body);
+      if (result.sent) console.info(`[outbound:sms] delivered to ${to}`);
+      return;
+    }
+  } catch (err) {
+    console.error(`[outbound:${channel}] delivery failed`, err);
   }
 }
+
+/** @deprecated Use sendOutboundMessage */
+export const logOutboundMessage = sendOutboundMessage;

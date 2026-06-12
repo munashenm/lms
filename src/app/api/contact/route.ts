@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { logOutboundMessage } from "@/lib/notifications";
+import { sendOutboundMessage } from "@/lib/notifications";
 import { getFeaturedSchool } from "@/lib/public-site";
 
 const contactSchema = z.object({
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   const to = school?.email ?? "admissions@schoolhub.local";
   const { name, email, subject, message } = parsed.data;
 
-  logOutboundMessage(
+  await sendOutboundMessage(
     "email",
     to,
     `[Contact] ${subject}`,

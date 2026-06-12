@@ -41,7 +41,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   });
 
   if (existing.status !== parsed.data.status) {
-    sendApplicationStatusUpdate({
+    await sendApplicationStatusUpdate({
       email: existing.email,
       phone: existing.phone,
       firstName: existing.firstName,

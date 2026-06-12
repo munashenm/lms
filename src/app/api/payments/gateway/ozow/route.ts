@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPayFastPayment, isPayFastConfigured } from "@/lib/payment-gateways/payfast";
+import { createOzowPayment, isOzowConfigured } from "@/lib/payment-gateways/ozow";
 import { authorizeInvoiceForPayment } from "@/lib/payment-gateways/invoice-auth";
 
 export async function POST(request: NextRequest) {
@@ -7,20 +7,19 @@ export async function POST(request: NextRequest) {
   const auth = await authorizeInvoiceForPayment(invoiceId);
   if ("error" in auth) return auth.error;
 
-  if (!isPayFastConfigured()) {
+  if (!isOzowConfigured()) {
     return NextResponse.json({
       configured: false,
-      message: "PayFast is not configured. Set PAYFAST_MERCHANT_ID, PAYFAST_MERCHANT_KEY and PAYFAST_PASSPHRASE in .env",
-      sandboxHint: "Use sandbox credentials from payfast.co.za for testing",
+      message:
+        "Ozow is not configured. Set OZOW_SITE_CODE and OZOW_PRIVATE_KEY in .env",
+      sandboxHint: "Use staging credentials from dash.ozow.com for testing",
     });
   }
 
-  const result = createPayFastPayment({
+  const result = createOzowPayment({
     invoiceId: auth.invoice.id,
     invoiceNumber: auth.invoice.invoiceNumber,
     amount: auth.outstanding,
-    studentEmail: auth.invoice.student.email ?? undefined,
-    studentName: `${auth.invoice.student.firstName} ${auth.invoice.student.lastName}`,
   });
 
   return NextResponse.json(result);

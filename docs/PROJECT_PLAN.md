@@ -65,7 +65,7 @@ The reference LMS at `lms.cyberdevelopers.co.za` informs feature scope only — 
 - [x] PayFast gateway stub + ITN webhook
 - [x] Real dashboard chart data from database
 - [x] Multi-school overview for Super Admin settings
-- [ ] Live email/SMS (SendGrid/Twilio) — wire `logOutboundMessage` in production
+- [ ] Live email/SMS (SendGrid/Twilio) — set env keys on Railway (integration wired)
 - [ ] Ozow / Yoco live integration
 - [ ] PDF report exports (CSV done; PDF in future iteration)
 
@@ -89,8 +89,8 @@ The reference LMS at `lms.cyberdevelopers.co.za` informs feature scope only — 
 - [x] Sick note upload required for sick leave (PDF/image, max 5 MB)
 - [x] General ledger — income & expenses (`/finance/ledger`)
 - [x] Staff attendance tracking (`/admin/staff-attendance`, `/staff/attendance` self check-in)
-- [ ] Live SendGrid/Twilio integration
-- [ ] Ozow / Yoco live payment integration
+- [x] Live SendGrid/Twilio integration (fetch-based; set env keys on Railway)
+- [x] Ozow / Yoco live payment integration (redirect checkout + webhooks)
 
 ---
 

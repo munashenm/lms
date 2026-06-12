@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { deriveInvoiceStatus } from "@/lib/finance";
-import { notifyUser, notifySchoolRoles } from "@/lib/notifications";
-import { UserRole } from "@prisma/client";
+import { recordGatewayPayment } from "@/lib/payment-gateways/record-payment";
 
 /** PayFast ITN webhook — records payment when gateway confirms */
 export async function POST(request: NextRequest) {
@@ -16,59 +13,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId },
-    include: { student: { select: { userId: true, firstName: true, lastName: true } } },
-  });
-
-  if (!invoice) {
-    return NextResponse.json({ received: true });
-  }
-
-  const existing = await prisma.payment.findFirst({
-    where: { reference: pfPaymentId ?? undefined, invoiceId },
-  });
-  if (existing) {
-    return NextResponse.json({ received: true });
-  }
-
-  const newAmountPaid = Number(invoice.amountPaid) + amount;
-  const total = Number(invoice.total);
-
-  await prisma.payment.create({
-    data: {
-      invoiceId,
-      amount,
-      method: "PAYFAST",
-      reference: pfPaymentId ?? `PF-${Date.now()}`,
-      notes: "PayFast ITN",
-    },
-  });
-
-  const newStatus = deriveInvoiceStatus(total, newAmountPaid, invoice.dueDate, invoice.status);
-  await prisma.invoice.update({
-    where: { id: invoiceId },
-    data: { amountPaid: newAmountPaid, status: newStatus },
-  });
-
-  if (invoice.student.userId) {
-    await notifyUser({
-      userId: invoice.student.userId,
-      schoolId: invoice.schoolId,
-      title: "Payment received",
-      message: `Your payment of R${amount.toFixed(2)} for ${invoice.invoiceNumber} was successful.`,
-      type: "FEE",
-      link: `/student/fees/${invoiceId}`,
-    });
-  }
-
-  await notifySchoolRoles({
-    schoolId: invoice.schoolId,
-    roles: [UserRole.FINANCE_OFFICER, UserRole.SCHOOL_ADMIN],
-    title: "PayFast payment",
-    message: `${invoice.student.firstName} ${invoice.student.lastName} paid R${amount.toFixed(2)} via PayFast.`,
-    type: "FEE",
-    link: `/finance/invoices/${invoiceId}`,
+  await recordGatewayPayment({
+    invoiceId,
+    amount,
+    method: "PAYFAST",
+    reference: pfPaymentId ?? `PF-${Date.now()}`,
+    notes: "PayFast ITN",
   });
 
   return NextResponse.json({ received: true });
