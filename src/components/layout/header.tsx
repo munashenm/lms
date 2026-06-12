@@ -1,6 +1,7 @@
 "use client";
 
-import { Menu, LogOut } from "lucide-react";
+import Link from "next/link";
+import { Menu, LogOut, KeyRound } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,11 @@ export function Header({ user, onMenuClick, title }: HeaderProps) {
             </p>
             <p className="text-xs text-muted">{ROLE_LABELS[user.role]}</p>
           </div>
+          <Button variant="ghost" size="icon" asChild title="Change password">
+            <Link href="/account/password">
+              <KeyRound className="h-4 w-4" />
+            </Link>
+          </Button>
           <Button variant="ghost" size="icon" onClick={handleLogout} title="Sign out">
             <LogOut className="h-4 w-4" />
           </Button>

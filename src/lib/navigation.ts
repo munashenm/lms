@@ -44,6 +44,7 @@ export const adminNav: NavItem[] = [
   { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
   { label: "Documents", href: "/admin/documents", icon: "FolderOpen" },
   { label: "Reports", href: "/admin/reports", icon: "BarChart3" },
+  { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
   { label: "Settings", href: "/admin/settings", icon: "Settings" },
 ];
 

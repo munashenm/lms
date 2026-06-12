@@ -8,7 +8,11 @@ import { UserRole } from "@prisma/client";
 
 const PUBLIC_PATHS = [
   "/login",
+  "/forgot-password",
+  "/reset-password",
   "/api/auth/login",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
   "/apply",
   "/about",
   "/programmes",

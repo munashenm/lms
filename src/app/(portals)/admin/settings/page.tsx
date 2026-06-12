@@ -80,7 +80,10 @@ export default async function SettingsPage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      <SchoolSettingsForm school={school} />
+      <SchoolSettingsForm
+        school={school}
+        manageSchoolId={isSuperAdminView ? school.id : undefined}
+      />
 
       <IntegrationSettingsForm schoolId={school.id} schoolName={school.name} />
 

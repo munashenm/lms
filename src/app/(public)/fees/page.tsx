@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getFeaturedSchool } from "@/lib/public-site";
+import { getPublicPaymentOptions } from "@/lib/school-integrations";
 import { publicPageMetadata } from "@/lib/site-metadata";
 
 export const metadata = publicPageMetadata("Fees & Funding", "Fee schedule, payment options and bursary information.");
@@ -18,6 +19,13 @@ const FEE_ITEMS = [
 
 export default async function FeesPage() {
   const school = await getFeaturedSchool();
+  const paymentOptions = school?.id
+    ? await getPublicPaymentOptions(school.id)
+    : [
+        "EFT / bank transfer",
+        "Cash at finance office",
+        "Payment plans available on request",
+      ];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 lg:px-6 space-y-10">
@@ -59,11 +67,13 @@ export default async function FeesPage() {
           <CardContent className="p-6 space-y-3">
             <h2 className="font-semibold">Payment options</h2>
             <ul className="text-sm text-muted space-y-2 list-disc list-inside">
-              <li>EFT / bank transfer</li>
-              <li>Cash at finance office</li>
-              <li>PayFast online (coming soon)</li>
-              <li>Payment plans available on request</li>
+              {paymentOptions.map((option) => (
+                <li key={option}>{option}</li>
+              ))}
             </ul>
+            <p className="text-xs text-muted pt-1">
+              Enrolled students can pay invoices online from the student portal when gateways are enabled.
+            </p>
           </CardContent>
         </Card>
         <Card>

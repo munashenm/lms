@@ -383,3 +383,15 @@ export function isTwilioReady(config: ResolvedIntegrations) {
       config.twilio.fromNumber
   );
 }
+
+export async function getPublicPaymentOptions(schoolId: string): Promise<string[]> {
+  const config = await getResolvedIntegrations(schoolId);
+  const options = ["EFT / bank transfer", "Cash at finance office"];
+
+  if (isPayFastReady(config)) options.push("PayFast online");
+  if (isOzowReady(config)) options.push("Ozow instant EFT");
+  if (isYocoReady(config)) options.push("Yoco card payments");
+
+  options.push("Payment plans available on request");
+  return options;
+}

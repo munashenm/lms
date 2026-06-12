@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { schoolSettingsSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
+import { resolveSettingsSchoolId } from "@/lib/school-integrations";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!requirePermission(session, "settings:read")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
-  const filter = getSchoolFilter(session!);
-  if (!("schoolId" in filter)) {
+  const schoolId = resolveSettingsSchoolId(
+    session!,
+    request.nextUrl.searchParams.get("schoolId")
+  );
+
+  if (!schoolId) {
     const schools = await prisma.school.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
@@ -21,7 +26,7 @@ export async function GET() {
   }
 
   const school = await prisma.school.findUnique({
-    where: { id: filter.schoolId },
+    where: { id: schoolId },
     include: { campuses: { where: { isActive: true }, orderBy: { name: "asc" } } },
   });
 
@@ -38,24 +43,28 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
-  const filter = getSchoolFilter(session!);
-  if (!("schoolId" in filter)) {
+  const body = await request.json();
+  const schoolId = resolveSettingsSchoolId(
+    session!,
+    body.schoolId ?? request.nextUrl.searchParams.get("schoolId")
+  );
+
+  if (!schoolId) {
     return NextResponse.json({ message: "School context required" }, { status: 400 });
   }
 
-  const body = await request.json();
   const parsed = schoolSettingsSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ message: "Invalid data", errors: parsed.error.issues }, { status: 400 });
   }
 
   const school = await prisma.school.update({
-    where: { id: filter.schoolId },
+    where: { id: schoolId },
     data: parsed.data,
   });
 
   await logAudit({
-    schoolId: filter.schoolId,
+    schoolId,
     userId: session!.userId,
     action: "UPDATE",
     entity: "School",

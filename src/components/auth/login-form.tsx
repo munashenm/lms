@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,12 @@ export function LoginForm({ dbReady = true }: LoginFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              <Link href="/forgot-password" className="text-xs text-primary hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <Input
               id="password"
               type="password"

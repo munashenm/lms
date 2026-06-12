@@ -65,9 +65,9 @@ The reference LMS at `lms.cyberdevelopers.co.za` informs feature scope only — 
 - [x] PayFast gateway stub + ITN webhook
 - [x] Real dashboard chart data from database
 - [x] Multi-school overview for Super Admin settings
-- [ ] Live email/SMS (SendGrid/Twilio) — set env keys on Railway (integration wired)
-- [ ] Ozow / Yoco live integration
-- [ ] PDF report exports (CSV done; PDF in future iteration)
+- [x] Live email/SMS (SendGrid/Twilio) — configure per school in Admin → Settings → Integrations
+- [x] Ozow / Yoco live integration — configure per school in Admin → Settings → Integrations
+- [x] PDF report exports (attendance, academic, finance, admissions)
 
 ### Phase 6 — Public Website & Admissions ✅
 - [x] Public marketing site (`/`, `/about`, `/programmes`, `/fees`, `/contact`)
@@ -90,7 +90,13 @@ The reference LMS at `lms.cyberdevelopers.co.za` informs feature scope only — 
 - [x] General ledger — income & expenses (`/finance/ledger`)
 - [x] Staff attendance tracking (`/admin/staff-attendance`, `/staff/attendance` self check-in)
 - [x] Live SendGrid/Twilio integration (fetch-based; set env keys on Railway)
-- [x] Ozow / Yoco live payment integration (redirect checkout + webhooks)
+- [x] Per-school integration settings UI (SendGrid, Twilio, PayFast, Ozow, Yoco)
+
+### Phase 8 — Security & Compliance ✅
+- [x] Forgot password flow (email reset link via SendGrid)
+- [x] Reset password page (`/reset-password?token=`)
+- [x] Change password for signed-in users (`/account/password`)
+- [x] POPIA audit log viewer (`/admin/audit`)
 
 ---
 

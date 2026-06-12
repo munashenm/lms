@@ -75,6 +75,7 @@ export function IntegrationSettingsForm({
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<PublicIntegrationSettings | null>(null);
   const [formKey, setFormKey] = useState(0);
+  const [testing, setTesting] = useState<"email" | "sms" | null>(null);
 
   useEffect(() => {
     fetch(`/api/school/integrations?schoolId=${encodeURIComponent(schoolId)}`)
@@ -83,6 +84,31 @@ export function IntegrationSettingsForm({
       .catch(() => toast.error("Could not load integration settings"))
       .finally(() => setLoading(false));
   }, [schoolId]);
+
+  async function sendTest(channel: "email" | "sms", to: string) {
+    if (!to.trim()) {
+      toast.error(`Enter a ${channel === "email" ? "test email address" : "test phone number"}`);
+      return;
+    }
+    setTesting(channel);
+    try {
+      const res = await fetch(
+        `/api/school/integrations/test?schoolId=${encodeURIComponent(schoolId)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ schoolId, channel, to: to.trim() }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Test failed");
+      toast.success(channel === "email" ? "Test email sent" : "Test SMS sent");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Test delivery failed");
+    } finally {
+      setTesting(null);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -200,6 +226,24 @@ export function IntegrationSettingsForm({
               />
             </div>
           </div>
+          <div className="flex flex-wrap gap-2 items-end pt-2 border-t border-border">
+            <div className="space-y-2 flex-1 min-w-[200px]">
+              <Label htmlFor="testEmailTo">Send test email to</Label>
+              <Input id="testEmailTo" name="testEmailTo" type="email" placeholder="you@example.com" />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={testing !== null}
+              onClick={() => {
+                const input = document.getElementById("testEmailTo") as HTMLInputElement | null;
+                void sendTest("email", input?.value ?? "");
+              }}
+            >
+              {testing === "email" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send test"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -219,6 +263,24 @@ export function IntegrationSettingsForm({
               defaultValue={settings.twilio.fromNumber}
               placeholder="+27821234567"
             />
+          </div>
+          <div className="flex flex-wrap gap-2 items-end pt-2 border-t border-border">
+            <div className="space-y-2 flex-1 min-w-[200px]">
+              <Label htmlFor="testSmsTo">Send test SMS to</Label>
+              <Input id="testSmsTo" name="testSmsTo" placeholder="0821234567" />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={testing !== null}
+              onClick={() => {
+                const input = document.getElementById("testSmsTo") as HTMLInputElement | null;
+                void sendTest("sms", input?.value ?? "");
+              }}
+            >
+              {testing === "sms" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send test"}
+            </Button>
           </div>
         </CardContent>
       </Card>

@@ -267,6 +267,8 @@ model User {
   schoolId     String?
   email        String    @unique
   passwordHash String
+  passwordResetTokenHash String?
+  passwordResetExpires   DateTime?
   firstName    String
   lastName     String
   phone        String?

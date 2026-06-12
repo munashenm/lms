@@ -37,7 +37,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
       <div>
         <h1 className="text-2xl font-bold">Reports</h1>
         <p className="text-muted text-sm mt-1">
-          Performance, attendance, fee and admissions analytics with CSV export
+          Performance, attendance, fee and admissions analytics with CSV and PDF export
         </p>
       </div>
 

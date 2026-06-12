@@ -27,9 +27,10 @@ interface SchoolData {
 
 interface SchoolSettingsFormProps {
   school: SchoolData;
+  manageSchoolId?: string;
 }
 
-export function SchoolSettingsForm({ school }: SchoolSettingsFormProps) {
+export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -39,22 +40,28 @@ export function SchoolSettingsForm({ school }: SchoolSettingsFormProps) {
     const form = new FormData(e.currentTarget);
 
     try {
-      const res = await fetch("/api/school", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.get("name"),
-          email: form.get("email") || "",
-          phone: form.get("phone") || undefined,
-          website: form.get("website") || "",
-          address: form.get("address") || undefined,
-          city: form.get("city") || undefined,
-          province: form.get("province") || undefined,
-          postalCode: form.get("postalCode") || undefined,
-          registrationNo: form.get("registrationNo") || undefined,
-          popiaConsentText: form.get("popiaConsentText") || undefined,
-        }),
-      });
+      const res = await fetch(
+        manageSchoolId
+          ? `/api/school?schoolId=${encodeURIComponent(manageSchoolId)}`
+          : "/api/school",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...(manageSchoolId ? { schoolId: manageSchoolId } : {}),
+            name: form.get("name"),
+            email: form.get("email") || "",
+            phone: form.get("phone") || undefined,
+            website: form.get("website") || "",
+            address: form.get("address") || undefined,
+            city: form.get("city") || undefined,
+            province: form.get("province") || undefined,
+            postalCode: form.get("postalCode") || undefined,
+            registrationNo: form.get("registrationNo") || undefined,
+            popiaConsentText: form.get("popiaConsentText") || undefined,
+          }),
+        }
+      );
       if (!res.ok) throw new Error();
       toast.success("Settings saved");
       router.refresh();

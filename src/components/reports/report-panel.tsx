@@ -34,12 +34,20 @@ export function ReportPanel({
           <h2 className="text-lg font-semibold">{title}</h2>
           <p className="text-sm text-muted">{description}</p>
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <a href={`/api/reports/${exportType}?format=csv`} download>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </a>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <a href={`/api/reports/${exportType}?format=csv`} download>
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <a href={`/api/reports/${exportType}?format=pdf`} download>
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </a>
+          </Button>
+        </div>
       </div>
 
       {summary && summary.length > 0 && (
