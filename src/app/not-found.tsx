@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { PublicShell } from "@/components/public/public-shell";
 import { Button } from "@/components/ui/button";
-import { getFeaturedSchool } from "@/lib/public-site";
 
-export default async function NotFound() {
-  const school = await getFeaturedSchool();
+export const dynamic = "force-dynamic";
 
+export default function NotFound() {
   return (
-    <PublicShell schoolName={school?.name}>
+    <PublicShell>
       <div className="mx-auto max-w-lg px-4 py-24 text-center space-y-6">
         <p className="text-6xl font-bold text-primary/20">404</p>
         <h1 className="text-2xl font-bold">Page not found</h1>
