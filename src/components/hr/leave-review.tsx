@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/constants";
 import { UserRole } from "@prisma/client";
+import type { Decimal } from "@prisma/client/runtime/library";
 import { FileText, Download } from "lucide-react";
 
 interface LeaveApplicant {
@@ -31,7 +32,7 @@ interface LeaveRequest {
   status: string;
   startDate: Date;
   endDate: Date;
-  days: number | string;
+  days: Decimal | number | string;
   reason: string;
   notes: string | null;
   sickNoteUrl: string | null;

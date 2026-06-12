@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     data: {
       schoolId: applicant.schoolId,
       userId: applicant.userId,
-      teacherId: applicant.teacherId,
+      teacherId: applicant.teacherId ?? undefined,
       type: type as LeaveType,
       startDate,
       endDate,

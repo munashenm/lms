@@ -7,7 +7,7 @@ export interface TimetableSlotLike {
   endTime: string;
   room?: string | null;
   class?: { name: string };
-  teacher?: { firstName: string; lastName: string };
+  teacher?: { firstName: string; lastName: string } | null;
 }
 
 export interface TimetableConflict {
