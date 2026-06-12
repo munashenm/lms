@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
   const { name, email, subject, message } = parsed.data;
 
   await sendOutboundMessage(
+    school?.id,
     "email",
     to,
     `[Contact] ${subject}`,

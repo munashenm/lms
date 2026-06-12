@@ -125,6 +125,52 @@ export const announcementSchema = z.object({
   isPinned: z.boolean().optional(),
 });
 
+const optionalSecret = z.string().optional();
+
+export const integrationSettingsSchema = z.object({
+  schoolId: z.string().optional(),
+  sendgrid: z
+    .object({
+      enabled: z.boolean(),
+      apiKey: optionalSecret,
+      fromEmail: z.string().optional(),
+      fromName: z.string().optional(),
+    })
+    .optional(),
+  twilio: z
+    .object({
+      enabled: z.boolean(),
+      accountSid: optionalSecret,
+      authToken: optionalSecret,
+      fromNumber: z.string().optional(),
+    })
+    .optional(),
+  payfast: z
+    .object({
+      enabled: z.boolean(),
+      merchantId: z.string().optional(),
+      merchantKey: optionalSecret,
+      passphrase: optionalSecret,
+      sandbox: z.boolean().optional(),
+    })
+    .optional(),
+  ozow: z
+    .object({
+      enabled: z.boolean(),
+      siteCode: z.string().optional(),
+      privateKey: optionalSecret,
+      sandbox: z.boolean().optional(),
+    })
+    .optional(),
+  yoco: z
+    .object({
+      enabled: z.boolean(),
+      secretKey: optionalSecret,
+      webhookSecret: optionalSecret,
+    })
+    .optional(),
+});
+
 export const assessmentSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),

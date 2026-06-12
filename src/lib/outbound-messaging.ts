@@ -1,8 +1,12 @@
-const SENDGRID_FROM = process.env.SENDGRID_FROM_EMAIL ?? "noreply@schoolhub.local";
-const SENDGRID_FROM_NAME = process.env.SENDGRID_FROM_NAME ?? "SchoolHub SA";
+import type { ResolvedIntegrations } from "./school-integrations";
 
-export async function sendEmailViaSendGrid(to: string, subject: string, body: string) {
-  const apiKey = process.env.SENDGRID_API_KEY;
+export async function sendEmailViaSendGrid(
+  config: ResolvedIntegrations,
+  to: string,
+  subject: string,
+  body: string
+) {
+  const apiKey = config.sendgrid.apiKey;
   if (!apiKey) return { sent: false as const, reason: "not_configured" };
 
   const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
@@ -13,7 +17,10 @@ export async function sendEmailViaSendGrid(to: string, subject: string, body: st
     },
     body: JSON.stringify({
       personalizations: [{ to: [{ email: to }] }],
-      from: { email: SENDGRID_FROM, name: SENDGRID_FROM_NAME },
+      from: {
+        email: config.sendgrid.fromEmail,
+        name: config.sendgrid.fromName,
+      },
       subject,
       content: [{ type: "text/plain", value: body }],
     }),
@@ -27,10 +34,14 @@ export async function sendEmailViaSendGrid(to: string, subject: string, body: st
   return { sent: true as const };
 }
 
-export async function sendSmsViaTwilio(to: string, body: string) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_FROM_NUMBER;
+export async function sendSmsViaTwilio(
+  config: ResolvedIntegrations,
+  to: string,
+  body: string
+) {
+  const accountSid = config.twilio.accountSid;
+  const authToken = config.twilio.authToken;
+  const from = config.twilio.fromNumber;
 
   if (!accountSid || !authToken || !from) {
     return { sent: false as const, reason: "not_configured" };

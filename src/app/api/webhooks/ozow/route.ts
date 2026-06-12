@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 import { verifyOzowNotifyHash } from "@/lib/payment-gateways/ozow";
 import { recordGatewayPayment } from "@/lib/payment-gateways/record-payment";
+import { getResolvedIntegrations } from "@/lib/school-integrations";
 
 /** Ozow NotifyUrl webhook — records payment when status is Complete */
 export async function POST(request: NextRequest) {
@@ -23,8 +25,25 @@ export async function POST(request: NextRequest) {
   };
 
   const hash = formData.get("Hash")?.toString() ?? "";
+  const invoiceId = fields.TransactionReference;
 
-  if (!fields.TransactionReference || !verifyOzowNotifyHash(fields, hash)) {
+  if (!invoiceId) {
+    return NextResponse.json({ received: false }, { status: 400 });
+  }
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: { schoolId: true },
+  });
+
+  if (!invoice) {
+    return NextResponse.json({ received: true });
+  }
+
+  const integrations = await getResolvedIntegrations(invoice.schoolId);
+  const privateKey = integrations.ozow.privateKey;
+
+  if (!privateKey || !verifyOzowNotifyHash(privateKey, fields, hash)) {
     return NextResponse.json({ received: false }, { status: 400 });
   }
 
@@ -38,7 +57,7 @@ export async function POST(request: NextRequest) {
   }
 
   await recordGatewayPayment({
-    invoiceId: fields.TransactionReference,
+    invoiceId,
     amount,
     method: "OZOW",
     reference: fields.TransactionId || `OZ-${Date.now()}`,

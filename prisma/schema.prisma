@@ -229,6 +229,7 @@ model School {
   leaveRequests   LeaveRequest[]
   ledgerEntries   LedgerEntry[]
   staffAttendance StaffAttendanceRecord[]
+  integrationConfig SchoolIntegrationConfig?
 
   @@index([slug])
   @@map("schools")
@@ -1008,6 +1009,45 @@ model StaffAttendanceRecord {
   @@unique([userId, date])
   @@index([schoolId, date])
   @@map("staff_attendance_records")
+}
+
+// ─── School Integrations (email, SMS, payments) ─────────────────────────────
+
+model SchoolIntegrationConfig {
+  id        String   @id @default(cuid())
+  schoolId  String   @unique
+
+  sendgridEnabled   Boolean @default(false)
+  sendgridApiKey    String?
+  sendgridFromEmail String?
+  sendgridFromName  String?
+
+  twilioEnabled      Boolean @default(false)
+  twilioAccountSid   String?
+  twilioAuthToken    String?
+  twilioFromNumber   String?
+
+  payfastEnabled     Boolean @default(false)
+  payfastMerchantId  String?
+  payfastMerchantKey String?
+  payfastPassphrase  String?
+  payfastSandbox     Boolean @default(true)
+
+  ozowEnabled    Boolean @default(false)
+  ozowSiteCode   String?
+  ozowPrivateKey String?
+  ozowSandbox    Boolean @default(true)
+
+  yocoEnabled       Boolean @default(false)
+  yocoSecretKey     String?
+  yocoWebhookSecret String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_integration_configs")
 }
 
 // ─── General Ledger (Income & Expenses) ──────────────────────────────────────

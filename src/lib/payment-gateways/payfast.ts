@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import type { ResolvedIntegrations } from "../school-integrations";
+import { isPayFastReady } from "../school-integrations";
 
 interface PayFastPaymentParams {
   invoiceId: string;
@@ -8,20 +10,19 @@ interface PayFastPaymentParams {
   studentName: string;
 }
 
-export function isPayFastConfigured() {
-  return Boolean(
-    process.env.PAYFAST_MERCHANT_ID &&
-      process.env.PAYFAST_MERCHANT_KEY &&
-      process.env.PAYFAST_PASSPHRASE
-  );
+export function isPayFastConfigured(config: ResolvedIntegrations) {
+  return isPayFastReady(config);
 }
 
-export function createPayFastPayment(params: PayFastPaymentParams) {
-  const merchantId = process.env.PAYFAST_MERCHANT_ID;
-  const merchantKey = process.env.PAYFAST_MERCHANT_KEY;
-  const passphrase = process.env.PAYFAST_PASSPHRASE;
+export function createPayFastPayment(
+  config: ResolvedIntegrations,
+  params: PayFastPaymentParams
+) {
+  const merchantId = config.payfast.merchantId;
+  const merchantKey = config.payfast.merchantKey;
+  const passphrase = config.payfast.passphrase;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const sandbox = process.env.PAYFAST_SANDBOX !== "false";
+  const sandbox = config.payfast.sandbox;
 
   if (!merchantId || !merchantKey || !passphrase) {
     return { configured: false as const };

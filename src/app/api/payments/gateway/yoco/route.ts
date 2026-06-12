@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createYocoCheckout, isYocoConfigured } from "@/lib/payment-gateways/yoco";
 import { authorizeInvoiceForPayment } from "@/lib/payment-gateways/invoice-auth";
+import { getResolvedIntegrations } from "@/lib/school-integrations";
 
 export async function POST(request: NextRequest) {
   const { invoiceId } = await request.json();
   const auth = await authorizeInvoiceForPayment(invoiceId);
   if ("error" in auth) return auth.error;
 
-  if (!isYocoConfigured()) {
+  const integrations = await getResolvedIntegrations(auth.invoice.schoolId);
+
+  if (!isYocoConfigured(integrations)) {
     return NextResponse.json({
       configured: false,
-      message: "Yoco is not configured. Set YOCO_SECRET_KEY in .env",
-      sandboxHint: "Use sk_test_ keys from Yoco dashboard for testing",
+      message: "Yoco is not enabled. Configure it under Admin → Settings → Integrations.",
     });
   }
 
   try {
-    const result = await createYocoCheckout({
+    const result = await createYocoCheckout(integrations, {
       invoiceId: auth.invoice.id,
       invoiceNumber: auth.invoice.invoiceNumber,
       amount: auth.outstanding,

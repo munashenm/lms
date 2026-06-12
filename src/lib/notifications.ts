@@ -1,6 +1,11 @@
 import { NotificationType, UserRole } from "@prisma/client";
 import { prisma } from "./db";
 import { sendEmailViaSendGrid, sendSmsViaTwilio } from "./outbound-messaging";
+import {
+  getResolvedIntegrations,
+  isSendGridReady,
+  isTwilioReady,
+} from "./school-integrations";
 
 interface NotifyUserParams {
   userId: string;
@@ -88,22 +93,25 @@ export async function notifyStudentGuardians(params: {
 
 /** Sends email/SMS when credentials are configured; always logs intent for Railway diagnostics */
 export async function sendOutboundMessage(
+  schoolId: string | null | undefined,
   channel: "email" | "sms",
   to: string,
   subject: string,
   body: string
 ) {
-  const payload = { channel, to, subject, bodyLength: body.length, preview: body.slice(0, 120) };
+  const payload = { schoolId, channel, to, subject, bodyLength: body.length, preview: body.slice(0, 120) };
   console.info(`[outbound:${channel}]`, JSON.stringify(payload));
 
+  const config = await getResolvedIntegrations(schoolId);
+
   try {
-    if (channel === "email" && process.env.SENDGRID_API_KEY) {
-      const result = await sendEmailViaSendGrid(to, subject, body);
+    if (channel === "email" && isSendGridReady(config)) {
+      const result = await sendEmailViaSendGrid(config, to, subject, body);
       if (result.sent) console.info(`[outbound:email] delivered to ${to}`);
       return;
     }
-    if (channel === "sms" && process.env.TWILIO_ACCOUNT_SID) {
-      const result = await sendSmsViaTwilio(to, body);
+    if (channel === "sms" && isTwilioReady(config)) {
+      const result = await sendSmsViaTwilio(config, to, body);
       if (result.sent) console.info(`[outbound:sms] delivered to ${to}`);
       return;
     }

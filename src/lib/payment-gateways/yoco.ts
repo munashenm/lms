@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import type { ResolvedIntegrations } from "../school-integrations";
+import { isYocoReady } from "../school-integrations";
 
 interface YocoPaymentParams {
   invoiceId: string;
@@ -8,12 +10,15 @@ interface YocoPaymentParams {
   studentName: string;
 }
 
-export function isYocoConfigured() {
-  return Boolean(process.env.YOCO_SECRET_KEY);
+export function isYocoConfigured(config: ResolvedIntegrations) {
+  return isYocoReady(config);
 }
 
-export async function createYocoCheckout(params: YocoPaymentParams) {
-  const secretKey = process.env.YOCO_SECRET_KEY;
+export async function createYocoCheckout(
+  config: ResolvedIntegrations,
+  params: YocoPaymentParams
+) {
+  const secretKey = config.yoco.secretKey;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
   if (!secretKey) {
@@ -66,6 +71,7 @@ export async function createYocoCheckout(params: YocoPaymentParams) {
 }
 
 export function verifyYocoWebhookSignature(
+  webhookSecret: string,
   rawBody: string,
   headers: {
     webhookId?: string | null;
@@ -73,12 +79,11 @@ export function verifyYocoWebhookSignature(
     webhookSignature?: string | null;
   }
 ) {
-  const secret = process.env.YOCO_WEBHOOK_SECRET;
-  if (!secret || !headers.webhookId || !headers.webhookTimestamp || !headers.webhookSignature) {
+  if (!webhookSecret || !headers.webhookId || !headers.webhookTimestamp || !headers.webhookSignature) {
     return false;
   }
 
-  const keyPart = secret.startsWith("whsec_") ? secret.slice(6) : secret;
+  const keyPart = webhookSecret.startsWith("whsec_") ? webhookSecret.slice(6) : webhookSecret;
   const key = Buffer.from(keyPart, "base64");
   const signedContent = `${headers.webhookId}.${headers.webhookTimestamp}.${rawBody}`;
   const expected = crypto.createHmac("sha256", key).update(signedContent).digest("base64");

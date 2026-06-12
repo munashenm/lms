@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import type { ResolvedIntegrations } from "../school-integrations";
+import { isOzowReady } from "../school-integrations";
 
 interface OzowPaymentParams {
   invoiceId: string;
@@ -6,11 +8,8 @@ interface OzowPaymentParams {
   amount: number;
 }
 
-export function isOzowConfigured() {
-  return Boolean(
-    process.env.OZOW_SITE_CODE &&
-      process.env.OZOW_PRIVATE_KEY
-  );
+export function isOzowConfigured(config: ResolvedIntegrations) {
+  return isOzowReady(config);
 }
 
 function ozowHash(values: string[], privateKey: string) {
@@ -18,14 +17,12 @@ function ozowHash(values: string[], privateKey: string) {
   return crypto.createHash("sha512").update(input).digest("hex");
 }
 
-export function createOzowPayment(params: OzowPaymentParams) {
-  const siteCode = process.env.OZOW_SITE_CODE;
-  const privateKey = process.env.OZOW_PRIVATE_KEY;
+export function createOzowPayment(config: ResolvedIntegrations, params: OzowPaymentParams) {
+  const siteCode = config.ozow.siteCode;
+  const privateKey = config.ozow.privateKey;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const sandbox = process.env.OZOW_SANDBOX !== "false";
-  const baseUrl = sandbox
-    ? "https://pay.ozow.com"
-    : "https://pay.ozow.com";
+  const sandbox = config.ozow.sandbox;
+  const baseUrl = "https://pay.ozow.com";
 
   if (!siteCode || !privateKey) {
     return { configured: false as const };
@@ -87,6 +84,7 @@ export function createOzowPayment(params: OzowPaymentParams) {
 }
 
 export function verifyOzowNotifyHash(
+  privateKey: string,
   fields: {
     SiteCode: string;
     TransactionId: string;
@@ -104,9 +102,6 @@ export function verifyOzowNotifyHash(
   },
   hash: string
 ) {
-  const privateKey = process.env.OZOW_PRIVATE_KEY;
-  if (!privateKey) return false;
-
   const expected = ozowHash(
     [
       fields.SiteCode,

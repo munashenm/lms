@@ -1,6 +1,7 @@
 import { sendOutboundMessage } from "./notifications";
 
 interface ApplicantConfirmationParams {
+  schoolId: string;
   referenceNo: string;
   firstName: string;
   lastName: string;
@@ -23,6 +24,7 @@ export async function sendApplicationConfirmation(params: ApplicantConfirmationP
   if (params.email) {
     tasks.push(
       sendOutboundMessage(
+        params.schoolId,
         "email",
         params.email,
         `Application received — ${referenceNo}`,
@@ -32,13 +34,14 @@ export async function sendApplicationConfirmation(params: ApplicantConfirmationP
   }
 
   if (params.phone) {
-    tasks.push(sendOutboundMessage("sms", params.phone, "Application received", message));
+    tasks.push(sendOutboundMessage(params.schoolId, "sms", params.phone, "Application received", message));
   }
 
   await Promise.all(tasks);
 }
 
 export async function sendApplicationStatusUpdate(params: {
+  schoolId: string;
   email?: string | null;
   phone?: string | null;
   firstName: string;
@@ -55,6 +58,7 @@ export async function sendApplicationStatusUpdate(params: {
   if (params.email) {
     tasks.push(
       sendOutboundMessage(
+        params.schoolId,
         "email",
         params.email,
         `Application update — ${params.referenceNo}`,
@@ -63,7 +67,7 @@ export async function sendApplicationStatusUpdate(params: {
     );
   }
   if (params.phone) {
-    tasks.push(sendOutboundMessage("sms", params.phone, "Application update", message));
+    tasks.push(sendOutboundMessage(params.schoolId, "sms", params.phone, "Application update", message));
   }
 
   await Promise.all(tasks);
