@@ -122,6 +122,10 @@ The reference LMS at `lms.cyberdevelopers.co.za` informs feature scope only — 
 - [x] Automatic payment reminder rules (7 days before / due / 7 / 14 / 30 overdue)
 - [x] Fee reminder cron endpoint (`/api/cron/fee-reminders`, `CRON_SECRET`)
 - [x] Reminder rule manager + dispatch history on Fee Reminders pages
+- [x] Auto student numbers (`STD{year}####`) when left blank on create
+- [x] Student identity card PDF (`/api/students/[id]/card`)
+- [x] School logo upload in Settings + branded PDF headers/footers
+- [x] Logo + contact details on certificates, report cards, fee statements, admin reports
 
 ---
 

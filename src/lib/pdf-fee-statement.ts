@@ -1,4 +1,9 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import {
+  drawBrandedBannerHeader,
+  drawBrandedFooter,
+  type SchoolBrand,
+} from "./pdf-branding";
 
 export interface FeeStatementLine {
   date: string;
@@ -8,9 +13,7 @@ export interface FeeStatementLine {
 }
 
 export interface FeeStatementData {
-  schoolName: string;
-  schoolEmail?: string | null;
-  schoolPhone?: string | null;
+  brand: SchoolBrand;
   studentName: string;
   studentNumber: string;
   gradeOrProgramme?: string | null;
@@ -28,36 +31,20 @@ function money(n: number): string {
 }
 
 export async function generateFeeStatementPdf(data: FeeStatementData): Promise<Uint8Array> {
+  const brand = data.brand;
   const doc = await PDFDocument.create();
   const page = doc.addPage([595, 842]);
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const { width, height } = page.getSize();
-  let y = height - 50;
-
-  page.drawRectangle({
-    x: 0,
-    y: height - 80,
-    width,
-    height: 80,
-    color: rgb(0.11, 0.3, 0.43),
-  });
-  page.drawText(data.schoolName, {
-    x: 50,
-    y: height - 40,
-    size: 16,
-    font: fontBold,
-    color: rgb(1, 1, 1),
-  });
-  page.drawText("SCHOOL FEE STATEMENT", {
-    x: 50,
-    y: height - 60,
-    size: 11,
+  let y = await drawBrandedBannerHeader({
+    doc,
+    page,
+    brand,
+    title: "School Fee Statement",
     font,
-    color: rgb(0.9, 0.9, 0.9),
+    fontBold,
   });
 
-  y = height - 110;
   const line = (text: string, bold = false, size = 10) => {
     page.drawText(text, {
       x: 50,
@@ -75,9 +62,6 @@ export async function generateFeeStatementPdf(data: FeeStatementData): Promise<U
   if (data.academicYear) line(`Academic Year: ${data.academicYear}`);
   if (data.guardianName) line(`Parent / Guardian: ${data.guardianName}`);
   line(`Generated: ${data.generatedAt}`);
-  if (data.schoolEmail || data.schoolPhone) {
-    line(`Contact: ${[data.schoolPhone, data.schoolEmail].filter(Boolean).join(" · ")}`);
-  }
 
   y -= 8;
   line(`Opening balance: ${money(data.openingBalance)}`, true);
@@ -91,7 +75,7 @@ export async function generateFeeStatementPdf(data: FeeStatementData): Promise<U
   y -= 14;
 
   for (const row of data.lines.slice(0, 35)) {
-    if (y < 80) break;
+    if (y < 90) break;
     page.drawText(row.date.slice(0, 12), { x: 50, y, size: 8, font, color: rgb(0.2, 0.2, 0.25) });
     page.drawText(row.description.slice(0, 40), {
       x: 120,
@@ -105,14 +89,14 @@ export async function generateFeeStatementPdf(data: FeeStatementData): Promise<U
     y -= 12;
   }
 
-  y = 50;
   page.drawText("Balances are calculated from the student financial ledger.", {
     x: 50,
-    y,
+    y: 68,
     size: 8,
     font,
     color: rgb(0.4, 0.4, 0.45),
   });
+  drawBrandedFooter({ page, brand, font, y: 42 });
 
   return doc.save();
 }

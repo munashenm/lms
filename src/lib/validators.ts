@@ -31,7 +31,7 @@ export const changePasswordSchema = z.object({
 export const studentSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
   lastName: z.string().min(1, "Last name is required").max(100),
-  studentNumber: z.string().min(1, "Student number is required"),
+  studentNumber: z.string().max(40).optional().or(z.literal("")),
   saIdNumber: z
     .string()
     .optional()
@@ -347,6 +347,7 @@ export const schoolSettingsSchema = z.object({
       message: "Phone must be 10 digits starting with 0",
     }),
   website: z.string().url().optional().or(z.literal("")),
+  logoUrl: z.string().optional().or(z.literal("")),
   address: z.string().optional(),
   city: z.string().optional(),
   province: z.string().optional(),

@@ -87,6 +87,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           email: school.email,
           phone: school.phone,
           website: school.website,
+          logoUrl: school.logoUrl,
           address: school.address,
           city: school.city,
           province: school.province,

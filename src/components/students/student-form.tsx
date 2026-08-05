@@ -77,8 +77,14 @@ export function StudentForm({ grades, classes, campuses }: StudentFormProps) {
             <Input id="lastName" name="lastName" error={errors.lastName} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="studentNumber">Student Number *</Label>
-            <Input id="studentNumber" name="studentNumber" placeholder="e.g. STD2026001" error={errors.studentNumber} required />
+            <Label htmlFor="studentNumber">Student Number</Label>
+            <Input
+              id="studentNumber"
+              name="studentNumber"
+              placeholder="Leave blank to auto-generate"
+              error={errors.studentNumber}
+            />
+            <p className="text-xs text-muted">Auto format: STD{new Date().getFullYear()}0001</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="saIdNumber">SA ID Number</Label>

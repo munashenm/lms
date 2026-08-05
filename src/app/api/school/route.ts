@@ -58,9 +58,22 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ message: "Invalid data", errors: parsed.error.issues }, { status: 400 });
   }
 
+  const data = {
+    ...parsed.data,
+    ...(parsed.data.logoUrl !== undefined && {
+      logoUrl: parsed.data.logoUrl || null,
+    }),
+    ...(parsed.data.website !== undefined && {
+      website: parsed.data.website || null,
+    }),
+    ...(parsed.data.email !== undefined && {
+      email: parsed.data.email || null,
+    }),
+  };
+
   const school = await prisma.school.update({
     where: { id: schoolId },
-    data: parsed.data,
+    data,
   });
 
   await logAudit({

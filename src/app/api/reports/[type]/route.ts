@@ -11,6 +11,7 @@ import {
 import { toCsv, csvDownloadHeaders } from "@/lib/csv";
 import { formatDate } from "@/lib/utils";
 import { generateTableReportPdf } from "@/lib/pdf-report";
+import { toSchoolBrand, type SchoolBrand } from "@/lib/pdf-branding";
 
 interface RouteParams {
   params: Promise<{ type: string }>;
@@ -25,13 +26,14 @@ function pdfDownloadHeaders(filename: string) {
   };
 }
 
-async function getReportSchoolName(filter: ReturnType<typeof getSchoolFilter>) {
-  if (!("schoolId" in filter)) return "SchoolHub SA";
+async function getReportSchoolBrand(
+  filter: ReturnType<typeof getSchoolFilter>
+): Promise<SchoolBrand> {
+  if (!("schoolId" in filter)) return { name: "SchoolHub SA" };
   const school = await prisma.school.findUnique({
     where: { id: filter.schoolId },
-    select: { name: true },
   });
-  return school?.name ?? "SchoolHub SA";
+  return school ? toSchoolBrand(school) : { name: "SchoolHub SA" };
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
@@ -47,7 +49,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   const filter = getSchoolFilter(session!);
   const format = new URL(request.url).searchParams.get("format");
-  const schoolName = await getReportSchoolName(filter);
+  const brand = await getReportSchoolBrand(filter);
   const generatedAt = new Date().toLocaleString("en-ZA", {
     timeZone: "Africa/Johannesburg",
   });
@@ -72,7 +74,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     if (format === "pdf") {
       const pdf = await generateTableReportPdf({
-        schoolName,
+        brand,
         title: "Attendance Report",
         subtitle: "Present, absent and late counts per class",
         generatedAt,
@@ -111,7 +113,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     if (format === "pdf") {
       const pdf = await generateTableReportPdf({
-        schoolName,
+        brand,
         title: "Academic Report",
         subtitle: "Average published marks per subject",
         generatedAt,
@@ -146,7 +148,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     if (format === "pdf") {
       const pdf = await generateTableReportPdf({
-        schoolName,
+        brand,
         title: "Finance Report",
         subtitle: "Billing and collection overview",
         generatedAt,
@@ -183,7 +185,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
   if (format === "pdf") {
     const pdf = await generateTableReportPdf({
-      schoolName,
+      brand,
       title: "Admissions Report",
       subtitle: "Application status breakdown",
       generatedAt,

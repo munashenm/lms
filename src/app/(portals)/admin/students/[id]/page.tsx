@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StudentExportButton } from "@/components/students/student-export-button";
+import { StudentCardButton } from "@/components/students/student-card-button";
 import { StudentLedgerPanel } from "@/components/finance/student-ledger-panel";
 import { ArrowLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
@@ -70,7 +71,13 @@ export default async function StudentDetailPage({ params }: PageProps) {
           </div>
           <p className="text-muted text-sm mt-1">{student.studentNumber}</p>
         </div>
-        {canExportPopia && <StudentExportButton studentId={student.id} />}
+        <div className="flex flex-wrap items-center gap-2">
+          <StudentCardButton
+            studentId={student.id}
+            studentNumber={student.studentNumber}
+          />
+          {canExportPopia && <StudentExportButton studentId={student.id} />}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

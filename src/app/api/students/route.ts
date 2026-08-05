@@ -5,6 +5,7 @@ import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { studentSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { ensureStudentEnrolment } from "@/lib/enrolment";
+import { generateStudentNumber } from "@/lib/students";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -81,9 +82,11 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data;
+    const studentNumber =
+      data.studentNumber?.trim() || (await generateStudentNumber(schoolId));
 
     const existing = await prisma.student.findUnique({
-      where: { schoolId_studentNumber: { schoolId, studentNumber: data.studentNumber } },
+      where: { schoolId_studentNumber: { schoolId, studentNumber } },
     });
     if (existing) {
       return NextResponse.json(
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
         schoolId,
         firstName: data.firstName,
         lastName: data.lastName,
-        studentNumber: data.studentNumber,
+        studentNumber,
         saIdNumber: data.saIdNumber || null,
         email: data.email || null,
         phone: data.phone || null,

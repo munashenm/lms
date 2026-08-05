@@ -1,7 +1,12 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import {
+  drawBrandedFooter,
+  drawCenteredBrandMark,
+  type SchoolBrand,
+} from "./pdf-branding";
 
 interface CertificateData {
-  schoolName: string;
+  brand: SchoolBrand;
   studentName: string;
   studentNumber: string;
   title: string;
@@ -20,7 +25,6 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
   const { width, height } = page.getSize();
 
-  // Border
   page.drawRectangle({
     x: 30,
     y: 30,
@@ -38,7 +42,14 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
     borderWidth: 1,
   });
 
-  let y = height - 100;
+  let y = await drawCenteredBrandMark({
+    doc,
+    page,
+    brand: data.brand,
+    fontBold,
+    y: height - 90,
+    nameSize: 20,
+  });
 
   const drawCentered = (text: string, size: number, bold = false, color = rgb(0.1, 0.1, 0.2)) => {
     const f = bold ? fontBold : font;
@@ -53,9 +64,8 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
     y -= size + 12;
   };
 
-  drawCentered(data.schoolName, 22, true, rgb(0.11, 0.3, 0.43));
   drawCentered("CERTIFICATE OF " + data.type.replace("_", " "), 11, false, rgb(0.4, 0.4, 0.4));
-  y -= 20;
+  y -= 12;
   drawCentered("This is to certify that", 12);
   y -= 8;
   drawCentered(data.studentName, 28, true, rgb(0.11, 0.3, 0.43));
@@ -70,9 +80,10 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
     drawCentered(data.description, 10, false, rgb(0.3, 0.3, 0.3));
   }
 
-  y = 80;
+  y = 100;
   drawCentered(`Certificate No: ${data.certificateNo}`, 9, false, rgb(0.5, 0.5, 0.5));
   drawCentered(`Issued: ${data.issuedAt}`, 9, false, rgb(0.5, 0.5, 0.5));
+  drawBrandedFooter({ page, brand: data.brand, font, y: 48 });
 
   return doc.save();
 }

@@ -7,6 +7,7 @@ import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { reportCardSchema } from "@/lib/validators";
 import { calculatePercentage, calculateWeightedAverage, percentageToSymbol } from "@/lib/grading";
 import { generateReportCardPdf } from "@/lib/pdf-report-card";
+import { toSchoolBrand } from "@/lib/pdf-branding";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
   const overallSymbol = percentageToSymbol(overallAverage);
 
   const pdfBytes = await generateReportCardPdf({
-    schoolName: student.school.name,
+    brand: toSchoolBrand(student.school),
     studentName: `${student.firstName} ${student.lastName}`,
     studentNumber: student.studentNumber,
     grade: student.grade?.name ?? "—",

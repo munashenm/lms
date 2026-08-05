@@ -24,6 +24,7 @@ interface SchoolData {
   email: string | null;
   phone: string | null;
   website: string | null;
+  logoUrl: string | null;
   address: string | null;
   city: string | null;
   province: string | null;
@@ -44,6 +45,8 @@ interface SchoolSettingsFormProps {
 export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(school.logoUrl);
   const [institutionType, setInstitutionType] = useState(school.institutionType);
 
   const typeOptions = Array.from(
@@ -70,6 +73,7 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             email: form.get("email") || "",
             phone: form.get("phone") || undefined,
             website: form.get("website") || "",
+            logoUrl: form.get("logoUrl") || "",
             address: form.get("address") || undefined,
             city: form.get("city") || undefined,
             province: form.get("province") || undefined,
@@ -90,6 +94,34 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
       toast.error("Failed to save settings");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function uploadLogo(file: File | null) {
+    if (!file) return;
+    setLogoUploading(true);
+    try {
+      const body = new FormData();
+      body.append("logo", file);
+      if (manageSchoolId) body.append("schoolId", manageSchoolId);
+      const res = await fetch(
+        manageSchoolId
+          ? `/api/school/logo?schoolId=${encodeURIComponent(manageSchoolId)}`
+          : "/api/school/logo",
+        { method: "POST", body }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Upload failed");
+      }
+      const data = await res.json();
+      setLogoPreview(data.logoUrl);
+      toast.success("Logo uploaded");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Logo upload failed");
+    } finally {
+      setLogoUploading(false);
     }
   }
 
@@ -160,6 +192,39 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
           <div className="space-y-2">
             <Label>Registration / EMIS No.</Label>
             <Input name="registrationNo" defaultValue={school.registrationNo ?? ""} />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label>School Logo</Label>
+            <p className="text-xs text-muted">
+              Appears on student cards, report cards, certificates, fee statements and reports.
+              Prefer PNG/JPEG under 2MB.
+            </p>
+            <div className="flex flex-wrap items-center gap-4">
+              {logoPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoPreview}
+                  alt="School logo"
+                  className="h-16 w-auto max-w-[140px] object-contain rounded border border-border bg-background p-1"
+                />
+              ) : (
+                <div className="h-16 w-24 rounded border border-dashed border-border flex items-center justify-center text-xs text-muted">
+                  No logo
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                disabled={logoUploading}
+                onChange={(e) => uploadLogo(e.target.files?.[0] ?? null)}
+              />
+            </div>
+            <Input
+              name="logoUrl"
+              defaultValue={school.logoUrl ?? ""}
+              placeholder="Or paste logo URL /uploads/..."
+              className="mt-2"
+            />
           </div>
         </CardContent>
       </Card>

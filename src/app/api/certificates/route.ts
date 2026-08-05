@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { certificateSchema } from "@/lib/validators";
 import { generateCertificatePdf } from "@/lib/pdf-certificate";
+import { toSchoolBrand } from "@/lib/pdf-branding";
 import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
 
 export async function GET(request: NextRequest) {
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
   const issuedAt = new Date();
 
   const pdfBytes = await generateCertificatePdf({
-    schoolName: student.school.name,
+    brand: toSchoolBrand(student.school),
     studentName: `${student.firstName} ${student.lastName}`,
     studentNumber: student.studentNumber,
     title: parsed.data.title,

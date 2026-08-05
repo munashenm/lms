@@ -6,6 +6,7 @@ import { getChildStudentIds, getStudentForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { getStudentLedger, STUDENT_LEDGER_TYPE_LABELS } from "@/lib/student-ledger";
 import { generateFeeStatementPdf } from "@/lib/pdf-fee-statement";
+import { toSchoolBrand } from "@/lib/pdf-branding";
 import { formatDate } from "@/lib/utils";
 import { sendLoggedEmail } from "@/lib/communications";
 import { logAudit } from "@/lib/audit";
@@ -62,9 +63,7 @@ async function buildStatement(studentId: string, academicYearId?: string | null)
     chronological.find((e) => e.academicYear?.name)?.academicYear?.name ?? null;
 
   const pdf = await generateFeeStatementPdf({
-    schoolName: school.name,
-    schoolEmail: school.email,
-    schoolPhone: school.phone,
+    brand: toSchoolBrand(school),
     studentName: `${ledger.student.firstName} ${ledger.student.lastName}`,
     studentNumber: ledger.student.studentNumber,
     gradeOrProgramme: [ledger.student.grade?.name, ledger.student.class?.name]

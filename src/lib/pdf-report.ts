@@ -1,4 +1,9 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import {
+  drawBrandedBannerHeader,
+  drawBrandedFooter,
+  type SchoolBrand,
+} from "./pdf-branding";
 
 export interface ReportPdfColumn {
   label: string;
@@ -7,7 +12,7 @@ export interface ReportPdfColumn {
 }
 
 export interface ReportPdfOptions {
-  schoolName: string;
+  brand: SchoolBrand;
   title: string;
   subtitle?: string;
   generatedAt: string;
@@ -17,6 +22,7 @@ export interface ReportPdfOptions {
 }
 
 export async function generateTableReportPdf(options: ReportPdfOptions): Promise<Uint8Array> {
+  const brand = options.brand;
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -25,44 +31,32 @@ export async function generateTableReportPdf(options: ReportPdfOptions): Promise
   const pageHeight = 842;
   const margin = 50;
   const rowHeight = 18;
-  const headerHeight = 80;
+  const headerHeight = 88;
 
   let page = doc.addPage([pageWidth, pageHeight]);
   let y = pageHeight - margin;
 
-  const drawHeader = () => {
-    page.drawRectangle({
-      x: 0,
-      y: pageHeight - headerHeight,
-      width: pageWidth,
-      height: headerHeight,
-      color: rgb(0.11, 0.3, 0.43),
-    });
-    page.drawText(options.schoolName, {
-      x: margin,
-      y: pageHeight - 38,
-      size: 16,
-      font: fontBold,
-      color: rgb(1, 1, 1),
-    });
-    page.drawText(options.title.toUpperCase(), {
-      x: margin,
-      y: pageHeight - 58,
-      size: 11,
+  const drawHeader = async () => {
+    y = await drawBrandedBannerHeader({
+      doc,
+      page,
+      brand,
+      title: options.title,
       font,
-      color: rgb(0.9, 0.9, 0.9),
+      fontBold,
+      headerHeight,
     });
-    y = pageHeight - headerHeight - 24;
   };
 
-  const ensureSpace = (needed: number) => {
-    if (y - needed < margin) {
+  const ensureSpace = async (needed: number) => {
+    if (y - needed < margin + 40) {
+      drawBrandedFooter({ page, brand, font, y: 36 });
       page = doc.addPage([pageWidth, pageHeight]);
-      y = pageHeight - margin;
+      await drawHeader();
     }
   };
 
-  drawHeader();
+  await drawHeader();
 
   if (options.subtitle) {
     page.drawText(options.subtitle, {
@@ -85,7 +79,7 @@ export async function generateTableReportPdf(options: ReportPdfOptions): Promise
   y -= 22;
 
   if (options.summary?.length) {
-    ensureSpace(40);
+    await ensureSpace(40);
     const chunk = options.summary.map((s) => `${s.label}: ${s.value}`).join("   |   ");
     page.drawText(chunk.slice(0, 120), {
       x: margin,
@@ -102,8 +96,8 @@ export async function generateTableReportPdf(options: ReportPdfOptions): Promise
   const defaultWidth = tableWidth / colCount;
   const colWidths = options.columns.map((c) => c.width ?? defaultWidth);
 
-  const drawTableHeader = () => {
-    ensureSpace(rowHeight + 8);
+  const drawTableHeader = async () => {
+    await ensureSpace(rowHeight + 8);
     let x = margin;
     options.columns.forEach((col, i) => {
       page.drawText(col.label, {
@@ -124,10 +118,10 @@ export async function generateTableReportPdf(options: ReportPdfOptions): Promise
     });
   };
 
-  drawTableHeader();
+  await drawTableHeader();
 
   for (const row of options.rows) {
-    ensureSpace(rowHeight + 4);
+    await ensureSpace(rowHeight + 4);
     let x = margin;
     row.forEach((cell, i) => {
       const col = options.columns[i];
@@ -144,6 +138,8 @@ export async function generateTableReportPdf(options: ReportPdfOptions): Promise
     });
     y -= rowHeight;
   }
+
+  drawBrandedFooter({ page, brand, font, y: 36 });
 
   return doc.save();
 }

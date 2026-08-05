@@ -10,6 +10,7 @@ import { getOutstandingBalance } from "./finance";
 import { formatDate, formatZAR } from "./utils";
 import { logCommunication } from "./communications";
 import { generateFeeStatementPdf } from "./pdf-fee-statement";
+import { toSchoolBrand, type SchoolBrand } from "./pdf-branding";
 import { getStudentLedger, STUDENT_LEDGER_TYPE_LABELS } from "./student-ledger";
 import { createTwilioSmsProvider } from "./sms/twilio-provider";
 import {
@@ -268,13 +269,13 @@ export async function createFeeCommsBatch(params: {
   });
 }
 
-async function buildStatementAttachment(studentId: string, schoolName: string) {
+async function buildStatementAttachment(studentId: string, brand: SchoolBrand) {
   const ledger = await getStudentLedger({ studentId });
   if (!ledger.student) return null;
 
   const chronological = [...ledger.entries].reverse();
   const pdf = await generateFeeStatementPdf({
-    schoolName,
+    brand,
     studentName: `${ledger.student.firstName} ${ledger.student.lastName}`,
     studentNumber: ledger.student.studentNumber,
     gradeOrProgramme: [ledger.student.grade?.name, ledger.student.class?.name]
@@ -374,7 +375,10 @@ export async function processCommunicationBatch(batchId: string, limit = 15) {
         let message = item.message;
 
         if (action === "FEE_STATEMENT" && item.studentId) {
-          const attachment = await buildStatementAttachment(item.studentId, school.name);
+          const attachment = await buildStatementAttachment(
+            item.studentId,
+            toSchoolBrand(school)
+          );
           if (attachment) {
             attachments = [attachment];
             message = `Dear ${item.recipientName ?? "Parent/Guardian"},
