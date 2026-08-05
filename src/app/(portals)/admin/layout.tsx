@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/rbac";
 import { PortalShell } from "@/components/layout/portal-shell";
-import { adminNav } from "@/lib/navigation";
+import { getAdminNav } from "@/lib/navigation";
+import { getPortalSessionContext } from "@/lib/portal-session";
 
 export default async function AdminLayout({
   children,
@@ -14,8 +15,16 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
+  const ctx = await getPortalSessionContext(session);
+
   return (
-    <PortalShell user={session} navItems={adminNav} portalLabel="Admin Portal">
+    <PortalShell
+      user={session}
+      navItems={getAdminNav(ctx.terminology ?? undefined)}
+      portalLabel="Admin Portal"
+      sessions={ctx.sessions}
+      viewSessionId={ctx.viewSessionId}
+    >
       {children}
     </PortalShell>
   );

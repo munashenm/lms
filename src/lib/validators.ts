@@ -112,15 +112,21 @@ export const timetableSlotSchema = z.object({
 });
 
 export const attendanceBulkSchema = z.object({
-  classId: z.string().min(1),
+  classId: z.string().optional().nullable(),
+  moduleId: z.string().optional().nullable(),
+  subjectId: z.string().optional().nullable(),
+  sessionStart: z.string().optional().nullable(),
+  sessionEnd: z.string().optional().nullable(),
   date: z.string().min(1),
   records: z.array(
     z.object({
       studentId: z.string().min(1),
-      status: z.enum(["PRESENT", "ABSENT", "LATE", "EXCUSED"]),
+      status: z.enum(["PRESENT", "ABSENT", "LATE", "EXCUSED", "SICK"]),
       notes: z.string().optional(),
     })
   ),
+}).refine((data) => Boolean(data.classId || data.moduleId), {
+  message: "classId or moduleId is required",
 });
 
 export const staffAttendanceBulkSchema = z.object({
@@ -279,6 +285,28 @@ export const paymentSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const feeScheduleItemSchema = z.object({
+  name: z.string().min(1, "Name is required").max(200),
+  amount: z.coerce.number().positive("Amount must be positive"),
+  notes: z.string().max(500).optional(),
+  sortOrder: z.coerce.number().int().min(0).optional(),
+  isActive: z.boolean().optional(),
+  isPublic: z.boolean().optional(),
+});
+
+export const feeScheduleItemUpdateSchema = feeScheduleItemSchema.partial();
+
+export const feeReminderRuleSchema = z.object({
+  name: z.string().min(1, "Name is required").max(120),
+  daysOffset: z.coerce.number().int().min(-365).max(365),
+  channel: z.enum(["EMAIL", "SMS", "BOTH"]).default("EMAIL"),
+  isEnabled: z.boolean().optional(),
+  emailTemplate: z.string().max(5000).optional().nullable(),
+  smsTemplate: z.string().max(480).optional().nullable(),
+});
+
+export const feeReminderRuleUpdateSchema = feeReminderRuleSchema.partial();
+
 export const certificateSchema = z.object({
   studentId: z.string().min(1),
   type: z.enum(["COMPLETION", "GRADUATION", "MERIT", "ATTENDANCE"]).default("COMPLETION"),
@@ -325,6 +353,129 @@ export const schoolSettingsSchema = z.object({
   postalCode: z.string().optional(),
   popiaConsentText: z.string().optional(),
   registrationNo: z.string().optional(),
+  institutionType: z
+    .enum([
+      "SCHOOL",
+      "PRIMARY_SCHOOL",
+      "HIGH_SCHOOL",
+      "COMBINED_SCHOOL",
+      "COLLEGE",
+      "TVET",
+      "TRAINING_CENTRE",
+      "TRAINING_INSTITUTION",
+    ])
+    .optional(),
+  curriculumType: z.enum(["CAPS", "NSC", "TVET_NQF", "CUSTOM"]).optional(),
+  periodStructure: z.enum(["TERMS_4", "SEMESTERS_2", "CUSTOM"]).optional(),
+  absenceNotifyEnabled: z.coerce.boolean().optional(),
+});
+
+export const studentLedgerEntrySchema = z.object({
+  studentId: z.string().min(1),
+  type: z.enum([
+    "CHARGE",
+    "PAYMENT",
+    "CREDIT",
+    "DISCOUNT",
+    "BURSARY",
+    "SPONSORSHIP",
+    "ADJUSTMENT",
+    "REFUND",
+  ]),
+  description: z.string().min(1),
+  amount: z.coerce.number().positive(),
+  reference: z.string().optional().nullable(),
+  academicYearId: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  entryDate: z.string().optional(),
+});
+
+export const academicYearSchema = z.object({
+  name: z.string().min(1, "Session name is required"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  status: z.enum(["PLANNED", "ACTIVE", "CLOSED", "ARCHIVED"]).optional(),
+  createDefaultPeriods: z.boolean().optional(),
+});
+
+export const academicYearUpdateSchema = academicYearSchema.partial().extend({
+  action: z
+    .enum(["activate", "close", "archive", "reopen", "set_current"])
+    .optional(),
+});
+
+export const termSchema = z.object({
+  academicYearId: z.string().min(1),
+  name: z.string().min(1, "Period name is required"),
+  termNumber: z.coerce.number().int().positive(),
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+  status: z.enum(["PLANNED", "ACTIVE", "CLOSED"]).optional(),
+  resultsPublishingDate: z.string().optional().nullable(),
+  attendanceStartDate: z.string().optional().nullable(),
+  attendanceEndDate: z.string().optional().nullable(),
+  setCurrent: z.boolean().optional(),
+});
+
+export const termUpdateSchema = termSchema.partial().omit({ academicYearId: true }).extend({
+  action: z.enum(["activate", "close", "set_current"]).optional(),
+});
+
+export const enrolmentSchema = z.object({
+  studentId: z.string().min(1),
+  academicYearId: z.string().min(1),
+  courseId: z.string().optional().nullable(),
+  gradeId: z.string().optional().nullable(),
+  classId: z.string().optional().nullable(),
+  status: z
+    .enum([
+      "ENROLLED",
+      "COMPLETED",
+      "WITHDRAWN",
+      "DEFERRED",
+      "PROMOTED",
+      "REPEATED",
+      "GRADUATED",
+      "TRANSFERRED",
+    ])
+    .optional(),
+  notes: z.string().optional().nullable(),
+});
+
+export const rolloverOutcomeSchema = z.enum([
+  "PROMOTED",
+  "REPEATED",
+  "GRADUATED",
+  "WITHDRAWN",
+  "TRANSFERRED",
+  "COMPLETED",
+]);
+
+export const rolloverPreviewSchema = z.object({
+  sourceYearId: z.string().min(1),
+  targetYearId: z.string().min(1),
+  gradeId: z.string().optional().nullable(),
+  classId: z.string().optional().nullable(),
+});
+
+export const rolloverCommitSchema = z.object({
+  sourceYearId: z.string().min(1),
+  targetYearId: z.string().min(1),
+  activateTarget: z.boolean().optional(),
+  closeSource: z.boolean().optional(),
+  decisions: z
+    .array(
+      z.object({
+        enrolmentId: z.string().min(1),
+        studentId: z.string().min(1),
+        outcome: rolloverOutcomeSchema,
+        targetGradeId: z.string().optional().nullable(),
+        targetClassId: z.string().optional().nullable(),
+        targetCourseId: z.string().optional().nullable(),
+        notes: z.string().optional().nullable(),
+      })
+    )
+    .min(1),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

@@ -6,8 +6,17 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import {
+  CURRICULUM_TYPE_LABELS,
+  INSTITUTION_TYPE_LABELS,
+  INSTITUTION_TYPE_OPTIONS,
+  PERIOD_STRUCTURE_LABELS,
+  getTerminology,
+} from "@/lib/terminology";
+import type { InstitutionType } from "@prisma/client";
 
 interface SchoolData {
   id: string;
@@ -23,6 +32,8 @@ interface SchoolData {
   popiaConsentText: string | null;
   institutionType: string;
   curriculumType: string;
+  periodStructure: string;
+  absenceNotifyEnabled?: boolean;
 }
 
 interface SchoolSettingsFormProps {
@@ -33,6 +44,12 @@ interface SchoolSettingsFormProps {
 export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [institutionType, setInstitutionType] = useState(school.institutionType);
+
+  const typeOptions = Array.from(
+    new Set([...INSTITUTION_TYPE_OPTIONS, school.institutionType as InstitutionType])
+  );
+  const previewTerms = getTerminology(institutionType as InstitutionType);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -59,6 +76,10 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             postalCode: form.get("postalCode") || undefined,
             registrationNo: form.get("registrationNo") || undefined,
             popiaConsentText: form.get("popiaConsentText") || undefined,
+            institutionType: form.get("institutionType"),
+            curriculumType: form.get("curriculumType"),
+            periodStructure: form.get("periodStructure"),
+            absenceNotifyEnabled: form.get("absenceNotifyEnabled") === "on",
           }),
         }
       );
@@ -76,15 +97,53 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">School Profile</CardTitle>
+          <CardTitle className="text-base">Institution Profile</CardTitle>
           <p className="text-sm text-muted">
-            {school.institutionType.replace("_", " ")} · {school.curriculumType}
+            Terminology preview: {previewTerms.students}, {previewTerms.periods},{" "}
+            {previewTerms.teachers}
           </p>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2 sm:col-span-2">
-            <Label>School Name</Label>
+            <Label>Institution Name</Label>
             <Input name="name" defaultValue={school.name} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Institution Type</Label>
+            <Select
+              name="institutionType"
+              value={institutionType}
+              onChange={(e) => setInstitutionType(e.target.value)}
+            >
+              {typeOptions.map((type) => (
+                <option key={type} value={type}>
+                  {INSTITUTION_TYPE_LABELS[type]}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Curriculum</Label>
+            <Select name="curriculumType" defaultValue={school.curriculumType}>
+              {Object.entries(CURRICULUM_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label>Academic Calendar Structure</Label>
+            <Select name="periodStructure" defaultValue={school.periodStructure}>
+              {Object.entries(PERIOD_STRUCTURE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+            <p className="text-xs text-muted">
+              Used when creating default {previewTerms.periods.toLowerCase()} for a new academic session.
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Email</Label>
@@ -99,7 +158,7 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             <Input name="website" defaultValue={school.website ?? ""} placeholder="https://" />
           </div>
           <div className="space-y-2">
-            <Label>Registration No.</Label>
+            <Label>Registration / EMIS No.</Label>
             <Input name="registrationNo" defaultValue={school.registrationNo ?? ""} />
           </div>
         </CardContent>
@@ -126,6 +185,27 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             <Label>Postal Code</Label>
             <Input name="postalCode" defaultValue={school.postalCode ?? ""} />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Absence notifications</CardTitle>
+          <p className="text-sm text-muted">
+            When enabled, primary guardians with a phone number receive an SMS if a learner is
+            marked absent or sick (requires Twilio in Integrations).
+          </p>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="absenceNotifyEnabled"
+              defaultChecked={school.absenceNotifyEnabled ?? false}
+              className="rounded"
+            />
+            Send automatic absence SMS to parents/guardians
+          </label>
         </CardContent>
       </Card>
 

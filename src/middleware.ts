@@ -20,6 +20,7 @@ const PUBLIC_PATHS = [
   "/contact",
   "/uploads",
   "/api/webhooks",
+  "/api/cron",
   "/api/contact",
   "/api/applications/status",
   "/sitemap.xml",

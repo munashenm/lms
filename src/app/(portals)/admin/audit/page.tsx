@@ -6,7 +6,9 @@ import { prisma } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
+import { Download } from "lucide-react";
 
 interface PageProps {
   searchParams: Promise<{ page?: string; entity?: string; schoolId?: string }>;
@@ -54,13 +56,25 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
 
   const pages = Math.max(1, Math.ceil(total / take));
 
+  const exportParams = new URLSearchParams({ format: "csv" });
+  if (params.schoolId) exportParams.set("schoolId", params.schoolId);
+  if (params.entity) exportParams.set("entity", params.entity);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Audit Log</h1>
-        <p className="text-muted text-sm mt-1">
-          POPIA compliance trail of sensitive actions across the school
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Audit Log</h1>
+          <p className="text-muted text-sm mt-1">
+            POPIA compliance trail of sensitive actions across the school
+          </p>
+        </div>
+        <Button variant="outline" size="sm" asChild>
+          <a href={`/api/audit?${exportParams.toString()}`}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </a>
+        </Button>
       </div>
 
       <div className="flex flex-wrap gap-3 items-end">

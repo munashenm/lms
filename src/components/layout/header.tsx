@@ -8,15 +8,25 @@ import { Button } from "@/components/ui/button";
 import { ROLE_LABELS } from "@/lib/constants";
 import { getInitials } from "@/lib/utils";
 import type { SessionPayload } from "@/lib/auth";
+import type { SessionOption } from "@/lib/academic-session";
+import { SessionSelector } from "./session-selector";
 import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   user: SessionPayload;
   onMenuClick: () => void;
   title?: string;
+  sessions?: SessionOption[];
+  viewSessionId?: string | null;
 }
 
-export function Header({ user, onMenuClick, title }: HeaderProps) {
+export function Header({
+  user,
+  onMenuClick,
+  title,
+  sessions = [],
+  viewSessionId = null,
+}: HeaderProps) {
   const router = useRouter();
 
   async function handleLogout() {
@@ -27,7 +37,7 @@ export function Header({ user, onMenuClick, title }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface px-4 lg:px-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onMenuClick}
           className="rounded-lg p-2 text-muted hover:bg-background lg:hidden"
@@ -35,9 +45,12 @@ export function Header({ user, onMenuClick, title }: HeaderProps) {
           <Menu className="h-5 w-5" />
         </button>
         {title && (
-          <h1 className="text-lg font-semibold text-foreground hidden sm:block">
+          <h1 className="text-lg font-semibold text-foreground hidden sm:block truncate">
             {title}
           </h1>
+        )}
+        {sessions.length > 0 && (
+          <SessionSelector sessions={sessions} viewSessionId={viewSessionId} />
         )}
       </div>
 

@@ -7,6 +7,7 @@ import { ClassFilter } from "@/components/academics/class-filter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { buildAttendanceSessionKey } from "@/lib/attendance";
 
 interface PageProps {
   searchParams: Promise<{ classId?: string; date?: string }>;
@@ -25,6 +26,9 @@ export default async function AttendancePage({ searchParams }: PageProps) {
   });
 
   const selectedClassId = params.classId ?? classes[0]?.id;
+  const sessionKey = selectedClassId
+    ? buildAttendanceSessionKey({ classId: selectedClassId })
+    : null;
 
   const [students, existingRecords, recentRecords] = await Promise.all([
     selectedClassId
@@ -33,9 +37,9 @@ export default async function AttendancePage({ searchParams }: PageProps) {
           orderBy: { lastName: "asc" },
         })
       : Promise.resolve([]),
-    selectedClassId
+    selectedClassId && sessionKey
       ? prisma.attendanceRecord.findMany({
-          where: { classId: selectedClassId, date: new Date(date) },
+          where: { sessionKey, date: new Date(date) },
         })
       : Promise.resolve([]),
     prisma.attendanceRecord.findMany({
@@ -51,9 +55,17 @@ export default async function AttendancePage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Attendance</h1>
-        <p className="text-muted text-sm mt-1">Mark daily class attendance</p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Attendance</h1>
+          <p className="text-muted text-sm mt-1">Mark daily class attendance</p>
+        </div>
+        <a
+          href="/admin/attendance/dashboard"
+          className="text-sm text-primary font-medium hover:underline"
+        >
+          Open dashboard
+        </a>
       </div>
 
       <div className="flex flex-wrap gap-4 items-end">
@@ -92,6 +104,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
           existingRecords={existingRecords.map((r) => ({
             studentId: r.studentId,
             status: r.status,
+            notes: r.notes,
           }))}
         />
       ) : (

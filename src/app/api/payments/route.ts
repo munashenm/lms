@@ -6,6 +6,7 @@ import { paymentSchema } from "@/lib/validators";
 import { deriveInvoiceStatus } from "@/lib/finance";
 import { logAudit } from "@/lib/audit";
 import { notifyUser, notifyStudentGuardians } from "@/lib/notifications";
+import { postPaymentToStudentLedger } from "@/lib/student-ledger";
 
 export async function GET() {
   const session = await getSession();
@@ -77,6 +78,18 @@ export async function POST(request: NextRequest) {
     entity: "Payment",
     entityId: payment.id,
     metadata: { invoiceId, amount, method },
+  });
+
+  await postPaymentToStudentLedger({
+    schoolId: invoice.schoolId,
+    studentId: invoice.studentId,
+    paymentId: payment.id,
+    invoiceId,
+    invoiceNumber: invoice.invoiceNumber,
+    amount,
+    method,
+    reference: reference || null,
+    recordedById: session!.userId,
   });
 
   if (invoice.student.userId) {

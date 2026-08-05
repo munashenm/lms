@@ -7,6 +7,7 @@ import { invoiceSchema } from "@/lib/validators";
 import { calculateInvoiceTotals, generateInvoiceNumber } from "@/lib/finance";
 import { logAudit } from "@/lib/audit";
 import { notifyUser, notifyStudentGuardians } from "@/lib/notifications";
+import { postInvoiceToStudentLedger } from "@/lib/student-ledger";
 import { UserRole } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
@@ -111,6 +112,19 @@ export async function POST(request: NextRequest) {
     entityId: invoice.id,
     metadata: { invoiceNumber, total },
   });
+
+  if (data.status !== "DRAFT" && data.status !== "CANCELLED") {
+    await postInvoiceToStudentLedger({
+      schoolId,
+      studentId: data.studentId,
+      invoiceId: invoice.id,
+      invoiceNumber,
+      description: data.description,
+      total,
+      discount: data.discount,
+      recordedById: session!.userId,
+    });
+  }
 
   if (data.status === "SENT") {
     const student = await prisma.student.findUnique({

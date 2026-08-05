@@ -24,14 +24,21 @@ interface LineItem {
   unitPrice: number;
 }
 
+interface FeeSchedulePreset {
+  name: string;
+  amount: number;
+}
+
 interface InvoiceFormProps {
   students: StudentOption[];
+  feeScheduleItems?: FeeSchedulePreset[];
   apiBase?: string;
   redirectTo?: string;
 }
 
 export function InvoiceForm({
   students,
+  feeScheduleItems = [],
   apiBase = "/api/invoices",
   redirectTo = "/admin/finance/invoices",
 }: InvoiceFormProps) {
@@ -49,6 +56,18 @@ export function InvoiceForm({
     setLineItems((items) =>
       items.map((item, i) => (i === index ? { ...item, [field]: value } : item))
     );
+  }
+
+  function applyFeeSchedule() {
+    if (feeScheduleItems.length === 0) return;
+    setLineItems(
+      feeScheduleItems.map((item) => ({
+        description: item.name,
+        quantity: 1,
+        unitPrice: item.amount,
+      }))
+    );
+    toast.success("Line items loaded from fee schedule");
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -130,18 +149,25 @@ export function InvoiceForm({
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <Label>Line Items</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setLineItems([...lineItems, { description: "", quantity: 1, unitPrice: 0 }])
-                }
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add Item
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                {feeScheduleItems.length > 0 && (
+                  <Button type="button" variant="secondary" size="sm" onClick={applyFeeSchedule}>
+                    Load from fee schedule
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setLineItems([...lineItems, { description: "", quantity: 1, unitPrice: 0 }])
+                  }
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Add Item
+                </Button>
+              </div>
             </div>
             {lineItems.map((item, index) => (
               <div key={index} className="grid grid-cols-12 gap-2 items-end">

@@ -4,7 +4,8 @@ export async function sendEmailViaSendGrid(
   config: ResolvedIntegrations,
   to: string,
   subject: string,
-  body: string
+  body: string,
+  attachments?: { filename: string; type: string; contentBase64: string }[]
 ) {
   const apiKey = config.sendgrid.apiKey;
   if (!apiKey) return { sent: false as const, reason: "not_configured" };
@@ -23,6 +24,16 @@ export async function sendEmailViaSendGrid(
       },
       subject,
       content: [{ type: "text/plain", value: body }],
+      ...(attachments?.length
+        ? {
+            attachments: attachments.map((a) => ({
+              content: a.contentBase64,
+              filename: a.filename,
+              type: a.type,
+              disposition: "attachment",
+            })),
+          }
+        : {}),
     }),
   });
 

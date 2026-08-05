@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getFeaturedSchool } from "@/lib/public-site";
 import { getPublicPaymentOptions } from "@/lib/school-integrations";
+import { getPublicFeeSchedule } from "@/lib/fee-schedule";
 import { publicPageMetadata } from "@/lib/site-metadata";
 
 export const metadata = publicPageMetadata("Fees & Funding", "Fee schedule, payment options and bursary information.");
@@ -10,22 +11,34 @@ import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
-const FEE_ITEMS = [
-  { item: "Registration Fee", amount: 1500, note: "Once-off, non-refundable" },
-  { item: "Tuition — NQF Level 4 (per term)", amount: 12500, note: "Payable per term" },
-  { item: "Materials & Lab Fee", amount: 2500, note: "Per year" },
-  { item: "Examination Fee", amount: 1800, note: "Per exam sitting" },
+const FALLBACK_FEE_ITEMS = [
+  { name: "Registration Fee", amount: 1500, notes: "Once-off, non-refundable" },
+  { name: "Tuition — NQF Level 4 (per term)", amount: 12500, notes: "Payable per term" },
+  { name: "Materials & Lab Fee", amount: 2500, notes: "Per year" },
+  { name: "Examination Fee", amount: 1800, notes: "Per exam sitting" },
 ];
 
 export default async function FeesPage() {
   const school = await getFeaturedSchool();
-  const paymentOptions = school?.id
-    ? await getPublicPaymentOptions(school.id)
-    : [
-        "EFT / bank transfer",
-        "Cash at finance office",
-        "Payment plans available on request",
-      ];
+  const [paymentOptions, feeItems] = await Promise.all([
+    school?.id
+      ? getPublicPaymentOptions(school.id)
+      : Promise.resolve([
+          "EFT / bank transfer",
+          "Cash at finance office",
+          "Payment plans available on request",
+        ]),
+    school?.id ? getPublicFeeSchedule(school.id) : Promise.resolve([]),
+  ]);
+
+  const rows =
+    feeItems.length > 0
+      ? feeItems.map((item) => ({
+          name: item.name,
+          amount: Number(item.amount),
+          notes: item.notes,
+        }))
+      : FALLBACK_FEE_ITEMS;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 lg:px-6 space-y-10">
@@ -38,7 +51,7 @@ export default async function FeesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">2026 Fee Schedule (indicative)</CardTitle>
+          <CardTitle className="text-base">2026 Fee Schedule</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <table className="w-full text-sm">
@@ -50,11 +63,11 @@ export default async function FeesPage() {
               </tr>
             </thead>
             <tbody>
-              {FEE_ITEMS.map((row) => (
-                <tr key={row.item} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 font-medium">{row.item}</td>
+              {rows.map((row) => (
+                <tr key={row.name} className="border-b border-border last:border-0">
+                  <td className="px-4 py-3 font-medium">{row.name}</td>
                   <td className="px-4 py-3 text-right">{formatZAR(row.amount)}</td>
-                  <td className="px-4 py-3 text-muted hidden sm:table-cell">{row.note}</td>
+                  <td className="px-4 py-3 text-muted hidden sm:table-cell">{row.notes ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

@@ -25,9 +25,13 @@ enum UserRole {
 
 enum InstitutionType {
   SCHOOL
+  PRIMARY_SCHOOL
+  HIGH_SCHOOL
+  COMBINED_SCHOOL
   COLLEGE
   TVET
   TRAINING_CENTRE
+  TRAINING_INSTITUTION
 }
 
 enum CurriculumType {
@@ -35,6 +39,25 @@ enum CurriculumType {
   NSC
   TVET_NQF
   CUSTOM
+}
+
+enum AcademicPeriodStructure {
+  TERMS_4
+  SEMESTERS_2
+  CUSTOM
+}
+
+enum AcademicSessionStatus {
+  PLANNED
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum AcademicPeriodStatus {
+  PLANNED
+  ACTIVE
+  CLOSED
 }
 
 enum Gender {
@@ -63,6 +86,7 @@ enum AttendanceStatus {
   ABSENT
   LATE
   EXCUSED
+  SICK
 }
 
 enum StaffAttendanceStatus {
@@ -164,6 +188,10 @@ enum EnrolmentStatus {
   COMPLETED
   WITHDRAWN
   DEFERRED
+  PROMOTED
+  REPEATED
+  GRADUATED
+  TRANSFERRED
 }
 
 enum DayOfWeek {
@@ -185,6 +213,48 @@ enum NotificationType {
   ADMISSION
 }
 
+enum CommunicationChannel {
+  EMAIL
+  SMS
+  IN_APP
+}
+
+enum CommunicationCategory {
+  ABSENCE_ALERT
+  FEE_REMINDER
+  FEE_STATEMENT
+  ACADEMIC_NOTICE
+  EXAM_NOTICE
+  ANNOUNCEMENT
+  EMERGENCY
+  GENERAL
+}
+
+enum CommunicationStatus {
+  QUEUED
+  SENT
+  FAILED
+  LOGGED
+}
+
+enum CommunicationBatchStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+enum StudentLedgerType {
+  CHARGE
+  PAYMENT
+  CREDIT
+  DISCOUNT
+  BURSARY
+  SPONSORSHIP
+  ADJUSTMENT
+  REFUND
+}
+
 // ─── Multi-tenant Core ───────────────────────────────────────────────────────
 
 model School {
@@ -193,6 +263,7 @@ model School {
   slug            String          @unique
   institutionType InstitutionType @default(SCHOOL)
   curriculumType  CurriculumType  @default(CAPS)
+  periodStructure AcademicPeriodStructure @default(TERMS_4)
   registrationNo  String?
   email           String?
   phone           String?
@@ -205,6 +276,7 @@ model School {
   timezone        String          @default("Africa/Johannesburg")
   currency        String          @default("ZAR")
   popiaConsentText String?
+  absenceNotifyEnabled Boolean    @default(false)
   isActive        Boolean         @default(true)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -224,10 +296,16 @@ model School {
   auditLogs       AuditLog[]
   documents       Document[]
   invoices        Invoice[]
+  feeScheduleItems FeeScheduleItem[]
+  feeReminderRules FeeReminderRule[]
+  feeReminderDispatches FeeReminderDispatch[]
   notifications   Notification[]
   certificates    Certificate[]
   leaveRequests   LeaveRequest[]
   ledgerEntries   LedgerEntry[]
+  studentLedgerEntries StudentLedgerEntry[]
+  communicationLogs CommunicationLog[]
+  communicationBatches CommunicationBatch[]
   staffAttendance StaffAttendanceRecord[]
   integrationConfig SchoolIntegrationConfig?
 
@@ -292,6 +370,7 @@ model User {
   leaveReviews       LeaveRequest[] @relation("LeaveReviewer")
   leaveApplications  LeaveRequest[] @relation("LeaveApplicant")
   ledgerEntries      LedgerEntry[]  @relation("LedgerRecorder")
+  studentLedgerEntries StudentLedgerEntry[] @relation("StudentLedgerRecorder")
   staffAttendance    StaffAttendanceRecord[] @relation("StaffAttendanceUser")
   staffAttendanceMarked StaffAttendanceRecord[] @relation("StaffAttendanceMarker")
 
@@ -303,14 +382,17 @@ model User {
 // ─── Academic Structure ──────────────────────────────────────────────────────
 
 model AcademicYear {
-  id        String   @id @default(cuid())
+  id        String                @id @default(cuid())
   schoolId  String
   name      String
   startDate DateTime
   endDate   DateTime
-  isCurrent Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status    AcademicSessionStatus @default(PLANNED)
+  isCurrent Boolean               @default(false)
+  closedAt  DateTime?
+  archivedAt DateTime?
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
 
   school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   terms     Term[]
@@ -318,22 +400,29 @@ model AcademicYear {
   enrolments Enrolment[]
   reportCards ReportCard[]
   certificates Certificate[]
+  studentLedgerEntries StudentLedgerEntry[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
+  @@index([schoolId, status])
+  @@index([schoolId, isCurrent])
   @@map("academic_years")
 }
 
 model Term {
-  id             String   @id @default(cuid())
-  academicYearId String
-  name           String
-  termNumber     Int
-  startDate      DateTime
-  endDate        DateTime
-  isCurrent      Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                    String                @id @default(cuid())
+  academicYearId        String
+  name                  String
+  termNumber            Int
+  startDate             DateTime
+  endDate               DateTime
+  status                AcademicPeriodStatus  @default(PLANNED)
+  isCurrent             Boolean               @default(false)
+  resultsPublishingDate DateTime?
+  attendanceStartDate   DateTime?
+  attendanceEndDate     DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   assessments    Assessment[]
@@ -342,6 +431,7 @@ model Term {
 
   @@unique([academicYearId, termNumber])
   @@index([academicYearId])
+  @@index([academicYearId, isCurrent])
   @@map("terms")
 }
 
@@ -360,6 +450,7 @@ model Grade {
   students  Student[]
   classes   Class[]
   subjects  Subject[]
+  enrolments Enrolment[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -383,6 +474,7 @@ model Subject {
   classSubjects ClassSubject[]
   assessments Assessment[]
   timetableSlots TimetableSlot[]
+  attendanceRecords AttendanceRecord[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -426,6 +518,7 @@ model Module {
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   assessments Assessment[]
   timetableSlots TimetableSlot[]
+  attendanceRecords AttendanceRecord[]
 
   @@unique([courseId, code])
   @@index([courseId])
@@ -454,6 +547,7 @@ model Class {
   classSubjects  ClassSubject[]
   timetableSlots TimetableSlot[]
   attendanceRecords AttendanceRecord[]
+  enrolments     Enrolment[]
 
   @@index([schoolId])
   @@map("classes")
@@ -530,6 +624,8 @@ model Student {
   submissions     AssignmentSubmission[]
   applications    Application[]
   certificates    Certificate[]
+  ledgerEntries   StudentLedgerEntry[]
+  communicationLogs CommunicationLog[]
 
   @@unique([schoolId, studentNumber])
   @@index([schoolId])
@@ -614,17 +710,26 @@ model Enrolment {
   studentId      String
   courseId       String?
   academicYearId String
+  gradeId        String?
+  classId        String?
   status         EnrolmentStatus @default(ENROLLED)
   enrolledAt     DateTime        @default(now())
   completedAt    DateTime?
+  notes          String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   course         Course?      @relation(fields: [courseId], references: [id])
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  grade          Grade?       @relation(fields: [gradeId], references: [id])
+  class          Class?       @relation(fields: [classId], references: [id])
 
   @@index([studentId])
+  @@index([academicYearId])
+  @@index([studentId, academicYearId])
+  @@index([gradeId])
+  @@index([classId])
   @@map("enrolments")
 }
 
@@ -658,23 +763,33 @@ model Application {
 // ─── Attendance ──────────────────────────────────────────────────────────────
 
 model AttendanceRecord {
-  id        String           @id @default(cuid())
-  studentId String
-  classId   String?
-  termId    String?
-  date      DateTime         @db.Date
-  status    AttendanceStatus
-  notes     String?
-  markedBy  String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id           String           @id @default(cuid())
+  studentId    String
+  classId      String?
+  subjectId    String?
+  moduleId     String?
+  termId       String?
+  date         DateTime         @db.Date
+  sessionKey   String           @default("daily")
+  sessionStart String?
+  sessionEnd   String?
+  status       AttendanceStatus
+  notes        String?
+  markedBy     String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   class     Class?   @relation(fields: [classId], references: [id])
+  subject   Subject? @relation(fields: [subjectId], references: [id])
+  module    Module?  @relation(fields: [moduleId], references: [id])
   term      Term?    @relation(fields: [termId], references: [id])
 
-  @@unique([studentId, date, classId])
+  @@unique([studentId, date, sessionKey])
   @@index([studentId, date])
+  @@index([classId, date])
+  @@index([moduleId, date])
+  @@index([termId, date])
   @@map("attendance_records")
 }
 
@@ -827,10 +942,13 @@ model Invoice {
   student       Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   lineItems     InvoiceLineItem[]
   payments      Payment[]
+  ledgerEntries StudentLedgerEntry[]
+  reminderDispatches FeeReminderDispatch[]
 
   @@unique([schoolId, invoiceNumber])
   @@index([schoolId, status])
   @@index([studentId])
+  @@index([dueDate])
   @@map("invoices")
 }
 
@@ -859,9 +977,70 @@ model Payment {
   createdAt     DateTime      @default(now())
 
   invoice       Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  ledgerEntries StudentLedgerEntry[]
 
   @@index([invoiceId])
   @@map("payments")
+}
+
+model FeeScheduleItem {
+  id          String   @id @default(cuid())
+  schoolId    String
+  name        String
+  amount      Decimal  @db.Decimal(12, 2)
+  notes       String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, isActive, sortOrder])
+  @@map("fee_schedule_items")
+}
+
+/// Automated fee reminder rule. daysOffset: negative = before due, 0 = due date, positive = days overdue.
+model FeeReminderRule {
+  id            String   @id @default(cuid())
+  schoolId      String
+  name          String
+  daysOffset    Int
+  /// EMAIL | SMS | BOTH
+  channel       String   @default("EMAIL")
+  isEnabled     Boolean  @default(true)
+  emailTemplate String?
+  smsTemplate   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  dispatches    FeeReminderDispatch[]
+
+  @@unique([schoolId, daysOffset, channel])
+  @@index([schoolId, isEnabled])
+  @@map("fee_reminder_rules")
+}
+
+model FeeReminderDispatch {
+  id                  String   @id @default(cuid())
+  schoolId            String
+  ruleId              String
+  invoiceId           String
+  studentId           String
+  channel             String
+  communicationLogId  String?
+  dispatchedAt        DateTime @default(now())
+
+  school              School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  rule                FeeReminderRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  invoice             Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleId, invoiceId, channel])
+  @@index([schoolId, dispatchedAt])
+  @@index([studentId])
+  @@map("fee_reminder_dispatches")
 }
 
 // ─── Documents & Communications ──────────────────────────────────────────────
@@ -1073,6 +1252,92 @@ model LedgerEntry {
   @@index([schoolId, type])
   @@index([schoolId, entryDate])
   @@map("ledger_entries")
+}
+
+// ─── Student Financial Ledger & Communications ───────────────────────────────
+
+model StudentLedgerEntry {
+  id             String            @id @default(cuid())
+  schoolId       String
+  studentId      String
+  academicYearId String?
+  type           StudentLedgerType
+  description    String
+  /// Positive increases amount owed; negative reduces it (payments/credits)
+  signedAmount   Decimal           @db.Decimal(12, 2)
+  reference      String?
+  invoiceId      String?
+  paymentId      String?
+  entryDate      DateTime          @default(now())
+  recordedById   String?
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  school         School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student        Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear?     @relation(fields: [academicYearId], references: [id])
+  invoice        Invoice?          @relation(fields: [invoiceId], references: [id])
+  payment        Payment?          @relation(fields: [paymentId], references: [id])
+  recordedBy     User?             @relation("StudentLedgerRecorder", fields: [recordedById], references: [id])
+
+  @@index([schoolId, studentId, entryDate])
+  @@index([studentId, entryDate])
+  @@index([invoiceId])
+  @@index([paymentId])
+  @@map("student_ledger_entries")
+}
+
+model CommunicationBatch {
+  id           String                    @id @default(cuid())
+  schoolId     String
+  category     CommunicationCategory
+  channel      CommunicationChannel
+  status       CommunicationBatchStatus  @default(PENDING)
+  totalCount   Int                       @default(0)
+  queuedCount  Int                       @default(0)
+  sentCount    Int                       @default(0)
+  failedCount  Int                       @default(0)
+  filters      Json?
+  createdById  String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  completedAt  DateTime?
+
+  school       School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  logs         CommunicationLog[]
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, status])
+  @@map("communication_batches")
+}
+
+model CommunicationLog {
+  id               String                @id @default(cuid())
+  schoolId         String
+  batchId          String?
+  studentId        String?
+  channel          CommunicationChannel
+  category         CommunicationCategory @default(GENERAL)
+  status           CommunicationStatus   @default(LOGGED)
+  recipientName    String?
+  recipientContact String
+  subject          String?
+  message          String
+  error            String?
+  metadata         Json?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  school           School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  batch            CommunicationBatch?   @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  student          Student?              @relation(fields: [studentId], references: [id])
+
+  @@index([schoolId, createdAt])
+  @@index([studentId, createdAt])
+  @@index([category, status])
+  @@index([batchId, status])
+  @@map("communication_logs")
 }
 
 // ─── Audit Trail (POPIA) ─────────────────────────────────────────────────────

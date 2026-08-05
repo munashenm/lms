@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { PortalShell } from "@/components/layout/portal-shell";
 import { studentNav } from "@/lib/navigation";
 import { UserRole } from "@prisma/client";
+import { getPortalSessionContext } from "@/lib/portal-session";
 
 export default async function StudentLayout({
   children,
@@ -17,8 +18,22 @@ export default async function StudentLayout({
     redirect("/login");
   }
 
+  const ctx = await getPortalSessionContext(session);
+  const terms = ctx.terminology;
+  const nav = studentNav.map((item) => {
+    if (!terms) return item;
+    if (item.href === "/student/subjects") return { ...item, label: terms.subjects };
+    return item;
+  });
+
   return (
-    <PortalShell user={session} navItems={studentNav} portalLabel="Student Portal">
+    <PortalShell
+      user={session}
+      navItems={nav}
+      portalLabel={`${terms?.student ?? "Student"} Portal`}
+      sessions={ctx.sessions}
+      viewSessionId={ctx.viewSessionId}
+    >
       {children}
     </PortalShell>
   );

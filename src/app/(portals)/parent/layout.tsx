@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { PortalShell } from "@/components/layout/portal-shell";
 import { parentNav } from "@/lib/navigation";
 import { UserRole } from "@prisma/client";
+import { getPortalSessionContext } from "@/lib/portal-session";
 
 export default async function ParentLayout({
   children,
@@ -17,8 +18,16 @@ export default async function ParentLayout({
     redirect("/login");
   }
 
+  const ctx = await getPortalSessionContext(session);
+
   return (
-    <PortalShell user={session} navItems={parentNav} portalLabel="Parent Portal">
+    <PortalShell
+      user={session}
+      navItems={parentNav}
+      portalLabel={`${ctx.terminology?.guardian ?? "Parent"} Portal`}
+      sessions={ctx.sessions}
+      viewSessionId={ctx.viewSessionId}
+    >
       {children}
     </PortalShell>
   );

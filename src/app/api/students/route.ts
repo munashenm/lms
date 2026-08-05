@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { studentSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
+import { ensureStudentEnrolment } from "@/lib/enrolment";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -117,6 +118,13 @@ export async function POST(request: NextRequest) {
         grade: { select: { name: true } },
         class: { select: { name: true } },
       },
+    });
+
+    await ensureStudentEnrolment({
+      studentId: student.id,
+      schoolId,
+      gradeId: student.gradeId,
+      classId: student.classId,
     });
 
     await logAudit({

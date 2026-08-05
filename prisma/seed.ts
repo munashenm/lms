@@ -1,5 +1,13 @@
 import "dotenv/config";
-import { PrismaClient, UserRole, InstitutionType, CurriculumType } from "@prisma/client";
+import {
+  PrismaClient,
+  UserRole,
+  InstitutionType,
+  CurriculumType,
+  AcademicPeriodStructure,
+  AcademicSessionStatus,
+  AcademicPeriodStatus,
+} from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -16,8 +24,11 @@ async function main() {
   await prisma.auditLog.deleteMany();
   await prisma.announcement.deleteMany();
   await prisma.payment.deleteMany();
+  await prisma.feeReminderDispatch.deleteMany();
+  await prisma.feeReminderRule.deleteMany();
   await prisma.invoiceLineItem.deleteMany();
   await prisma.invoice.deleteMany();
+  await prisma.feeScheduleItem.deleteMany();
   await prisma.mark.deleteMany();
   await prisma.assignmentSubmission.deleteMany();
   await prisma.assignment.deleteMany();
@@ -52,6 +63,7 @@ async function main() {
       slug: "cyber-college",
       institutionType: InstitutionType.COLLEGE,
       curriculumType: CurriculumType.TVET_NQF,
+      periodStructure: AcademicPeriodStructure.SEMESTERS_2,
       registrationNo: "REG-2020-001",
       email: "info@college.co.za",
       phone: "087 550 1813",
@@ -84,13 +96,32 @@ async function main() {
       name: "2026",
       startDate: new Date("2026-01-15"),
       endDate: new Date("2026-12-15"),
+      status: AcademicSessionStatus.ACTIVE,
       isCurrent: true,
       terms: {
         create: [
-          { name: "Term 1", termNumber: 1, startDate: new Date("2026-01-15"), endDate: new Date("2026-03-28"), isCurrent: false },
-          { name: "Term 2", termNumber: 2, startDate: new Date("2026-04-08"), endDate: new Date("2026-06-27"), isCurrent: true },
-          { name: "Term 3", termNumber: 3, startDate: new Date("2026-07-15"), endDate: new Date("2026-09-26"), isCurrent: false },
-          { name: "Term 4", termNumber: 4, startDate: new Date("2026-10-06"), endDate: new Date("2026-12-15"), isCurrent: false },
+          {
+            name: "Semester 1",
+            termNumber: 1,
+            startDate: new Date("2026-01-15"),
+            endDate: new Date("2026-06-27"),
+            status: AcademicPeriodStatus.CLOSED,
+            isCurrent: false,
+            resultsPublishingDate: new Date("2026-07-10"),
+            attendanceStartDate: new Date("2026-01-15"),
+            attendanceEndDate: new Date("2026-06-27"),
+          },
+          {
+            name: "Semester 2",
+            termNumber: 2,
+            startDate: new Date("2026-07-15"),
+            endDate: new Date("2026-12-15"),
+            status: AcademicPeriodStatus.ACTIVE,
+            isCurrent: true,
+            resultsPublishingDate: new Date("2026-12-20"),
+            attendanceStartDate: new Date("2026-07-15"),
+            attendanceEndDate: new Date("2026-12-15"),
+          },
         ],
       },
     },
@@ -360,6 +391,9 @@ async function main() {
         studentId: student.id,
         courseId: course.id,
         academicYearId: academicYear.id,
+        gradeId: student.gradeId,
+        classId: student.classId,
+        status: "ENROLLED",
       },
     });
   }
@@ -378,6 +412,81 @@ async function main() {
       },
     });
   }
+
+  // ── Fee Schedule ───────────────────────────────────────────────────────
+  await prisma.feeScheduleItem.createMany({
+    data: [
+      {
+        schoolId: school.id,
+        name: "Registration Fee",
+        amount: 1500,
+        notes: "Once-off, non-refundable",
+        sortOrder: 1,
+      },
+      {
+        schoolId: school.id,
+        name: "Tuition — NQF Level 4 (per term)",
+        amount: 12500,
+        notes: "Payable per term",
+        sortOrder: 2,
+      },
+      {
+        schoolId: school.id,
+        name: "Materials & Lab Fee",
+        amount: 2500,
+        notes: "Per year",
+        sortOrder: 3,
+      },
+      {
+        schoolId: school.id,
+        name: "Examination Fee",
+        amount: 1800,
+        notes: "Per exam sitting",
+        sortOrder: 4,
+      },
+    ],
+  });
+
+  // ── Automated fee reminder rules (disabled until SMS/email configured) ─
+  await prisma.feeReminderRule.createMany({
+    data: [
+      {
+        schoolId: school.id,
+        name: "7 days before due",
+        daysOffset: -7,
+        channel: "EMAIL",
+        isEnabled: false,
+      },
+      {
+        schoolId: school.id,
+        name: "On due date",
+        daysOffset: 0,
+        channel: "BOTH",
+        isEnabled: false,
+      },
+      {
+        schoolId: school.id,
+        name: "7 days overdue",
+        daysOffset: 7,
+        channel: "BOTH",
+        isEnabled: false,
+      },
+      {
+        schoolId: school.id,
+        name: "14 days overdue",
+        daysOffset: 14,
+        channel: "EMAIL",
+        isEnabled: false,
+      },
+      {
+        schoolId: school.id,
+        name: "30 days overdue",
+        daysOffset: 30,
+        channel: "EMAIL",
+        isEnabled: false,
+      },
+    ],
+  });
 
   // ── Invoices ────────────────────────────────────────────────────────────
   for (let i = 0; i < 5; i++) {

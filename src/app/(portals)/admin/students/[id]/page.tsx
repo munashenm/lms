@@ -2,12 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter } from "@/lib/rbac";
+import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StudentExportButton } from "@/components/students/student-export-button";
+import { StudentLedgerPanel } from "@/components/finance/student-ledger-panel";
 import { ArrowLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { getStudentLedger } from "@/lib/student-ledger";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -30,6 +33,15 @@ export default async function StudentDetailPage({ params }: PageProps) {
   });
 
   if (!student) notFound();
+
+  const canExportPopia =
+    requirePermission(session, "students:read") && requirePermission(session, "audit:read");
+  const canFinance = requirePermission(session, "finance:read");
+  const canFinanceWrite = requirePermission(session, "finance:write");
+
+  const ledger = canFinance
+    ? await getStudentLedger({ studentId: student.id })
+    : null;
 
   const statusVariant: Record<string, "success" | "warning" | "danger" | "secondary"> = {
     ACTIVE: "success",
@@ -58,6 +70,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
           </div>
           <p className="text-muted text-sm mt-1">{student.studentNumber}</p>
         </div>
+        {canExportPopia && <StudentExportButton studentId={student.id} />}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -126,6 +139,26 @@ export default async function StudentDetailPage({ params }: PageProps) {
           </Card>
         )}
       </div>
+
+      {ledger && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Financial account</h2>
+          <StudentLedgerPanel
+            studentId={student.id}
+            balance={ledger.balance}
+            canWrite={canFinanceWrite}
+            entries={ledger.entries.map((e) => ({
+              id: e.id,
+              type: e.type,
+              description: e.description,
+              signedAmount: e.signedAmount,
+              reference: e.reference,
+              entryDate: e.entryDate.toISOString(),
+              academicYear: e.academicYear,
+            }))}
+          />
+        </div>
+      )}
     </div>
   );
 }

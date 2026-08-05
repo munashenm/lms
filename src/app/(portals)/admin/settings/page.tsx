@@ -76,12 +76,28 @@ export default async function SettingsPage({ searchParams }: PageProps) {
         )}
         <h1 className="text-2xl font-bold mt-2">Settings</h1>
         <p className="text-muted text-sm mt-1">
-          {school.name} — profile, POPIA, integrations and payment gateways
+          {school.name} — institution type, academic structure, POPIA and integrations
         </p>
       </div>
 
       <SchoolSettingsForm
-        school={school}
+        school={{
+          id: school.id,
+          name: school.name,
+          email: school.email,
+          phone: school.phone,
+          website: school.website,
+          address: school.address,
+          city: school.city,
+          province: school.province,
+          postalCode: school.postalCode,
+          registrationNo: school.registrationNo,
+          popiaConsentText: school.popiaConsentText,
+          institutionType: school.institutionType,
+          curriculumType: school.curriculumType,
+          periodStructure: school.periodStructure,
+          absenceNotifyEnabled: school.absenceNotifyEnabled,
+        }}
         manageSchoolId={isSuperAdminView ? school.id : undefined}
       />
 

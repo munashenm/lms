@@ -5,12 +5,15 @@ import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import type { SessionPayload } from "@/lib/auth";
 import type { NavItem } from "@/lib/navigation";
+import type { SessionOption } from "@/lib/academic-session";
 
 interface PortalShellProps {
   user: SessionPayload;
   title?: string;
   navItems: NavItem[];
   portalLabel: string;
+  sessions?: SessionOption[];
+  viewSessionId?: string | null;
   children: React.ReactNode;
 }
 
@@ -19,6 +22,8 @@ export function PortalShell({
   title,
   navItems,
   portalLabel,
+  sessions = [],
+  viewSessionId = null,
   children,
 }: PortalShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,6 +41,8 @@ export function PortalShell({
           user={user}
           title={title}
           onMenuClick={() => setSidebarOpen(true)}
+          sessions={sessions}
+          viewSessionId={viewSessionId}
         />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
       </div>

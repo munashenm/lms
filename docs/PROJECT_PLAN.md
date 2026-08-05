@@ -98,6 +98,31 @@ The reference LMS at `lms.cyberdevelopers.co.za` informs feature scope only — 
 - [x] Change password for signed-in users (`/account/password`)
 - [x] POPIA audit log viewer (`/admin/audit`)
 
+### Phase 9 — Finance Admin & POPIA Tools ✅
+- [x] Fee schedule CRUD (`/admin/finance/fee-schedule`, `/finance/fee-schedule`)
+- [x] Public fees page driven by school fee schedule
+- [x] Invoice line-item presets from fee schedule
+- [x] Audit log CSV export
+- [x] POPIA student data export (JSON download from student profile)
+
+### Phase 10 — Multi-Institution Foundation (in progress)
+- [x] Institution type options (Primary / High / Combined / College / Training)
+- [x] Academic calendar structure (Terms / Semesters / Custom) in settings
+- [x] Terminology layer (Learner vs Student, Term vs Semester, etc.)
+- [x] Academic Session manager (create, activate, close, archive, reopen)
+- [x] Terms/Semesters CRUD with results & attendance date windows
+- [x] Portal academic session selector (header)
+- [x] Session-linked enrolments (grade/class/course on Enrolment)
+- [x] Year-end rollover / promotion wizard (`/admin/academic/rollover`)
+- [x] Attendance deepen (SICK status, module/session registers, dashboard, mobile register)
+- [x] Absence SMS notifications (toggle + Twilio provider + communication log)
+- [x] Student fee ledger (transaction history + balance on student profile)
+- [x] Fee statements PDF download + email (SendGrid attachment + communication log)
+- [x] Bulk fee reminders / statement queue (`/finance/reminders`, batch process + retry)
+- [x] Automatic payment reminder rules (7 days before / due / 7 / 14 / 30 overdue)
+- [x] Fee reminder cron endpoint (`/api/cron/fee-reminders`, `CRON_SECRET`)
+- [x] Reminder rule manager + dispatch history on Fee Reminders pages
+
 ---
 
 ## Role Matrix

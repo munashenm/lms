@@ -1,3 +1,5 @@
+import type { Terminology } from "./terminology";
+
 export type NavIconName =
   | "LayoutDashboard"
   | "Users"
@@ -25,28 +27,36 @@ export interface NavItem {
   icon: NavIconName;
 }
 
-export const adminNav: NavItem[] = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: "LayoutDashboard" },
-  { label: "Students", href: "/admin/students", icon: "Users" },
-  { label: "Staff", href: "/admin/staff", icon: "UserCheck" },
-  { label: "Leave", href: "/admin/leave", icon: "Palmtree" },
-  { label: "Staff Attendance", href: "/admin/staff-attendance", icon: "ClipboardCheck" },
-  { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
-  { label: "Classes", href: "/admin/classes", icon: "GraduationCap" },
-  { label: "Subjects", href: "/admin/subjects", icon: "BookOpen" },
-  { label: "Timetable", href: "/admin/timetable", icon: "Calendar" },
-  { label: "Attendance", href: "/admin/attendance", icon: "ClipboardCheck" },
-  { label: "Assessments", href: "/admin/assessments", icon: "FileText" },
-  { label: "Report Cards", href: "/admin/report-cards", icon: "Award" },
-  { label: "Certificates", href: "/admin/certificates", icon: "Award" },
-  { label: "Applications", href: "/admin/applications", icon: "ClipboardList" },
-  { label: "Finance", href: "/admin/finance", icon: "CreditCard" },
-  { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
-  { label: "Documents", href: "/admin/documents", icon: "FolderOpen" },
-  { label: "Reports", href: "/admin/reports", icon: "BarChart3" },
-  { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
-  { label: "Settings", href: "/admin/settings", icon: "Settings" },
-];
+export function getAdminNav(terms?: Terminology): NavItem[] {
+  const t = terms;
+  return [
+    { label: "Dashboard", href: "/admin/dashboard", icon: "LayoutDashboard" },
+    { label: t?.students ?? "Students", href: "/admin/students", icon: "Users" },
+    { label: "Staff", href: "/admin/staff", icon: "UserCheck" },
+    { label: "Leave", href: "/admin/leave", icon: "Palmtree" },
+    { label: "Staff Attendance", href: "/admin/staff-attendance", icon: "ClipboardCheck" },
+    { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
+    { label: "Academic Sessions", href: "/admin/academic", icon: "Calendar" },
+    { label: t?.classes ?? "Classes", href: "/admin/classes", icon: "GraduationCap" },
+    { label: t?.subjects ?? "Subjects", href: "/admin/subjects", icon: "BookOpen" },
+    { label: "Timetable", href: "/admin/timetable", icon: "Calendar" },
+    { label: "Attendance", href: "/admin/attendance/dashboard", icon: "ClipboardCheck" },
+    { label: "Assessments", href: "/admin/assessments", icon: "FileText" },
+    { label: "Report Cards", href: "/admin/report-cards", icon: "Award" },
+    { label: "Certificates", href: "/admin/certificates", icon: "Award" },
+    { label: "Applications", href: "/admin/applications", icon: "ClipboardList" },
+    { label: "Finance", href: "/admin/finance", icon: "CreditCard" },
+    { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
+    { label: "Communications", href: "/admin/communications", icon: "Megaphone" },
+    { label: "Documents", href: "/admin/documents", icon: "FolderOpen" },
+    { label: "Reports", href: "/admin/reports", icon: "BarChart3" },
+    { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
+    { label: "Settings", href: "/admin/settings", icon: "Settings" },
+  ];
+}
+
+/** @deprecated Use getAdminNav(terms) for institution-aware labels */
+export const adminNav: NavItem[] = getAdminNav();
 
 export const teacherNav: NavItem[] = [
   { label: "Dashboard", href: "/teacher/dashboard", icon: "LayoutDashboard" },
@@ -79,6 +89,8 @@ export const financeNav: NavItem[] = [
   { label: "Invoices", href: "/finance/invoices", icon: "FileText" },
   { label: "Payments", href: "/finance/payments", icon: "Wallet" },
   { label: "Debtors", href: "/finance/debtors", icon: "TrendingDown" },
+  { label: "Fee Reminders", href: "/finance/reminders", icon: "Megaphone" },
+  { label: "Fee Schedule", href: "/finance/fee-schedule", icon: "CreditCard" },
   { label: "Ledger", href: "/finance/ledger", icon: "Wallet" },
   { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
   { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
