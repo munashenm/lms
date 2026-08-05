@@ -126,6 +126,7 @@ The reference LMS at `lms.cyberdevelopers.co.za` informs feature scope only — 
 - [x] Student identity card PDF (`/api/students/[id]/card`)
 - [x] School logo upload in Settings + branded PDF headers/footers
 - [x] Logo + contact details on certificates, report cards, fee statements, admin reports
+- [x] Payment receipt PDFs (branded; download from invoice & payments list)
 
 ---
 

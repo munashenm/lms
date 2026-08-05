@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentForm } from "./payment-form";
+import { PaymentReceiptButton } from "./payment-receipt-button";
 import {
   INVOICE_STATUS_LABELS,
   INVOICE_STATUS_VARIANT,
@@ -144,15 +145,17 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
           <CardContent className="p-0">
             <div className="divide-y divide-border">
               {invoice.payments.map((p) => (
-                <div key={p.id} className="flex items-center justify-between px-4 py-3 text-sm">
+                <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                   <div>
                     <p className="font-medium">{formatZAR(p.amount)}</p>
                     <p className="text-xs text-muted">
                       {PAYMENT_METHOD_LABELS[p.method]}
                       {p.reference && ` · Ref: ${p.reference}`}
+                      {" · "}
+                      {formatDate(p.paidAt)}
                     </p>
                   </div>
-                  <p className="text-muted text-xs">{formatDate(p.paidAt)}</p>
+                  <PaymentReceiptButton paymentId={p.id} />
                 </div>
               ))}
             </div>

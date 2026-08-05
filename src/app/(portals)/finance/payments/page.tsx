@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter } from "@/lib/rbac";
 import { Card, CardContent } from "@/components/ui/card";
+import { PaymentReceiptButton } from "@/components/finance/payment-receipt-button";
 import { PAYMENT_METHOD_LABELS } from "@/lib/finance";
 import { formatDate, formatZAR } from "@/lib/utils";
 
@@ -49,6 +50,7 @@ export default async function FinancePaymentsPage() {
                     <th className="text-left px-4 py-3 font-medium text-muted">Invoice</th>
                     <th className="text-left px-4 py-3 font-medium text-muted hidden sm:table-cell">Student</th>
                     <th className="text-left px-4 py-3 font-medium text-muted hidden md:table-cell">Reference</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted">Receipt</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -63,6 +65,9 @@ export default async function FinancePaymentsPage() {
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell text-muted">
                         {p.reference ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <PaymentReceiptButton paymentId={p.id} />
                       </td>
                     </tr>
                   ))}
