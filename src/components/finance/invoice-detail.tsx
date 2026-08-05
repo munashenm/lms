@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentForm } from "./payment-form";
 import { PaymentReceiptButton } from "./payment-receipt-button";
+import { InvoicePdfButton } from "./invoice-pdf-button";
 import {
   INVOICE_STATUS_LABELS,
   INVOICE_STATUS_VARIANT,
@@ -69,9 +70,15 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
             <p className="text-sm mt-2">{invoice.description}</p>
           )}
         </div>
-        <Badge variant={INVOICE_STATUS_VARIANT[invoice.status]} className="self-start">
-          {INVOICE_STATUS_LABELS[invoice.status]}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2 self-start">
+          <InvoicePdfButton
+            invoiceId={invoice.id}
+            invoiceNumber={invoice.invoiceNumber}
+          />
+          <Badge variant={INVOICE_STATUS_VARIANT[invoice.status]}>
+            {INVOICE_STATUS_LABELS[invoice.status]}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
