@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ROLLOVER_OUTCOME_LABELS,
   type RolloverOutcome,
-} from "@/lib/rollover";
+} from "@/lib/rollover-shared";
 import type { Terminology } from "@/lib/terminology";
 
 type SessionOption = { id: string; name: string; isCurrent: boolean; status: string };

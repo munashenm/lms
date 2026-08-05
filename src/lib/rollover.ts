@@ -7,23 +7,10 @@ import {
 } from "@prisma/client";
 import { prisma } from "./db";
 import { setCurrentAcademicSession } from "./academic-session";
+import type { RolloverOutcome } from "./rollover-shared";
 
-export type RolloverOutcome =
-  | "PROMOTED"
-  | "REPEATED"
-  | "GRADUATED"
-  | "WITHDRAWN"
-  | "TRANSFERRED"
-  | "COMPLETED";
-
-export const ROLLOVER_OUTCOME_LABELS: Record<RolloverOutcome, string> = {
-  PROMOTED: "Promoted",
-  REPEATED: "Repeat",
-  GRADUATED: "Graduated",
-  WITHDRAWN: "Withdrawn",
-  TRANSFERRED: "Transferred",
-  COMPLETED: "Completed programme",
-};
+export type { RolloverOutcome } from "./rollover-shared";
+export { ROLLOVER_OUTCOME_LABELS } from "./rollover-shared";
 
 export type RolloverDecision = {
   enrolmentId: string;

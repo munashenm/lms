@@ -10,7 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SESSION_STATUS_LABELS, PERIOD_STATUS_LABELS } from "@/lib/academic-session";
+import {
+  SESSION_STATUS_LABELS,
+  PERIOD_STATUS_LABELS,
+} from "@/lib/academic-session-shared";
 import type { Terminology } from "@/lib/terminology";
 
 type TermRow = {

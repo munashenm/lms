@@ -5,7 +5,7 @@ import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import type { SessionPayload } from "@/lib/auth";
 import type { NavItem } from "@/lib/navigation";
-import type { SessionOption } from "@/lib/academic-session";
+import type { SessionOption } from "@/lib/academic-session-shared";
 
 interface PortalShellProps {
   user: SessionPayload;

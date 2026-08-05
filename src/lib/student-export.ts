@@ -50,7 +50,11 @@ export async function buildStudentPopiaExport(studentId: string, schoolId?: stri
       },
       submissions: {
         include: {
-          assignment: { select: { title: true, dueDate: true } },
+          assignment: {
+            select: {
+              assessment: { select: { title: true, dueDate: true } },
+            },
+          },
         },
         orderBy: { submittedAt: "desc" },
       },
@@ -190,8 +194,8 @@ export async function buildStudentPopiaExport(studentId: string, schoolId?: stri
         gradeSymbol: m.gradeSymbol,
       })),
       assignmentSubmissions: submissions.map((s) => ({
-        assignment: s.assignment.title,
-        dueDate: s.assignment.dueDate,
+        assignment: s.assignment.assessment.title,
+        dueDate: s.assignment.assessment.dueDate,
         submittedAt: s.submittedAt,
         grade: s.grade != null ? Number(s.grade) : null,
         feedback: s.feedback,

@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     metadata: { invoiceNumber, total },
   });
 
-  if (data.status !== "DRAFT" && data.status !== "CANCELLED") {
+  if (data.status !== "DRAFT") {
     await postInvoiceToStudentLedger({
       schoolId,
       studentId: data.studentId,

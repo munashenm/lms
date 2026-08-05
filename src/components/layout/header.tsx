@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ROLE_LABELS } from "@/lib/constants";
 import { getInitials } from "@/lib/utils";
 import type { SessionPayload } from "@/lib/auth";
-import type { SessionOption } from "@/lib/academic-session";
+import type { SessionOption } from "@/lib/academic-session-shared";
 import { SessionSelector } from "./session-selector";
 import { useRouter } from "next/navigation";
 

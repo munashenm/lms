@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { SessionOption } from "@/lib/academic-session";
-import { SESSION_STATUS_LABELS } from "@/lib/academic-session";
+import type { SessionOption } from "@/lib/academic-session-shared";
+import { SESSION_STATUS_LABELS } from "@/lib/academic-session-shared";
 
 interface SessionSelectorProps {
   sessions: SessionOption[];
