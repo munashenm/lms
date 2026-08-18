@@ -99,7 +99,7 @@ export default async function AdminFinancePage() {
               <Link href="/admin/finance/invoices">View all</Link>
             </Button>
           </div>
-          <InvoiceList invoices={recentInvoices} />
+          <InvoiceList invoices={recentInvoices} showPdf={false} />
         </div>
 
         <Card>

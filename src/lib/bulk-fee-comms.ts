@@ -12,6 +12,7 @@ import { logCommunication } from "./communications";
 import { generateFeeStatementPdf } from "./pdf-fee-statement";
 import { toSchoolBrand, type SchoolBrand } from "./pdf-branding";
 import { getStudentLedger, STUDENT_LEDGER_TYPE_LABELS } from "./student-ledger";
+import { buildOutstandingInvoiceAttachments } from "./invoice-document";
 import { createTwilioSmsProvider } from "./sms/twilio-provider";
 import {
   getResolvedIntegrations,
@@ -21,7 +22,13 @@ import {
 import { sendEmailViaSendGrid } from "./outbound-messaging";
 
 export type BulkChannel = "EMAIL" | "SMS" | "BOTH";
-export type BulkAction = "FEE_REMINDER" | "FEE_STATEMENT";
+export type BulkAction = "FEE_REMINDER" | "FEE_STATEMENT" | "FEE_INVOICE";
+
+export const FEE_COMMS_CATEGORIES = [
+  CommunicationCategory.FEE_REMINDER,
+  CommunicationCategory.FEE_STATEMENT,
+  CommunicationCategory.FEE_INVOICE,
+] as const;
 
 export type OutstandingStudent = {
   studentId: string;
@@ -174,7 +181,9 @@ export async function createFeeCommsBatch(params: {
   const category =
     params.action === "FEE_STATEMENT"
       ? CommunicationCategory.FEE_STATEMENT
-      : CommunicationCategory.FEE_REMINDER;
+      : params.action === "FEE_INVOICE"
+        ? CommunicationCategory.FEE_INVOICE
+        : CommunicationCategory.FEE_REMINDER;
 
   const batch = await prisma.communicationBatch.create({
     data: {
@@ -205,7 +214,9 @@ export async function createFeeCommsBatch(params: {
       const subject =
         params.action === "FEE_STATEMENT"
           ? `School Fee Statement – ${student.firstName} ${student.lastName}`
-          : `School Fee Reminder – ${student.firstName} ${student.lastName}`;
+          : params.action === "FEE_INVOICE"
+            ? `Outstanding Fee Invoice – ${student.firstName} ${student.lastName}`
+            : `School Fee Reminder – ${student.firstName} ${student.lastName}`;
       const message = reminderMessage(
         school.name,
         student,
@@ -326,7 +337,9 @@ export async function processCommunicationBatch(batchId: string, limit = 15) {
       ((item.metadata as { action?: BulkAction } | null)?.action as BulkAction | undefined) ??
       (item.category === CommunicationCategory.FEE_STATEMENT
         ? "FEE_STATEMENT"
-        : "FEE_REMINDER");
+        : item.category === CommunicationCategory.FEE_INVOICE
+          ? "FEE_INVOICE"
+          : "FEE_REMINDER");
 
     try {
       if (item.channel === CommunicationChannel.SMS) {
@@ -386,6 +399,26 @@ export async function processCommunicationBatch(batchId: string, limit = 15) {
 Please find attached the latest school fee statement.
 
 Current outstanding balance: ${formatZAR(attachment.balance)}.
+
+Kind regards,
+${school.name} Accounts Department`;
+          }
+        }
+
+        if (action === "FEE_INVOICE" && item.studentId) {
+          const invoiceAttachments = await buildOutstandingInvoiceAttachments(
+            item.studentId,
+            toSchoolBrand(school)
+          );
+          if (invoiceAttachments.length > 0) {
+            attachments = invoiceAttachments;
+            const outstanding =
+              (item.metadata as { outstanding?: number } | null)?.outstanding ?? 0;
+            message = `Dear ${item.recipientName ?? "Parent/Guardian"},
+
+Please find attached outstanding fee invoice${invoiceAttachments.length === 1 ? "" : "s"} for your records.
+
+Current outstanding balance: ${formatZAR(outstanding)}.
 
 Kind regards,
 ${school.name} Accounts Department`;

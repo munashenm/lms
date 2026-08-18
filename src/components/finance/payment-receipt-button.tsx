@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface PaymentReceiptButtonProps {
@@ -10,6 +10,7 @@ interface PaymentReceiptButtonProps {
   variant?: "outline" | "ghost" | "default";
   size?: "default" | "sm" | "icon";
   label?: string;
+  canEmail?: boolean;
 }
 
 export function PaymentReceiptButton({
@@ -17,11 +18,12 @@ export function PaymentReceiptButton({
   variant = "outline",
   size = "sm",
   label = "Receipt",
+  canEmail = false,
 }: PaymentReceiptButtonProps) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<"download" | "email" | null>(null);
 
   async function download() {
-    setLoading(true);
+    setLoading("download");
     try {
       const res = await fetch(`/api/payments/${paymentId}/receipt`);
       if (!res.ok) throw new Error();
@@ -35,24 +37,60 @@ export function PaymentReceiptButton({
     } catch {
       toast.error("Could not download receipt");
     } finally {
-      setLoading(false);
+      setLoading(null);
+    }
+  }
+
+  async function email() {
+    setLoading("email");
+    try {
+      const res = await fetch(`/api/payments/${paymentId}/receipt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Failed");
+      toast.success(data.message || "Receipt emailed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not email receipt");
+    } finally {
+      setLoading(null);
     }
   }
 
   return (
-    <Button
-      type="button"
-      variant={variant}
-      size={size}
-      onClick={download}
-      disabled={loading}
-    >
-      {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Download className="h-4 w-4" />
+    <div className="flex flex-wrap items-center justify-end gap-1">
+      <Button
+        type="button"
+        variant={variant}
+        size={size}
+        onClick={download}
+        disabled={!!loading}
+      >
+        {loading === "download" ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Download className="h-4 w-4" />
+        )}
+        {size !== "icon" && label}
+      </Button>
+      {canEmail && (
+        <Button
+          type="button"
+          variant={variant}
+          size={size}
+          onClick={email}
+          disabled={!!loading}
+        >
+          {loading === "email" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Mail className="h-4 w-4" />
+          )}
+          {size !== "icon" && "Email"}
+        </Button>
       )}
-      {size !== "icon" && label}
-    </Button>
+    </div>
   );
 }

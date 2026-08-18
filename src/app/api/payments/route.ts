@@ -7,6 +7,7 @@ import { deriveInvoiceStatus } from "@/lib/finance";
 import { logAudit } from "@/lib/audit";
 import { notifyUser, notifyStudentGuardians } from "@/lib/notifications";
 import { postPaymentToStudentLedger } from "@/lib/student-ledger";
+import { emailPaymentReceipt } from "@/lib/payment-receipt-document";
 
 export async function GET() {
   const session = await getSession();
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
 
-  const { invoiceId, amount, method, reference, notes } = parsed.data;
+  const { invoiceId, amount, method, reference, notes, emailReceipt } = parsed.data;
 
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
@@ -111,5 +112,19 @@ export async function POST(request: NextRequest) {
     link: `/parent/fees/${invoiceId}`,
   });
 
-  return NextResponse.json({ payment, amountPaid: newAmountPaid, status: newStatus }, { status: 201 });
+  let receiptEmail: { status?: string; message: string } | null = null;
+  if (emailReceipt) {
+    const emailed = await emailPaymentReceipt({
+      paymentId: payment.id,
+      userId: session!.userId,
+    });
+    receiptEmail = emailed.ok
+      ? { status: emailed.status, message: emailed.message }
+      : { message: emailed.message };
+  }
+
+  return NextResponse.json(
+    { payment, amountPaid: newAmountPaid, status: newStatus, receiptEmail },
+    { status: 201 }
+  );
 }

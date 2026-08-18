@@ -67,7 +67,7 @@ export default async function FinancePaymentsPage() {
                         {p.reference ?? "—"}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <PaymentReceiptButton paymentId={p.id} />
+                        <PaymentReceiptButton paymentId={p.id} canEmail />
                       </td>
                     </tr>
                   ))}

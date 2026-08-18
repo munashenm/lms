@@ -283,6 +283,7 @@ export const paymentSchema = z.object({
   method: z.enum(["CASH", "EFT", "CARD", "PAYFAST", "OZOW", "YOCO", "SCHOLARSHIP", "OTHER"]),
   reference: z.string().optional(),
   notes: z.string().optional(),
+  emailReceipt: z.boolean().optional(),
 });
 
 export const feeScheduleItemSchema = z.object({

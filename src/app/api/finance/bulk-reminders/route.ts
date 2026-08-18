@@ -7,13 +7,14 @@ import { requireSchoolId } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import {
   createFeeCommsBatch,
+  FEE_COMMS_CATEGORIES,
   listOutstandingFeeStudents,
   processCommunicationBatch,
 } from "@/lib/bulk-fee-comms";
 import { logAudit } from "@/lib/audit";
 
 const createSchema = z.object({
-  action: z.enum(["FEE_REMINDER", "FEE_STATEMENT"]),
+  action: z.enum(["FEE_REMINDER", "FEE_STATEMENT", "FEE_INVOICE"]),
   channel: z.enum(["EMAIL", "SMS", "BOTH"]).default("EMAIL"),
   gradeId: z.string().optional().nullable(),
   minBalance: z.coerce.number().min(0).optional(),
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
     prisma.communicationBatch.findMany({
       where: {
         schoolId,
-        category: { in: ["FEE_REMINDER", "FEE_STATEMENT"] },
+        category: { in: [...FEE_COMMS_CATEGORIES] },
       },
       orderBy: { createdAt: "desc" },
       take: 20,

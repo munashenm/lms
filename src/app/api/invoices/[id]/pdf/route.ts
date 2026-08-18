@@ -4,16 +4,30 @@ import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { getChildStudentIds, getStudentForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
-import {
-  INVOICE_STATUS_LABELS,
-  getOutstandingBalance,
-} from "@/lib/finance";
-import { generateInvoicePdf } from "@/lib/pdf-invoice";
-import { toSchoolBrand } from "@/lib/pdf-branding";
-import { formatDate } from "@/lib/utils";
+import { emailInvoiceDocument, loadInvoiceDocument } from "@/lib/invoice-document";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
+}
+
+async function canAccessInvoice(
+  session: NonNullable<Awaited<ReturnType<typeof getSession>>>,
+  studentId: string,
+  schoolId: string
+) {
+  if (session.role === UserRole.STUDENT) {
+    const student = await getStudentForSession(session);
+    return student?.id === studentId;
+  }
+  if (session.role === UserRole.PARENT) {
+    const childIds = await getChildStudentIds(session);
+    return childIds.includes(studentId);
+  }
+  if (requirePermission(session, "finance:read")) {
+    const filter = getSchoolFilter(session);
+    return !("schoolId" in filter) || filter.schoolId === schoolId;
+  }
+  return false;
 }
 
 export async function GET(_request: NextRequest, { params }: RouteParams) {
@@ -23,78 +37,61 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   }
 
   const { id } = await params;
-
-  const invoice = await prisma.invoice.findUnique({
-    where: { id },
-    include: {
-      school: true,
-      lineItems: { orderBy: { createdAt: "asc" } },
-      student: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          studentNumber: true,
-          grade: { select: { name: true } },
-          class: { select: { name: true } },
-        },
-      },
-    },
-  });
-
-  if (!invoice) {
+  const doc = await loadInvoiceDocument(id);
+  if (!doc) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
-  let allowed = false;
-  if (session.role === UserRole.STUDENT) {
-    const student = await getStudentForSession(session);
-    allowed = student?.id === invoice.studentId;
-  } else if (session.role === UserRole.PARENT) {
-    const childIds = await getChildStudentIds(session);
-    allowed = childIds.includes(invoice.studentId);
-  } else if (requirePermission(session, "finance:read")) {
-    const filter = getSchoolFilter(session);
-    allowed =
-      !("schoolId" in filter) || filter.schoolId === invoice.schoolId;
-  }
-
+  const allowed = await canAccessInvoice(
+    session,
+    doc.invoice.studentId,
+    doc.invoice.schoolId
+  );
   if (!allowed) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
-  const total = Number(invoice.total);
-  const amountPaid = Number(invoice.amountPaid);
-
-  const pdf = await generateInvoicePdf({
-    brand: toSchoolBrand(invoice.school),
-    invoiceNumber: invoice.invoiceNumber,
-    statusLabel: INVOICE_STATUS_LABELS[invoice.status],
-    description: invoice.description,
-    studentName: `${invoice.student.firstName} ${invoice.student.lastName}`,
-    studentNumber: invoice.student.studentNumber,
-    gradeOrProgramme: [invoice.student.grade?.name, invoice.student.class?.name]
-      .filter(Boolean)
-      .join(" / "),
-    issuedAt: formatDate(invoice.issuedAt),
-    dueDate: invoice.dueDate ? formatDate(invoice.dueDate) : null,
-    lineItems: invoice.lineItems.map((item) => ({
-      description: item.description,
-      quantity: item.quantity,
-      unitPrice: Number(item.unitPrice),
-      amount: Number(item.amount),
-    })),
-    subtotal: Number(invoice.subtotal),
-    discount: Number(invoice.discount),
-    total,
-    amountPaid,
-    outstanding: getOutstandingBalance(total, amountPaid),
-  });
-
-  return new NextResponse(Buffer.from(pdf), {
+  return new NextResponse(Buffer.from(doc.pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`,
+      "Content-Disposition": `attachment; filename="${doc.filename}"`,
     },
   });
+}
+
+export async function POST(request: NextRequest, { params }: RouteParams) {
+  const session = await getSession();
+  if (!requirePermission(session, "finance:write")) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const invoice = await prisma.invoice.findUnique({
+    where: { id },
+    select: { id: true, schoolId: true },
+  });
+  if (!invoice) {
+    return NextResponse.json({ message: "Not found" }, { status: 404 });
+  }
+
+  const filter = getSchoolFilter(session!);
+  if ("schoolId" in filter && filter.schoolId !== invoice.schoolId) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const result = await emailInvoiceDocument({
+    invoiceId: id,
+    userId: session!.userId,
+    toEmail: typeof body.toEmail === "string" ? body.toEmail : undefined,
+  });
+
+  if (!result.ok) {
+    return NextResponse.json(
+      { message: result.message },
+      { status: result.httpStatus }
+    );
+  }
+
+  return NextResponse.json(result);
 }

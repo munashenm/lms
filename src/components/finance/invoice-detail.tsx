@@ -52,9 +52,14 @@ interface InvoiceDetailProps {
     payments: Payment[];
   };
   showPaymentForm?: boolean;
+  canEmail?: boolean;
 }
 
-export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetailProps) {
+export function InvoiceDetail({
+  invoice,
+  showPaymentForm = true,
+  canEmail = false,
+}: InvoiceDetailProps) {
   const outstanding = getOutstandingBalance(Number(invoice.total), Number(invoice.amountPaid));
 
   return (
@@ -74,6 +79,7 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
           <InvoicePdfButton
             invoiceId={invoice.id}
             invoiceNumber={invoice.invoiceNumber}
+            canEmail={canEmail && invoice.status !== "DRAFT" && invoice.status !== "CANCELLED"}
           />
           <Badge variant={INVOICE_STATUS_VARIANT[invoice.status]}>
             {INVOICE_STATUS_LABELS[invoice.status]}
@@ -162,7 +168,7 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
                       {formatDate(p.paidAt)}
                     </p>
                   </div>
-                  <PaymentReceiptButton paymentId={p.id} />
+                  <PaymentReceiptButton paymentId={p.id} canEmail={canEmail} />
                 </div>
               ))}
             </div>
