@@ -128,6 +128,10 @@ The reference LMS at `lms.cyberdevelopers.co.za` informs feature scope only — 
 - [x] Logo + contact details on certificates, report cards, fee statements, admin reports
 - [x] Payment receipt PDFs (branded; download from invoice & payments list)
 - [x] Invoice PDFs (branded; download from invoice detail)
+- [x] Email branded invoice PDFs to parents/guardians from invoice detail
+- [x] Email branded payment receipts (invoice history, payments list, or when recording a payment)
+- [x] Invoice PDF download from invoice lists
+- [x] Bulk email outstanding invoices from Fee Reminders
 
 ---
 

@@ -7,6 +7,7 @@ import {
   getOutstandingBalance,
 } from "@/lib/finance";
 import { formatDate, formatZAR } from "@/lib/utils";
+import { InvoicePdfButton } from "./invoice-pdf-button";
 import type { InvoiceStatus } from "@prisma/client";
 
 export interface InvoiceRow {
@@ -23,9 +24,14 @@ export interface InvoiceRow {
 interface InvoiceListProps {
   invoices: InvoiceRow[];
   detailHref?: (id: string) => string;
+  showPdf?: boolean;
 }
 
-export function InvoiceList({ invoices, detailHref = (id) => `/admin/finance/invoices/${id}` }: InvoiceListProps) {
+export function InvoiceList({
+  invoices,
+  detailHref = (id) => `/admin/finance/invoices/${id}`,
+  showPdf = true,
+}: InvoiceListProps) {
   if (invoices.length === 0) {
     return (
       <Card>
@@ -47,6 +53,9 @@ export function InvoiceList({ invoices, detailHref = (id) => `/admin/finance/inv
                 <th className="text-left px-4 py-3 font-medium text-muted hidden md:table-cell">Outstanding</th>
                 <th className="text-left px-4 py-3 font-medium text-muted hidden sm:table-cell">Due</th>
                 <th className="text-left px-4 py-3 font-medium text-muted">Status</th>
+                {showPdf && (
+                  <th className="text-right px-4 py-3 font-medium text-muted hidden sm:table-cell">PDF</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -76,6 +85,20 @@ export function InvoiceList({ invoices, detailHref = (id) => `/admin/finance/inv
                         {INVOICE_STATUS_LABELS[inv.status]}
                       </Badge>
                     </td>
+                    {showPdf && (
+                      <td className="px-4 py-3 text-right hidden sm:table-cell">
+                        {inv.status !== "DRAFT" && inv.status !== "CANCELLED" && (
+                          <div className="inline-flex justify-end">
+                            <InvoicePdfButton
+                              invoiceId={inv.id}
+                              invoiceNumber={inv.invoiceNumber}
+                              size="sm"
+                              downloadLabel="PDF"
+                            />
+                          </div>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })}

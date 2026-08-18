@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { BulkRemindersManager } from "@/components/finance/bulk-reminders-manager";
 import { FeeReminderRulesManager } from "@/components/finance/fee-reminder-rules-manager";
-import { listOutstandingFeeStudents } from "@/lib/bulk-fee-comms";
+import { listOutstandingFeeStudents, FEE_COMMS_CATEGORIES } from "@/lib/bulk-fee-comms";
 import {
   describeDaysOffset,
   ensureDefaultFeeReminderRules,
@@ -52,7 +52,7 @@ export default async function AdminFinanceRemindersPage({ searchParams }: PagePr
     prisma.communicationBatch.findMany({
       where: {
         schoolId,
-        category: { in: ["FEE_REMINDER", "FEE_STATEMENT"] },
+        category: { in: [...FEE_COMMS_CATEGORIES] },
       },
       orderBy: { createdAt: "desc" },
       take: 20,
@@ -84,8 +84,7 @@ export default async function AdminFinanceRemindersPage({ searchParams }: PagePr
       <div>
         <h1 className="text-2xl font-bold">Fee Reminders</h1>
         <p className="text-muted text-sm mt-1">
-          Configure automated due-date rules and queue bulk fee reminders or
-          statements
+          Configure automated due-date rules and queue bulk fee reminders, statements, or invoices
         </p>
       </div>
 

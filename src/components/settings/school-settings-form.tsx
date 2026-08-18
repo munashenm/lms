@@ -196,7 +196,7 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
           <div className="space-y-2 sm:col-span-2">
             <Label>School Logo</Label>
             <p className="text-xs text-muted">
-              Appears on student cards, report cards, certificates, fee statements and reports.
+              Appears on student cards, report cards, certificates, invoices, receipts, fee statements and reports.
               Prefer PNG/JPEG under 2MB.
             </p>
             <div className="flex flex-wrap items-center gap-4">

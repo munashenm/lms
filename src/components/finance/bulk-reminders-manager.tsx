@@ -63,7 +63,9 @@ export function BulkRemindersManager({
     });
     return init;
   });
-  const [action, setAction] = useState<"FEE_REMINDER" | "FEE_STATEMENT">("FEE_REMINDER");
+  const [action, setAction] = useState<
+    "FEE_REMINDER" | "FEE_STATEMENT" | "FEE_INVOICE"
+  >("FEE_REMINDER");
   const [channel, setChannel] = useState<"EMAIL" | "SMS" | "BOTH">("EMAIL");
   const [loading, setLoading] = useState<string | null>(null);
   const [batches, setBatches] = useState(initialBatches);
@@ -216,10 +218,17 @@ export function BulkRemindersManager({
               <Label>Action</Label>
               <Select
                 value={action}
-                onChange={(e) => setAction(e.target.value as typeof action)}
+                onChange={(e) => {
+                  const next = e.target.value as typeof action;
+                  setAction(next);
+                  if (next === "FEE_INVOICE" && channel === "SMS") {
+                    setChannel("EMAIL");
+                  }
+                }}
               >
                 <option value="FEE_REMINDER">Fee reminder</option>
                 <option value="FEE_STATEMENT">Email statements</option>
+                <option value="FEE_INVOICE">Email invoices</option>
               </Select>
             </div>
             <div className="space-y-1">
@@ -229,7 +238,9 @@ export function BulkRemindersManager({
                 onChange={(e) => setChannel(e.target.value as typeof channel)}
               >
                 <option value="EMAIL">Email</option>
-                <option value="SMS">SMS</option>
+                <option value="SMS" disabled={action === "FEE_INVOICE"}>
+                  SMS{action === "FEE_INVOICE" ? " (PDF requires email)" : ""}
+                </option>
                 <option value="BOTH">Email + SMS</option>
               </Select>
             </div>

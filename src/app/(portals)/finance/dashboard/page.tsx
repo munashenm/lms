@@ -83,6 +83,7 @@ export default async function FinanceDashboardPage() {
           <InvoiceList
             invoices={recentInvoices}
             detailHref={(id) => `/finance/invoices/${id}`}
+            showPdf={false}
           />
         </div>
 

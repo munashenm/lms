@@ -40,13 +40,21 @@ export function PaymentForm({ invoiceId, invoiceNumber, outstanding }: PaymentFo
           method: form.get("method"),
           reference: form.get("reference") || undefined,
           notes: form.get("notes") || undefined,
+          emailReceipt: form.get("emailReceipt") === "on",
         }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.message ?? "Failed");
       }
       toast.success("Payment recorded");
+      if (data.receiptEmail?.message) {
+        if (data.receiptEmail.status === "SENT") {
+          toast.success(data.receiptEmail.message);
+        } else {
+          toast.message(data.receiptEmail.message);
+        }
+      }
       router.refresh();
       (e.target as HTMLFormElement).reset();
     } catch (err) {
@@ -96,7 +104,16 @@ export function PaymentForm({ invoiceId, invoiceNumber, outstanding }: PaymentFo
             <Label>Notes</Label>
             <Input name="notes" placeholder="Optional notes" />
           </div>
-          <div className="sm:col-span-2">
+          <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                name="emailReceipt"
+                defaultChecked
+                className="h-4 w-4 rounded border-border"
+              />
+              Email branded receipt to parent/guardian
+            </label>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Record Payment

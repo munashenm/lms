@@ -51,7 +51,7 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
       <Button variant="ghost" size="sm" asChild>
         <Link href="/admin/finance/invoices">← Back to invoices</Link>
       </Button>
-      <InvoiceDetail invoice={mapped} showPaymentForm />
+      <InvoiceDetail invoice={mapped} showPaymentForm canEmail />
     </div>
   );
 }
