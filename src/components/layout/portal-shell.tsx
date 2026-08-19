@@ -8,6 +8,7 @@ import type { NavItem } from "@/lib/navigation";
 import type { SessionOption } from "@/lib/academic-session-shared";
 import type { EvaluatedLicense } from "@/lib/licensing/types";
 import { LicenseStatusBanner } from "@/components/enterprise/license-banner";
+import { NavGroupTabs } from "./nav-group-tabs";
 
 const COLLAPSE_KEY = "schoolhub-sidebar-collapsed";
 
@@ -69,6 +70,7 @@ export function PortalShell({
         />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           <LicenseStatusBanner evaluation={license} canManage={canManageLicense} />
+          <NavGroupTabs items={navItems} />
           {children}
         </main>
       </div>

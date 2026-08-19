@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Building2, ChevronDown, ChevronsLeft, ChevronsRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
-import { isNavHrefActive, type NavItem } from "@/lib/navigation";
+import { isNavHrefActive, navClusters, type NavItem } from "@/lib/navigation";
 import { NavIcon } from "./nav-icon";
 
 interface SidebarProps {
@@ -31,6 +31,53 @@ function groupNav(items: NavItem[]) {
   return groups;
 }
 
+function NavItemList({
+  items,
+  pathname,
+  allHrefs,
+  collapsed,
+  onClick,
+  inset,
+}: {
+  items: NavItem[];
+  pathname: string;
+  allHrefs: string[];
+  collapsed?: boolean;
+  onClick: () => void;
+  inset?: boolean;
+}) {
+  const clusters = navClusters(items);
+  const showGroupLabels = clusters.some((cluster) => cluster.group) && clusters.length > 1;
+
+  return (
+    <>
+      {clusters.map((cluster) => (
+        <div key={cluster.group ?? cluster.items[0]?.href} className="space-y-0.5">
+          {showGroupLabels && cluster.group ? (
+            <p
+              className={cn(
+                "px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-white/40",
+                inset && "pl-9"
+              )}
+            >
+              {cluster.group}
+            </p>
+          ) : null}
+          {cluster.items.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              active={isNavHrefActive(pathname, item.href, allHrefs)}
+              collapsed={collapsed}
+              onClick={onClick}
+              inset={inset}
+            />
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
 function NavLink({
   item,
   active,
@@ -152,17 +199,15 @@ export function Sidebar({
                   <span className="flex-1 text-left">{group.section}</span>
                   <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", expanded && "rotate-180")} />
                 </button>
-                {expanded
-                  ? group.items.map((item) => (
-                      <NavLink
-                        key={item.href}
-                        item={item}
-                        active={isNavHrefActive(pathname, item.href, allHrefs)}
-                        onClick={onClose}
-                        inset
-                      />
-                    ))
-                  : null}
+                {expanded ? (
+                  <NavItemList
+                    items={group.items}
+                    pathname={pathname}
+                    allHrefs={allHrefs}
+                    onClick={onClose}
+                    inset
+                  />
+                ) : null}
               </div>
             );
 
@@ -188,17 +233,15 @@ export function Sidebar({
                         <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-white/40">
                           {group.section}
                         </p>
-                        {group.items.map((item) => (
-                          <NavLink
-                            key={item.href}
-                            item={item}
-                            active={isNavHrefActive(pathname, item.href, allHrefs)}
-                            onClick={() => {
-                              setFlyout(null);
-                              onClose();
-                            }}
-                          />
-                        ))}
+                        <NavItemList
+                          items={group.items}
+                          pathname={pathname}
+                          allHrefs={allHrefs}
+                          onClick={() => {
+                            setFlyout(null);
+                            onClose();
+                          }}
+                        />
                       </div>
                     ) : null}
                   </div>

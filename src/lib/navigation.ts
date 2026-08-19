@@ -39,6 +39,7 @@ export interface NavItem {
   icon: NavIconName;
   section?: string;
   sectionIcon?: NavIconName;
+  group?: string;
 }
 
 function grouped(
@@ -47,6 +48,26 @@ function grouped(
   items: Array<Omit<NavItem, "section" | "sectionIcon">>
 ): NavItem[] {
   return items.map((item) => ({ ...item, section, sectionIcon }));
+}
+
+function cluster(
+  group: string,
+  items: Array<Omit<NavItem, "section" | "sectionIcon" | "group">>
+): Array<Omit<NavItem, "section" | "sectionIcon">> {
+  return items.map((item) => ({ ...item, group }));
+}
+
+export function navClusters(items: NavItem[]): Array<{ group?: string; items: NavItem[] }> {
+  const clusters: Array<{ group?: string; items: NavItem[] }> = [];
+  for (const item of items) {
+    const last = clusters[clusters.length - 1];
+    if (last && last.group === item.group) {
+      last.items.push(item);
+    } else {
+      clusters.push({ group: item.group, items: [item] });
+    }
+  }
+  return clusters;
 }
 
 export function isNavHrefActive(pathname: string, href: string, allHrefs: string[]): boolean {
@@ -60,21 +81,62 @@ export function isNavHrefActive(pathname: string, href: string, allHrefs: string
   );
 }
 
+/** Sibling tabs for the current page: a named group, or the whole section when it is short. */
+export function navPageTabs(
+  pathname: string,
+  navItems: NavItem[]
+): Array<{ label: string; href: string }> {
+  const hrefs = navItems.map((item) => item.href);
+  const current = navItems.find((item) => isNavHrefActive(pathname, item.href, hrefs));
+  if (!current?.section) return [];
+  const sectionItems = navItems.filter((item) => item.section === current.section);
+
+  if (current.group) {
+    return sectionItems
+      .filter((item) => item.group === current.group)
+      .map((item) => ({ label: item.label, href: item.href }));
+  }
+
+  if (sectionItems.some((item) => item.group)) {
+    const tabs: Array<{ label: string; href: string }> = [];
+    const seen = new Set<string>();
+    for (const item of sectionItems) {
+      const key = item.group ?? item.href;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      tabs.push({ label: item.group ?? item.label, href: item.href });
+    }
+    return tabs.length >= 2 ? tabs : [];
+  }
+
+  if (sectionItems.length >= 2 && sectionItems.length <= 8) {
+    return sectionItems.map((item) => ({ label: item.label, href: item.href }));
+  }
+  return [];
+}
+
 /** Admin Finance dropdown — billing, collections and ledgers. */
 export function getAdminFinanceNavItems(): Array<Omit<NavItem, "section" | "sectionIcon">> {
   return [
     { label: "Overview", href: "/admin/finance", icon: "LayoutDashboard" },
-    { label: "Fee Schedule", href: "/admin/finance/fee-schedule", icon: "CreditCard" },
-    { label: "Fee Structures", href: "/admin/finance/structures", icon: "FileText" },
-    { label: "Charges & plans", href: "/admin/finance/charges", icon: "CreditCard" },
-    { label: "Expenses", href: "/admin/finance/expenses", icon: "TrendingDown" },
-    { label: "Credits & aid", href: "/admin/finance/adjustments", icon: "FileText" },
-    { label: "Reports", href: "/admin/finance/reports", icon: "BarChart3" },
-    { label: "Income & Expenses", href: "/admin/finance/ledger", icon: "Wallet" },
-    { label: "Debtors", href: "/admin/finance/debtors", icon: "TrendingDown" },
-    { label: "Fee Reminders", href: "/admin/finance/reminders", icon: "Megaphone" },
-    { label: "Collect fees", href: "/admin/finance/collect", icon: "Wallet" },
-    { label: "New Invoice", href: "/admin/finance/invoices/new", icon: "FileText" },
+    ...cluster("Fees", [
+      { label: "Fee Schedule", href: "/admin/finance/fee-schedule", icon: "CreditCard" },
+      { label: "Fee Structures", href: "/admin/finance/structures", icon: "FileText" },
+      { label: "Charges & plans", href: "/admin/finance/charges", icon: "CreditCard" },
+      { label: "Invoices", href: "/admin/finance/invoices", icon: "FileText" },
+      { label: "New Invoice", href: "/admin/finance/invoices/new", icon: "FileText" },
+    ]),
+    ...cluster("Collections", [
+      { label: "Collect fees", href: "/admin/finance/collect", icon: "Wallet" },
+      { label: "Debtors", href: "/admin/finance/debtors", icon: "TrendingDown" },
+      { label: "Fee Reminders", href: "/admin/finance/reminders", icon: "Megaphone" },
+    ]),
+    ...cluster("Books", [
+      { label: "Expenses", href: "/admin/finance/expenses", icon: "TrendingDown" },
+      { label: "Credits & aid", href: "/admin/finance/adjustments", icon: "FileText" },
+      { label: "Income & Expenses", href: "/admin/finance/ledger", icon: "Wallet" },
+      { label: "Reports", href: "/admin/finance/reports", icon: "BarChart3" },
+    ]),
   ];
 }
 
@@ -96,18 +158,24 @@ export function getAdminNav(
       { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
     ]),
     ...grouped("Academics", "BookOpen", [
-      {
-        label: t?.academicSession ? `${t.academicSession}s` : "Academic Sessions",
-        href: "/admin/academic",
-        icon: "Calendar",
-      },
-      { label: t?.classes ?? "Classes", href: "/admin/classes", icon: "GraduationCap" },
-      { label: t?.subjects ?? "Subjects", href: "/admin/subjects", icon: "BookOpen" },
-      { label: "Timetable", href: "/admin/timetable", icon: "Calendar" },
-      { label: "Attendance", href: "/admin/attendance/dashboard", icon: "ClipboardCheck" },
-      { label: "Assessments", href: "/admin/assessments", icon: "FileText" },
-      { label: t?.reportCards ?? "Reports", href: "/admin/report-cards", icon: "Award" },
-      { label: "Certificates", href: "/admin/certificates", icon: "Award" },
+      ...cluster("Setup", [
+        {
+          label: t?.academicSession ? `${t.academicSession}s` : "Academic Sessions",
+          href: "/admin/academic",
+          icon: "Calendar",
+        },
+        { label: t?.classes ?? "Classes", href: "/admin/classes", icon: "GraduationCap" },
+        { label: t?.subjects ?? "Subjects", href: "/admin/subjects", icon: "BookOpen" },
+        { label: "Timetable", href: "/admin/timetable", icon: "Calendar" },
+      ]),
+      ...cluster("Classroom", [
+        { label: "Attendance", href: "/admin/attendance/dashboard", icon: "ClipboardCheck" },
+        { label: "Assessments", href: "/admin/assessments", icon: "FileText" },
+      ]),
+      ...cluster("Results", [
+        { label: t?.reportCards ?? "Reports", href: "/admin/report-cards", icon: "Award" },
+        { label: "Certificates", href: "/admin/certificates", icon: "Award" },
+      ]),
     ]),
     ...grouped("Admissions", "ClipboardList", [
       { label: "Applications", href: "/admin/applications", icon: "ClipboardList" },
@@ -130,15 +198,19 @@ export function getAdminNav(
       { label: "Reports", href: "/admin/reports", icon: "BarChart3" },
     ]),
     ...grouped("Settings", "Settings", [
-      { label: "School settings", href: "/admin/settings", icon: "Settings" },
-      { label: "Licence", href: "/admin/settings/licence", icon: "Shield" },
-      ...(opts?.vendorTools
-        ? [{ label: "Issue licences", href: "/admin/settings/licence-server", icon: "Shield" as const }]
-        : []),
-      { label: "Backup & Restore", href: "/admin/settings/backup", icon: "DatabaseBackup" },
-      { label: "System Health", href: "/admin/system-health", icon: "Shield" },
-      { label: "SA-SAMS", href: "/admin/integrations/sa-sams", icon: "Plug" },
-      { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
+      ...cluster("School", [
+        { label: "School settings", href: "/admin/settings", icon: "Settings" },
+        { label: "Licence", href: "/admin/settings/licence", icon: "Shield" },
+        ...(opts?.vendorTools
+          ? [{ label: "Issue licences", href: "/admin/settings/licence-server", icon: "Shield" as const }]
+          : []),
+      ]),
+      ...cluster("Platform", [
+        { label: "Backup & Restore", href: "/admin/settings/backup", icon: "DatabaseBackup" },
+        { label: "System Health", href: "/admin/system-health", icon: "Shield" },
+        { label: "SA-SAMS", href: "/admin/integrations/sa-sams", icon: "Plug" },
+        { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
+      ]),
     ]),
   ];
 }
@@ -151,16 +223,20 @@ export function getTeacherNav(terms?: Terminology): NavItem[] {
   return [
     { label: "Dashboard", href: "/teacher/dashboard", icon: "LayoutDashboard" },
     ...grouped("Teaching", "GraduationCap", [
-      { label: `My ${t.classes}`, href: "/teacher/classes", icon: "GraduationCap" },
-      { label: "Assessments", href: "/teacher/assessments", icon: "FileText" },
-      { label: "Timetable", href: "/teacher/timetable", icon: "Calendar" },
-      { label: "Attendance", href: "/teacher/attendance", icon: "ClipboardCheck" },
-      { label: "Materials", href: "/teacher/materials", icon: "Upload" },
-      { label: "Lesson Plans", href: "/teacher/lesson-plans", icon: "BookOpen" },
-      { label: "Curriculum", href: "/teacher/curriculum", icon: "ClipboardList" },
-      { label: `${t.student} Leave`, href: "/teacher/learner-leave", icon: "Palmtree" },
-      { label: "Visitor Book", href: "/teacher/visitors", icon: "NotebookPen" },
-      { label: "Announcements", href: "/teacher/announcements", icon: "Megaphone" },
+      ...cluster("Classwork", [
+        { label: `My ${t.classes}`, href: "/teacher/classes", icon: "GraduationCap" },
+        { label: "Assessments", href: "/teacher/assessments", icon: "FileText" },
+        { label: "Timetable", href: "/teacher/timetable", icon: "Calendar" },
+        { label: "Attendance", href: "/teacher/attendance", icon: "ClipboardCheck" },
+        { label: "Materials", href: "/teacher/materials", icon: "Upload" },
+        { label: "Lesson Plans", href: "/teacher/lesson-plans", icon: "BookOpen" },
+        { label: "Curriculum", href: "/teacher/curriculum", icon: "ClipboardList" },
+      ]),
+      ...cluster("Campus", [
+        { label: `${t.student} Leave`, href: "/teacher/learner-leave", icon: "Palmtree" },
+        { label: "Visitor Book", href: "/teacher/visitors", icon: "NotebookPen" },
+        { label: "Announcements", href: "/teacher/announcements", icon: "Megaphone" },
+      ]),
     ]),
     ...grouped("My work", "User", [
       { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
@@ -183,12 +259,14 @@ export function getStudentNav(terms?: Terminology): NavItem[] {
       { label: "My Documents", href: "/student/documents", icon: "FolderOpen" },
     ]),
     ...grouped("Academics", "BookOpen", [
-      { label: `My ${t.subjects}`, href: "/student/subjects", icon: "BookOpen" },
-      { label: "Timetable", href: "/student/timetable", icon: "Calendar" },
-      { label: "Lesson Plan", href: "/student/lesson-plans", icon: "ClipboardList" },
-      { label: "Curriculum Progress", href: "/student/progress", icon: "BarChart3" },
-      { label: t.homework, href: "/student/assignments", icon: "FileText" },
-      { label: "Attendance", href: "/student/attendance", icon: "ClipboardCheck" },
+      ...cluster("Classroom", [
+        { label: `My ${t.subjects}`, href: "/student/subjects", icon: "BookOpen" },
+        { label: "Timetable", href: "/student/timetable", icon: "Calendar" },
+        { label: "Lesson Plan", href: "/student/lesson-plans", icon: "ClipboardList" },
+        { label: "Curriculum Progress", href: "/student/progress", icon: "BarChart3" },
+        { label: t.homework, href: "/student/assignments", icon: "FileText" },
+        { label: "Attendance", href: "/student/attendance", icon: "ClipboardCheck" },
+      ]),
     ]),
     ...grouped("Examinations", "Award", [
       { label: "Examinations", href: "/student/exams", icon: "Award" },
@@ -217,20 +295,24 @@ export const studentNav: NavItem[] = getStudentNav();
 
 export const financeNav: NavItem[] = [
   { label: "Dashboard", href: "/finance/dashboard", icon: "LayoutDashboard" },
-  ...grouped("Finance", "CreditCard", [
+  ...grouped("Fees", "CreditCard", [
     { label: "Fee Schedule", href: "/finance/fee-schedule", icon: "CreditCard" },
     { label: "Fee Structures", href: "/finance/structures", icon: "FileText" },
     { label: "Charges & plans", href: "/finance/charges", icon: "CreditCard" },
-    { label: "Expenses", href: "/finance/expenses", icon: "TrendingDown" },
-    { label: "Credits & aid", href: "/finance/adjustments", icon: "FileText" },
-    { label: "Reports", href: "/finance/reports", icon: "BarChart3" },
-    { label: "Income & Expenses", href: "/finance/ledger", icon: "Wallet" },
+    { label: "Invoices", href: "/finance/invoices", icon: "FileText" },
+    { label: "New Invoice", href: "/finance/invoices/new", icon: "FileText" },
+  ]),
+  ...grouped("Collections", "Wallet", [
+    { label: "Collect fees", href: "/finance/collect", icon: "Wallet" },
+    { label: "Payments", href: "/finance/payments", icon: "Wallet" },
     { label: "Debtors", href: "/finance/debtors", icon: "TrendingDown" },
     { label: "Fee Reminders", href: "/finance/reminders", icon: "Megaphone" },
-    { label: "Collect fees", href: "/finance/collect", icon: "Wallet" },
-    { label: "New Invoice", href: "/finance/invoices/new", icon: "FileText" },
-    { label: "Invoices", href: "/finance/invoices", icon: "FileText" },
-    { label: "Payments", href: "/finance/payments", icon: "Wallet" },
+  ]),
+  ...grouped("Books", "BarChart3", [
+    { label: "Expenses", href: "/finance/expenses", icon: "TrendingDown" },
+    { label: "Credits & aid", href: "/finance/adjustments", icon: "FileText" },
+    { label: "Income & Expenses", href: "/finance/ledger", icon: "Wallet" },
+    { label: "Reports", href: "/finance/reports", icon: "BarChart3" },
   ]),
   ...grouped("Operations", "Wallet", [
     { label: "Income", href: "/finance/income", icon: "Wallet" },
@@ -275,14 +357,18 @@ export function getParentNav(terms?: Terminology): NavItem[] {
     { label: "Dashboard", href: "/parent/dashboard", icon: "LayoutDashboard" },
     { label: "My Children", href: "/parent/children", icon: "Users" },
     ...grouped("Academics", "BookOpen", [
-      { label: t.homework, href: "/parent/assignments", icon: "FileText" },
-      { label: "Materials", href: "/parent/materials", icon: "FolderOpen" },
-      { label: "Timetable", href: "/parent/timetable", icon: "Calendar" },
-      { label: "Academic Calendar", href: "/parent/calendar", icon: "CalendarDays" },
-      { label: "Examinations", href: "/parent/exams", icon: "Award" },
-      { label: "Results", href: "/parent/results", icon: "Award" },
-      { label: t.reportCards, href: "/parent/report-cards", icon: "Award" },
-      { label: "Certificates", href: "/parent/certificates", icon: "Award" },
+      ...cluster("Classroom", [
+        { label: t.homework, href: "/parent/assignments", icon: "FileText" },
+        { label: "Materials", href: "/parent/materials", icon: "FolderOpen" },
+        { label: "Timetable", href: "/parent/timetable", icon: "Calendar" },
+        { label: "Academic Calendar", href: "/parent/calendar", icon: "CalendarDays" },
+      ]),
+      ...cluster("Results", [
+        { label: "Examinations", href: "/parent/exams", icon: "Award" },
+        { label: "Results", href: "/parent/results", icon: "Award" },
+        { label: t.reportCards, href: "/parent/report-cards", icon: "Award" },
+        { label: "Certificates", href: "/parent/certificates", icon: "Award" },
+      ]),
     ]),
     ...grouped("Wellbeing", "ClipboardCheck", [
       { label: "Attendance", href: "/parent/attendance", icon: "ClipboardCheck" },
