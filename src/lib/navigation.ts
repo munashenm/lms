@@ -143,7 +143,7 @@ export function getAdminFinanceNavItems(): Array<Omit<NavItem, "section" | "sect
 /** Admin Human Resource dropdown — staff, time and payroll. Stays on /admin paths. */
 export function getAdminHrNavItems(): Array<Omit<NavItem, "section" | "sectionIcon">> {
   return [
-    ...cluster("People", [
+    ...cluster("Directory", [
       { label: "Staff", href: "/admin/staff", icon: "UserCheck" },
       { label: "Employees", href: "/admin/hr", icon: "Briefcase" },
     ]),
@@ -340,7 +340,7 @@ export const financeNav: NavItem[] = [
 export const hrNav: NavItem[] = [
   { label: "Dashboard", href: "/hr/dashboard", icon: "LayoutDashboard" },
   ...grouped("Human Resource", "Briefcase", [
-    ...cluster("People", [
+    ...cluster("Directory", [
       { label: "Staff", href: "/hr/staff", icon: "UserCheck" },
       { label: "Employees", href: "/hr/employees", icon: "Users" },
     ]),

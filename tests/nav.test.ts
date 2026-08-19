@@ -67,7 +67,7 @@ describe("admin nav groups", () => {
       "Leave policies",
       "HR Reports",
     ]);
-    expect(navClusters(hr).map((cluster) => cluster.group)).toEqual(["People", "Time", "Pay"]);
+    expect(navClusters(hr).map((cluster) => cluster.group)).toEqual(["Directory", "Time", "Pay"]);
     expect(nav.find((item) => item.href === "/admin/staff")?.section).toBe("Human Resource");
     expect(nav.find((item) => item.href === "/admin/staff-attendance")?.group).toBe("Time");
     expect(nav.find((item) => item.href === "/admin/leave")?.label).toBe("Staff Leave");
@@ -146,7 +146,7 @@ describe("other portal groups", () => {
     expect(hrNav.find((item) => item.href === "/hr/staff-attendance")?.group).toBe("Time");
     expect(hrNav.find((item) => item.href === "/hr/leave")?.label).toBe("Staff Leave");
     expect(hrNav.find((item) => item.href === "/hr/payroll")?.group).toBe("Pay");
-    expect(hrNav.find((item) => item.href === "/hr/employees")?.group).toBe("People");
+    expect(hrNav.find((item) => item.href === "/hr/employees")?.group).toBe("Directory");
   });
 });
 
@@ -196,7 +196,7 @@ describe("page tabs", () => {
     ]);
   });
 
-  it("shows People / Time / Pay on a Human Resource screen", () => {
+  it("shows Directory / Time / Pay on a Human Resource screen", () => {
     expect(navPageTabs("/admin/staff", nav).map((tab) => tab.label)).toEqual([
       "Staff",
       "Employees",
