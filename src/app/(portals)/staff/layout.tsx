@@ -4,17 +4,9 @@ import { getSession } from "@/lib/auth";
 import { PortalShell } from "@/components/layout/portal-shell";
 import { canApplyForLeave } from "@/lib/staff-leave";
 import { ROLE_DASHBOARD } from "@/lib/constants";
-import type { NavItem } from "@/lib/navigation";
+import { staffNav } from "@/lib/navigation";
 import { getPortalSessionContext } from "@/lib/portal-session";
 import { filterNavByLicense } from "@/lib/licensing/portal";
-
-const staffLeaveNav: NavItem[] = [
-  { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
-  { label: "Visitor Book", href: "/staff/visitors", icon: "NotebookPen" },
-  { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
-  { label: "My Timesheets", href: "/staff/timesheets", icon: "ClipboardCheck" },
-  { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },
-];
 
 export default async function StaffLayout({
   children,
@@ -31,7 +23,7 @@ export default async function StaffLayout({
   return (
     <PortalShell
       user={session}
-      navItems={filterNavByLicense(staffLeaveNav, ctx.license)}
+      navItems={filterNavByLicense(staffNav, ctx.license)}
       portalLabel="Staff"
       sessions={ctx.sessions}
       viewSessionId={ctx.viewSessionId}
