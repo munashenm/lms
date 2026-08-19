@@ -7,6 +7,8 @@ import { deriveInvoiceStatus } from "@/lib/finance";
 import { logAudit } from "@/lib/audit";
 import { notifyUser, notifyStudentGuardians } from "@/lib/notifications";
 import { postPaymentToStudentLedger } from "@/lib/student-ledger";
+import { nextReceiptNumber } from "@/lib/finance-catalog";
+import { allocatePaymentManual, allocatePaymentToOldest } from "@/lib/payment-allocation";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET() {
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
 
-  const { invoiceId, amount, method, reference, notes } = parsed.data;
+  const { invoiceId, amount, method, reference, notes, allocations } = parsed.data;
 
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
@@ -64,9 +66,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Payment exceeds invoice total" }, { status: 400 });
   }
 
-  const payment = await prisma.payment.create({
-    data: { invoiceId, amount, method, reference: reference || null, notes: notes || null },
-  });
+  let payment;
+  try {
+    payment = await prisma.payment.create({
+      data: {
+        schoolId: invoice.schoolId,
+        invoiceId,
+        amount,
+        method,
+        reference: reference || null,
+        notes: notes || null,
+        receiptNumber: await nextReceiptNumber(invoice.schoolId),
+        recordedById: session!.userId,
+      },
+    });
+  } catch {
+    payment = await prisma.payment.create({
+      data: {
+        schoolId: invoice.schoolId,
+        invoiceId,
+        amount,
+        method,
+        reference: reference || null,
+        notes: notes || null,
+        receiptNumber: `${await nextReceiptNumber(invoice.schoolId)}-R`,
+        recordedById: session!.userId,
+      },
+    });
+  }
 
   const newStatus = deriveInvoiceStatus(total, newAmountPaid, invoice.dueDate, invoice.status);
 
@@ -78,11 +105,28 @@ export async function POST(request: NextRequest) {
   await logAudit({
     schoolId: session!.schoolId,
     userId: session!.userId,
-    action: "CREATE",
+    action: "PAYMENT_RECEIVED",
     entity: "Payment",
     entityId: payment.id,
-    metadata: { invoiceId, amount, method },
+    metadata: { invoiceId, amount, method, receiptNumber: payment.receiptNumber },
   });
+
+  if (allocations?.length) {
+    await allocatePaymentManual({
+      schoolId: invoice.schoolId,
+      paymentId: payment.id,
+      invoiceId,
+      allocations,
+    });
+  } else {
+    await allocatePaymentToOldest({
+      schoolId: invoice.schoolId,
+      studentId: invoice.studentId,
+      paymentId: payment.id,
+      invoiceId,
+      amount,
+    });
+  }
 
   await postPaymentToStudentLedger({
     schoolId: invoice.schoolId,

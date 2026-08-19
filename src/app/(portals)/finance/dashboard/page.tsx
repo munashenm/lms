@@ -14,7 +14,7 @@ export default async function FinanceDashboardPage() {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
 
-  const [invoices, recentPayments] = await Promise.all([
+  const [invoices, recentPayments, ledger] = await Promise.all([
     prisma.invoice.findMany({
       where: { ...filter, status: { not: "CANCELLED" } },
       include: {
@@ -35,6 +35,7 @@ export default async function FinanceDashboardPage() {
         },
       },
     }),
+    prisma.ledgerEntry.findMany({ where: filter, select: { type: true, amount: true } }),
   ]);
 
   const totalBilled = invoices.reduce((s, i) => s + Number(i.total), 0);
@@ -44,6 +45,9 @@ export default async function FinanceDashboardPage() {
     0
   );
   const overdueCount = invoices.filter((i) => i.status === "OVERDUE").length;
+  const totalIncome = ledger.filter((e) => e.type === "INCOME").reduce((s, e) => s + Number(e.amount), 0) + totalCollected;
+  const totalExpenses = ledger.filter((e) => e.type === "EXPENSE").reduce((s, e) => s + Number(e.amount), 0);
+  const collectionRate = totalBilled > 0 ? (totalCollected / totalBilled) * 100 : 0;
 
   const recentInvoices = invoices.slice(0, 8).map((i) => ({
     ...i,
@@ -66,10 +70,14 @@ export default async function FinanceDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard title="Total Billed" value={formatZAR(totalBilled)} icon={FileText} />
-        <StatCard title="Collected" value={formatZAR(totalCollected)} icon={Wallet} />
+        <StatCard title="Total Fees Raised" value={formatZAR(totalBilled)} icon={FileText} />
+        <StatCard title="Total Collected" value={formatZAR(totalCollected)} icon={Wallet} />
         <StatCard title="Outstanding" value={formatZAR(totalOutstanding)} icon={TrendingDown} />
         <StatCard title="Overdue" value={overdueCount} icon={CreditCard} />
+        <StatCard title="Total Income" value={formatZAR(totalIncome)} icon={Wallet} />
+        <StatCard title="Total Expenses" value={formatZAR(totalExpenses)} icon={TrendingDown} />
+        <StatCard title="Net Position" value={formatZAR(totalIncome - totalExpenses)} icon={FileText} />
+        <StatCard title="Collection Rate" value={`${collectionRate.toFixed(1)}%`} icon={CreditCard} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

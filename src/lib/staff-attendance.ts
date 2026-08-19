@@ -13,7 +13,8 @@ export function canMarkStaffAttendance(role: UserRole): boolean {
   return (
     role === UserRole.SUPER_ADMIN ||
     role === UserRole.SCHOOL_ADMIN ||
-    role === UserRole.PRINCIPAL
+    role === UserRole.PRINCIPAL ||
+    role === UserRole.HR_OFFICER
   );
 }
 

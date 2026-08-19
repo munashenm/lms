@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSessionFromRequest } from "@/lib/auth";
-import { canAccessAdmin, canAccessFinance } from "@/lib/rbac";
+import { canAccessAdmin, canAccessFinance, canAccessHr } from "@/lib/rbac";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { canApplyForLeave } from "@/lib/staff-leave";
 import { UserRole } from "@prisma/client";
@@ -60,6 +60,10 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/finance") && !canAccessFinance(session.role)) {
+    return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
+  }
+
+  if (pathname.startsWith("/hr") && !canAccessHr(session.role)) {
     return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
   }
 

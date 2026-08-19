@@ -15,6 +15,7 @@ export const LICENSE_FEATURE_KEYS = [
   "biometrics",
   "api_access",
   "advanced_analytics",
+  "hr_payroll",
 ] as const;
 
 export type LicenseFeatureKey = (typeof LICENSE_FEATURE_KEYS)[number];
@@ -36,6 +37,7 @@ export const LICENSE_FEATURE_LABELS: Record<LicenseFeatureKey, string> = {
   biometrics: "Biometrics",
   api_access: "API access",
   advanced_analytics: "Advanced Analytics",
+  hr_payroll: "HR & Payroll",
 };
 
 export const DEFAULT_LICENSE_FEATURES: Record<LicenseFeatureKey, boolean> = {
@@ -55,6 +57,7 @@ export const DEFAULT_LICENSE_FEATURES: Record<LicenseFeatureKey, boolean> = {
   biometrics: false,
   api_access: false,
   advanced_analytics: false,
+  hr_payroll: false,
 };
 
 export function normalizeFeatures(

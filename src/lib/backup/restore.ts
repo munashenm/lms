@@ -229,6 +229,33 @@ async function replaceSchoolData(
   preserveUserId: string | null
 ) {
   await prisma.$transaction(async (tx) => {
+    await tx.payslip.deleteMany({ where: { item: { run: { schoolId } } } });
+    await tx.payrollItem.deleteMany({ where: { run: { schoolId } } });
+    await tx.payrollRun.deleteMany({ where: { schoolId } });
+    await tx.payrollRuleSet.deleteMany({ where: { schoolId } });
+    await tx.timesheetEntry.deleteMany({ where: { timesheet: { employee: { schoolId } } } });
+    await tx.timesheet.deleteMany({ where: { employee: { schoolId } } });
+    await tx.leaveEntitlement.deleteMany({ where: { employee: { schoolId } } });
+    await tx.employeeDocument.deleteMany({ where: { employee: { schoolId } } });
+    await tx.employmentContract.deleteMany({ where: { employee: { schoolId } } });
+    await tx.salaryStructure.deleteMany({ where: { employee: { schoolId } } });
+    await tx.paymentAllocation.deleteMany({ where: { schoolId } });
+    await tx.chargeInstalment.deleteMany({ where: { charge: { schoolId } } });
+    await tx.studentCharge.deleteMany({ where: { schoolId } });
+    await tx.creditNote.deleteMany({ where: { schoolId } });
+    await tx.refund.deleteMany({ where: { schoolId } });
+    await tx.studentAidAward.deleteMany({ where: { schoolId } });
+    await tx.expense.deleteMany({ where: { schoolId } });
+    await tx.otherIncome.deleteMany({ where: { schoolId } });
+    await tx.recurringExpense.deleteMany({ where: { schoolId } });
+    await tx.feeStructure.deleteMany({ where: { schoolId } });
+    await tx.enrolmentModule.deleteMany({ where: { enrolment: { student: { schoolId } } } });
+    await tx.employee.deleteMany({ where: { schoolId } });
+    await tx.leavePolicy.deleteMany({ where: { schoolId } });
+    await tx.supplier.deleteMany({ where: { schoolId } });
+    await tx.expenseCategory.deleteMany({ where: { schoolId } });
+    await tx.incomeCategory.deleteMany({ where: { schoolId } });
+    await tx.financialAccount.deleteMany({ where: { schoolId } });
     await tx.feeReminderDispatch.deleteMany({ where: { schoolId } });
     await tx.payment.deleteMany({ where: { invoice: { schoolId } } });
     await tx.invoiceLineItem.deleteMany({ where: { invoice: { schoolId } } });
@@ -300,7 +327,7 @@ async function replaceSchoolData(
       const data = rows.map((row) => {
         const copy = { ...row };
         for (const [k, v] of Object.entries(copy)) {
-          if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) && (k.endsWith("At") || k.endsWith("Date") || k === "date" || k === "paidAt" || k === "dueDate" || k === "issuedAt" || k === "entryDate")) {
+          if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) && (k.endsWith("At") || k.endsWith("Date") || k.endsWith("From") || k.endsWith("To") || k === "date" || k === "paidAt" || k === "dueDate" || k === "issuedAt" || k === "entryDate" || k === "periodStart" || k === "periodEnd" || k === "effectiveFrom")) {
             copy[k] = asDate(v);
           }
         }
@@ -328,7 +355,6 @@ async function replaceSchoolData(
     await createManyIgnore(tx.enrolment, snapshot.enrolments);
     await createManyIgnore(tx.application, snapshot.applications);
     await createManyIgnore(tx.attendanceRecord, snapshot.attendanceRecords);
-    await createManyIgnore(tx.staffAttendanceRecord, snapshot.staffAttendanceRecords);
     await createManyIgnore(tx.timetableSlot, snapshot.timetableSlots);
     await createManyIgnore(tx.assessment, snapshot.assessments);
     await createManyIgnore(tx.assignment, snapshot.assignments);
@@ -343,7 +369,35 @@ async function replaceSchoolData(
     await createManyIgnore(tx.document, snapshot.documents);
     await createManyIgnore(tx.announcement, snapshot.announcements);
     await createManyIgnore(tx.certificate, snapshot.certificates);
+    await createManyIgnore(tx.leavePolicy, snapshot.leavePolicies ?? []);
+    await createManyIgnore(tx.employee, snapshot.employees ?? []);
+    await createManyIgnore(tx.staffAttendanceRecord, snapshot.staffAttendanceRecords);
     await createManyIgnore(tx.leaveRequest, snapshot.leaveRequests);
+    await createManyIgnore(tx.employmentContract, snapshot.employmentContracts ?? []);
+    await createManyIgnore(tx.salaryStructure, snapshot.salaryStructures ?? []);
+    await createManyIgnore(tx.employeeDocument, snapshot.employeeDocuments ?? []);
+    await createManyIgnore(tx.leaveEntitlement, snapshot.leaveEntitlements ?? []);
+    await createManyIgnore(tx.timesheet, snapshot.timesheets ?? []);
+    await createManyIgnore(tx.timesheetEntry, snapshot.timesheetEntries ?? []);
+    await createManyIgnore(tx.enrolmentModule, snapshot.enrolmentModules ?? []);
+    await createManyIgnore(tx.feeStructure, snapshot.feeStructures ?? []);
+    await createManyIgnore(tx.studentCharge, snapshot.studentCharges ?? []);
+    await createManyIgnore(tx.chargeInstalment, snapshot.chargeInstalments ?? []);
+    await createManyIgnore(tx.paymentAllocation, snapshot.paymentAllocations ?? []);
+    await createManyIgnore(tx.creditNote, snapshot.creditNotes ?? []);
+    await createManyIgnore(tx.refund, snapshot.refunds ?? []);
+    await createManyIgnore(tx.studentAidAward, snapshot.studentAidAwards ?? []);
+    await createManyIgnore(tx.supplier, snapshot.suppliers ?? []);
+    await createManyIgnore(tx.expenseCategory, snapshot.expenseCategories ?? []);
+    await createManyIgnore(tx.incomeCategory, snapshot.incomeCategories ?? []);
+    await createManyIgnore(tx.financialAccount, snapshot.financialAccounts ?? []);
+    await createManyIgnore(tx.recurringExpense, snapshot.recurringExpenses ?? []);
+    await createManyIgnore(tx.expense, snapshot.expenses ?? []);
+    await createManyIgnore(tx.otherIncome, snapshot.otherIncomes ?? []);
+    await createManyIgnore(tx.payrollRuleSet, snapshot.payrollRuleSets ?? []);
+    await createManyIgnore(tx.payrollRun, snapshot.payrollRuns ?? []);
+    await createManyIgnore(tx.payrollItem, snapshot.payrollItems ?? []);
+    await createManyIgnore(tx.payslip, snapshot.payslips ?? []);
     await createManyIgnore(tx.ledgerEntry, snapshot.ledgerEntries);
     await createManyIgnore(tx.studentLedgerEntry, snapshot.studentLedgerEntries);
     await createManyIgnore(tx.communicationBatch, snapshot.communicationBatches);

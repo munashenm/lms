@@ -14,6 +14,22 @@ export type Permission =
   | "marks:write"
   | "finance:read"
   | "finance:write"
+  | "finance.view"
+  | "finance.fees.manage"
+  | "finance.payments.create"
+  | "finance.payments.reverse"
+  | "finance.receipts.view"
+  | "finance.expenses.manage"
+  | "finance.reports.view"
+  | "hr.view"
+  | "hr.employees.manage"
+  | "hr.documents.manage"
+  | "hr.leave.manage"
+  | "hr.leave.approve"
+  | "payroll.view"
+  | "payroll.prepare"
+  | "payroll.approve"
+  | "payroll.finalise"
   | "reports:read"
   | "settings:read"
   | "settings:write"
@@ -44,26 +60,46 @@ const ENTERPRISE_VIEW: Permission[] = [
   "license.view", "backup.view", "sasams.view",
 ];
 
+const FINANCE_ALL: Permission[] = [
+  "finance:read", "finance:write",
+  "finance.view", "finance.fees.manage", "finance.payments.create",
+  "finance.payments.reverse", "finance.receipts.view", "finance.expenses.manage",
+  "finance.reports.view",
+];
+
+const HR_ALL: Permission[] = [
+  "hr.view", "hr.employees.manage", "hr.documents.manage",
+  "hr.leave.manage", "hr.leave.approve",
+];
+
+const PAYROLL_ALL: Permission[] = [
+  "payroll.view", "payroll.prepare", "payroll.approve", "payroll.finalise",
+];
+
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   SUPER_ADMIN: [
     "students:read", "students:write", "staff:read", "staff:write",
     "classes:read", "classes:write", "attendance:read", "attendance:write",
-    "marks:read", "marks:write", "finance:read", "finance:write",
+    "marks:read", "marks:write",
     "reports:read", "settings:read", "settings:write", "audit:read",
     "announcements:write",
+    ...FINANCE_ALL, ...HR_ALL, ...PAYROLL_ALL,
     ...ENTERPRISE_FULL,
   ],
   SCHOOL_ADMIN: [
     "students:read", "students:write", "staff:read", "staff:write",
     "classes:read", "classes:write", "attendance:read", "attendance:write",
-    "marks:read", "marks:write", "finance:read", "finance:write",
+    "marks:read", "marks:write",
     "reports:read", "settings:read", "settings:write", "audit:read",
     "announcements:write",
+    ...FINANCE_ALL, ...HR_ALL, ...PAYROLL_ALL,
     ...ENTERPRISE_FULL,
   ],
   PRINCIPAL: [
     "students:read", "staff:read", "classes:read", "attendance:read",
-    "marks:read", "finance:read", "reports:read", "settings:read",
+    "marks:read", "finance:read", "finance.view", "finance.reports.view",
+    "hr.view", "payroll.view",
+    "reports:read", "settings:read",
     "audit:read", "announcements:write",
     ...ENTERPRISE_VIEW,
   ],
@@ -72,12 +108,15 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "marks:read", "marks:write", "announcements:write",
   ],
   STUDENT: ["marks:read", "attendance:read"],
-  PARENT: ["students:read", "marks:read", "attendance:read", "finance:read"],
+  PARENT: ["students:read", "marks:read", "attendance:read", "finance:read", "finance.receipts.view"],
   FINANCE_OFFICER: [
-    "students:read", "finance:read", "finance:write", "reports:read",
+    "students:read", ...FINANCE_ALL, "reports:read",
   ],
   ADMISSIONS_OFFICER: [
     "students:read", "students:write", "reports:read",
+  ],
+  HR_OFFICER: [
+    "staff:read", "staff:write", ...HR_ALL, ...PAYROLL_ALL, "reports:read",
   ],
 };
 
@@ -104,6 +143,16 @@ export function canAccessAdmin(role: UserRole): boolean {
 
 export function canAccessFinance(role: UserRole): boolean {
   return FINANCE_ROLES.includes(role);
+}
+
+const HR_ROLES: UserRole[] = [
+  UserRole.SUPER_ADMIN,
+  UserRole.SCHOOL_ADMIN,
+  UserRole.HR_OFFICER,
+];
+
+export function canAccessHr(role: UserRole): boolean {
+  return HR_ROLES.includes(role) || role === UserRole.PRINCIPAL;
 }
 
 export function requirePermission(

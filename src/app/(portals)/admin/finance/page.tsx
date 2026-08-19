@@ -65,6 +65,15 @@ export default async function AdminFinancePage() {
             <Link href="/admin/finance/fee-schedule">Fee Schedule</Link>
           </Button>
           <Button variant="outline" asChild>
+            <Link href="/finance/structures">Fee Structures</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/finance/expenses">Expenses</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/finance/reports">Reports</Link>
+          </Button>
+          <Button variant="outline" asChild>
             <Link href="/finance/ledger">Income & Expenses</Link>
           </Button>
           <Button variant="outline" asChild>

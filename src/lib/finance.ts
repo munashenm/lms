@@ -29,10 +29,12 @@ export function getOutstandingBalance(total: number, amountPaid: number): number
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: "Cash",
   EFT: "EFT / Bank Transfer",
+  BANK_DEPOSIT: "Bank deposit",
   CARD: "Card",
   PAYFAST: "PayFast",
   OZOW: "Ozow",
   YOCO: "Yoco",
+  MOBILE: "Mobile payment",
   SCHOLARSHIP: "Scholarship / Bursary",
   OTHER: "Other",
 };

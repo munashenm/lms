@@ -92,6 +92,10 @@ export async function POST(request: NextRequest) {
     gradeId: parsed.data.gradeId,
     classId: parsed.data.classId,
     status: parsed.data.status as EnrolmentStatus | undefined,
+    moduleIds: parsed.data.moduleIds,
+    hostel: parsed.data.hostel,
+    transport: parsed.data.transport,
+    recordedById: session!.userId,
   });
 
   const enrolment = await prisma.enrolment.findFirst({

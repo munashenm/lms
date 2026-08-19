@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
       schoolId,
       gradeId: student.gradeId,
       classId: student.classId,
+      recordedById: session.userId,
     });
 
     await logAudit({

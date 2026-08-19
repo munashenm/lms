@@ -8,6 +8,11 @@ import {
   AcademicSessionStatus,
   AcademicPeriodStatus,
   BackupScheduleFrequency,
+  FeeChargeSource,
+  BillingFrequency,
+  EmployeeCategory,
+  LeaveType,
+  AccrualMethod,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -45,6 +50,33 @@ async function main() {
   await prisma.notification.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.announcement.deleteMany();
+  await prisma.payslip.deleteMany();
+  await prisma.payrollItem.deleteMany();
+  await prisma.payrollRun.deleteMany();
+  await prisma.payrollRuleSet.deleteMany();
+  await prisma.timesheetEntry.deleteMany();
+  await prisma.timesheet.deleteMany();
+  await prisma.leaveEntitlement.deleteMany();
+  await prisma.employeeDocument.deleteMany();
+  await prisma.employmentContract.deleteMany();
+  await prisma.salaryStructure.deleteMany();
+  await prisma.paymentAllocation.deleteMany();
+  await prisma.chargeInstalment.deleteMany();
+  await prisma.studentCharge.deleteMany();
+  await prisma.creditNote.deleteMany();
+  await prisma.refund.deleteMany();
+  await prisma.studentAidAward.deleteMany();
+  await prisma.expense.deleteMany();
+  await prisma.otherIncome.deleteMany();
+  await prisma.recurringExpense.deleteMany();
+  await prisma.feeStructure.deleteMany();
+  await prisma.enrolmentModule.deleteMany();
+  await prisma.employee.deleteMany();
+  await prisma.leavePolicy.deleteMany();
+  await prisma.supplier.deleteMany();
+  await prisma.expenseCategory.deleteMany();
+  await prisma.incomeCategory.deleteMany();
+  await prisma.financialAccount.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.feeReminderDispatch.deleteMany();
   await prisma.feeReminderRule.deleteMany();
@@ -135,6 +167,7 @@ async function main() {
           biometrics: false,
           api_access: false,
           advanced_analytics: true,
+          hr_payroll: true,
         },
       },
     });
@@ -183,6 +216,7 @@ async function main() {
         biometrics: false,
         api_access: false,
         advanced_analytics: true,
+        hr_payroll: true,
       },
       installationId: "demo-install-cyber-college",
       lastVerifiedAt: new Date(),
@@ -193,7 +227,7 @@ async function main() {
     data: [
       "student_portal", "parent_portal", "teacher_portal", "admissions", "finance",
       "assessments", "attendance", "timetable", "library", "reporting", "ai_features",
-      "sms", "whatsapp", "biometrics", "api_access", "advanced_analytics",
+      "sms", "whatsapp", "biometrics", "api_access", "advanced_analytics", "hr_payroll",
     ].map((featureKey) => ({
       licenseId: license.id,
       featureKey,
@@ -408,6 +442,17 @@ async function main() {
     },
   });
 
+  const hrUser = await prisma.user.create({
+    data: {
+      schoolId: school.id,
+      email: "hr@college.co.za",
+      passwordHash: await hash("hr123"),
+      firstName: "Lerato",
+      lastName: "Khumalo",
+      role: UserRole.HR_OFFICER,
+    },
+  });
+
   // ── Teacher ─────────────────────────────────────────────────────────────
   const teacher = await prisma.teacher.create({
     data: {
@@ -432,6 +477,121 @@ async function main() {
       data: { classId: classA.id, subjectId: subject.id, teacherId: teacher.id },
     });
   }
+
+  const lecturerEmployee = await prisma.employee.create({
+    data: {
+      schoolId: school.id,
+      userId: teacherUser.id,
+      teacherId: teacher.id,
+      campusId: campus.id,
+      employeeNumber: teacher.employeeNumber,
+      firstName: teacher.firstName,
+      lastName: teacher.lastName,
+      email: teacher.email,
+      category: EmployeeCategory.EDUCATOR,
+      department: teacher.department,
+      position: "Lecturer",
+      startDate: new Date("2024-01-15"),
+    },
+  });
+  await prisma.salaryStructure.create({
+    data: {
+      employeeId: lecturerEmployee.id,
+      effectiveFrom: new Date("2024-01-15"),
+      baseSalary: 28000,
+    },
+  });
+  await prisma.employee.create({
+    data: {
+      schoolId: school.id,
+      userId: hrUser.id,
+      campusId: campus.id,
+      employeeNumber: "EMP002",
+      firstName: "Lerato",
+      lastName: "Khumalo",
+      email: "hr@college.co.za",
+      category: EmployeeCategory.HR,
+      department: "Human Resources",
+      position: "HR Officer",
+      startDate: new Date("2024-03-01"),
+    },
+  });
+
+  await prisma.leavePolicy.createMany({
+    data: [
+      { schoolId: school.id, leaveType: LeaveType.ANNUAL, name: "Annual leave", daysPerYear: 15, accrualMethod: AccrualMethod.MONTHLY },
+      { schoolId: school.id, leaveType: LeaveType.SICK, name: "Sick leave", daysPerYear: 30, accrualMethod: AccrualMethod.NONE },
+    ],
+  });
+
+  await prisma.payrollRuleSet.create({
+    data: {
+      schoolId: school.id,
+      name: "Demo ZA (zeros — configure statutory rates)",
+      jurisdiction: "ZA",
+      effectiveFrom: new Date("2024-01-01"),
+      rulesJson: {
+        jurisdiction: "ZA",
+        employeeTaxPercent: 0,
+        uifEmployeePercent: 0,
+        uifEmployerPercent: 0,
+      },
+    },
+  });
+
+  await prisma.expenseCategory.createMany({
+    data: ["Salaries", "Internet", "Telephone", "Rent", "Other"].map((name) => ({
+      schoolId: school.id,
+      name,
+      isSystem: true,
+    })),
+  });
+  await prisma.incomeCategory.createMany({
+    data: ["Donations", "Grants", "Other income"].map((name) => ({
+      schoolId: school.id,
+      name,
+      isSystem: true,
+    })),
+  });
+  await prisma.financialAccount.create({
+    data: { schoolId: school.id, name: "Main bank account", type: "BANK" },
+  });
+
+  await prisma.feeStructure.createMany({
+    data: [
+      {
+        schoolId: school.id,
+        name: "IT programme registration",
+        chargeSource: FeeChargeSource.REGISTRATION_FEE,
+        amount: 2500,
+        billingFrequency: BillingFrequency.ONCE,
+        allowInstalments: false,
+        academicYearId: academicYear.id,
+        courseId: course.id,
+      },
+      {
+        schoolId: school.id,
+        name: "Programming Fundamentals module",
+        chargeSource: FeeChargeSource.MODULE_FEE,
+        amount: 4000,
+        billingFrequency: BillingFrequency.ONCE,
+        allowInstalments: false,
+        academicYearId: academicYear.id,
+        courseId: course.id,
+        moduleId: course.modules.find((m) => m.code === "IT-M02")?.id,
+      },
+      {
+        schoolId: school.id,
+        name: "Database Design module",
+        chargeSource: FeeChargeSource.MODULE_FEE,
+        amount: 3500,
+        billingFrequency: BillingFrequency.ONCE,
+        allowInstalments: false,
+        academicYearId: academicYear.id,
+        moduleId: course.modules.find((m) => m.code === "IT-M04")?.id,
+      },
+    ],
+  });
 
   // ── Timetable ───────────────────────────────────────────────────────────
   const timetableData = [
@@ -648,10 +808,12 @@ async function main() {
     if (paid > 0) {
       await prisma.payment.create({
         data: {
+          schoolId: school.id,
           invoiceId: invoice.id,
           amount: paid,
           method: i % 2 === 0 ? "EFT" : "CASH",
           reference: `PAY-${i + 1}`,
+          receiptNumber: `RCP-2026-${String(i + 1).padStart(5, "0")}`,
         },
       });
     }
@@ -879,6 +1041,7 @@ async function main() {
   console.log("  Student:      student@college.co.za / student123");
   console.log("  Parent:       parent@college.co.za / parent123");
   console.log("  Finance:      finance@college.co.za / finance123");
+  console.log("  HR:           hr@college.co.za / hr123");
 }
 
 main()

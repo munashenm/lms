@@ -19,7 +19,7 @@ function calcLeaveDays(start: Date, end: Date): number {
   return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)) + 1);
 }
 
-const LEAVE_TYPES = new Set<string>(["ANNUAL", "SICK", "FAMILY", "UNPAID", "OTHER"]);
+const LEAVE_TYPES = new Set<string>(["ANNUAL", "SICK", "FAMILY", "MATERNITY", "STUDY", "UNPAID", "OTHER"]);
 
 export async function GET(request: NextRequest) {
   const session = await getSession();

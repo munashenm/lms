@@ -298,9 +298,23 @@ export const invoiceSchema = z.object({
 export const paymentSchema = z.object({
   invoiceId: z.string().min(1),
   amount: z.coerce.number().positive("Amount must be positive"),
-  method: z.enum(["CASH", "EFT", "CARD", "PAYFAST", "OZOW", "YOCO", "SCHOLARSHIP", "OTHER"]),
+  method: z.enum([
+    "CASH",
+    "EFT",
+    "BANK_DEPOSIT",
+    "CARD",
+    "PAYFAST",
+    "OZOW",
+    "YOCO",
+    "MOBILE",
+    "SCHOLARSHIP",
+    "OTHER",
+  ]),
   reference: z.string().optional(),
   notes: z.string().optional(),
+  allocations: z
+    .array(z.object({ instalmentId: z.string(), amount: z.coerce.number().positive() }))
+    .optional(),
 });
 
 export const feeScheduleItemSchema = z.object({
@@ -335,7 +349,7 @@ export const certificateSchema = z.object({
 });
 
 export const leaveRequestSchema = z.object({
-  type: z.enum(["ANNUAL", "SICK", "FAMILY", "UNPAID", "OTHER"]),
+  type: z.enum(["ANNUAL", "SICK", "FAMILY", "MATERNITY", "STUDY", "UNPAID", "OTHER"]),
   startDate: z.string().min(1),
   endDate: z.string().min(1),
   reason: z.string().min(5, "Please provide a reason"),
@@ -446,6 +460,9 @@ export const enrolmentSchema = z.object({
   courseId: z.string().optional().nullable(),
   gradeId: z.string().optional().nullable(),
   classId: z.string().optional().nullable(),
+  moduleIds: z.array(z.string()).optional(),
+  hostel: z.boolean().optional(),
+  transport: z.boolean().optional(),
   status: z
     .enum([
       "ENROLLED",

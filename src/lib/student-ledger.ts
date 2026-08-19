@@ -43,6 +43,9 @@ export async function createStudentLedgerEntry(params: {
   recordedById?: string | null;
   notes?: string | null;
   signedAmount?: number;
+  chargeSource?: import("@prisma/client").FeeChargeSource | null;
+  studentChargeId?: string | null;
+  reversesEntryId?: string | null;
 }) {
   const signedAmount =
     params.signedAmount ?? signedAmountForType(params.type, params.amount);
@@ -61,6 +64,9 @@ export async function createStudentLedgerEntry(params: {
       entryDate: params.entryDate ?? new Date(),
       recordedById: params.recordedById ?? null,
       notes: params.notes ?? null,
+      chargeSource: params.chargeSource ?? null,
+      studentChargeId: params.studentChargeId ?? null,
+      reversesEntryId: params.reversesEntryId ?? null,
     },
   });
 }

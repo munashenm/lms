@@ -6,6 +6,7 @@ export const STAFF_LEAVE_ROLES: UserRole[] = [
   UserRole.TEACHER,
   UserRole.FINANCE_OFFICER,
   UserRole.ADMISSIONS_OFFICER,
+  UserRole.HR_OFFICER,
   UserRole.SCHOOL_ADMIN,
   UserRole.PRINCIPAL,
   UserRole.SUPER_ADMIN,

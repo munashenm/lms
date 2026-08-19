@@ -164,6 +164,54 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     where: { studentId: { in: studentIds.length ? studentIds : ["__none__"] } },
   });
 
+  const [
+    feeStructures,
+    studentCharges,
+    suppliers,
+    expenseCategories,
+    incomeCategories,
+    financialAccounts,
+    expenses,
+    recurringExpenses,
+    otherIncomes,
+    employees,
+    leavePolicies,
+    payrollRuleSets,
+    payrollRuns,
+    creditNotes,
+    refunds,
+    studentAidAwards,
+    paymentAllocations,
+  ] = await Promise.all([
+    prisma.feeStructure.findMany({ where: { schoolId } }),
+    prisma.studentCharge.findMany({ where: { schoolId }, include: { instalments: true } }),
+    prisma.supplier.findMany({ where: { schoolId } }),
+    prisma.expenseCategory.findMany({ where: { schoolId } }),
+    prisma.incomeCategory.findMany({ where: { schoolId } }),
+    prisma.financialAccount.findMany({ where: { schoolId } }),
+    prisma.expense.findMany({ where: { schoolId } }),
+    prisma.recurringExpense.findMany({ where: { schoolId } }),
+    prisma.otherIncome.findMany({ where: { schoolId } }),
+    prisma.employee.findMany({
+      where: { schoolId },
+      include: { contracts: true, salaryStructures: true, documents: true, leaveEntitlements: true, timesheets: { include: { entries: true } } },
+    }),
+    prisma.leavePolicy.findMany({ where: { schoolId } }),
+    prisma.payrollRuleSet.findMany({ where: { schoolId } }),
+    prisma.payrollRun.findMany({
+      where: { schoolId },
+      include: { items: { include: { payslip: true } } },
+    }),
+    prisma.creditNote.findMany({ where: { schoolId } }),
+    prisma.refund.findMany({ where: { schoolId } }),
+    prisma.studentAidAward.findMany({ where: { schoolId } }),
+    prisma.paymentAllocation.findMany({ where: { schoolId } }),
+  ]);
+
+  const enrolmentModules = await prisma.enrolmentModule.findMany({
+    where: { enrolment: { student: { schoolId } } },
+  });
+
   const files = await collectUploads(schoolId);
 
   const snapshot: BackupSnapshot = {
@@ -221,6 +269,33 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     communicationLogs: jsonSafe(communicationLogs),
     communicationBatches: jsonSafe(communicationBatches),
     auditLogs: jsonSafe(auditLogs),
+    feeStructures: jsonSafe(feeStructures),
+    studentCharges: jsonSafe(studentCharges.map((c) => omitKey(c as unknown as Record<string, unknown>, "instalments"))),
+    chargeInstalments: jsonSafe(studentCharges.flatMap((c) => c.instalments)),
+    paymentAllocations: jsonSafe(paymentAllocations),
+    creditNotes: jsonSafe(creditNotes),
+    refunds: jsonSafe(refunds),
+    studentAidAwards: jsonSafe(studentAidAwards),
+    suppliers: jsonSafe(suppliers),
+    expenseCategories: jsonSafe(expenseCategories),
+    incomeCategories: jsonSafe(incomeCategories),
+    financialAccounts: jsonSafe(financialAccounts),
+    expenses: jsonSafe(expenses),
+    recurringExpenses: jsonSafe(recurringExpenses),
+    otherIncomes: jsonSafe(otherIncomes),
+    employees: jsonSafe(employees.map((e) => omitKeys(e as unknown as Record<string, unknown>, ["contracts", "salaryStructures", "documents", "leaveEntitlements", "timesheets"]))),
+    employmentContracts: jsonSafe(employees.flatMap((e) => e.contracts)),
+    salaryStructures: jsonSafe(employees.flatMap((e) => e.salaryStructures)),
+    employeeDocuments: jsonSafe(employees.flatMap((e) => e.documents)),
+    leavePolicies: jsonSafe(leavePolicies),
+    leaveEntitlements: jsonSafe(employees.flatMap((e) => e.leaveEntitlements)),
+    timesheets: jsonSafe(employees.flatMap((e) => e.timesheets.map((t) => omitKey(t as unknown as Record<string, unknown>, "entries")))),
+    timesheetEntries: jsonSafe(employees.flatMap((e) => e.timesheets.flatMap((t) => t.entries))),
+    payrollRuleSets: jsonSafe(payrollRuleSets),
+    payrollRuns: jsonSafe(payrollRuns.map((r) => omitKey(r as unknown as Record<string, unknown>, "items"))),
+    payrollItems: jsonSafe(payrollRuns.flatMap((r) => r.items.map((i) => omitKey(i as unknown as Record<string, unknown>, "payslip")))),
+    payslips: jsonSafe(payrollRuns.flatMap((r) => r.items.flatMap((i) => (i.payslip ? [i.payslip] : [])))),
+    enrolmentModules: jsonSafe(enrolmentModules),
     files,
   };
 
@@ -235,5 +310,5 @@ export function snapshotCounts(snapshot: BackupSnapshot) {
   };
 }
 
-export const SCHEMA_VERSION = "20260819000000_enterprise_licensing_backup_sasams";
+export const SCHEMA_VERSION = "20260819080000_finance_hr_payroll";
 export const APP_VERSION = process.env.npm_package_version || "0.1.0";

@@ -65,6 +65,33 @@ export interface BackupSnapshot {
   communicationLogs: Record<string, unknown>[];
   communicationBatches: Record<string, unknown>[];
   auditLogs: Record<string, unknown>[];
+  feeStructures?: Record<string, unknown>[];
+  studentCharges?: Record<string, unknown>[];
+  chargeInstalments?: Record<string, unknown>[];
+  paymentAllocations?: Record<string, unknown>[];
+  creditNotes?: Record<string, unknown>[];
+  refunds?: Record<string, unknown>[];
+  studentAidAwards?: Record<string, unknown>[];
+  suppliers?: Record<string, unknown>[];
+  expenseCategories?: Record<string, unknown>[];
+  incomeCategories?: Record<string, unknown>[];
+  financialAccounts?: Record<string, unknown>[];
+  expenses?: Record<string, unknown>[];
+  recurringExpenses?: Record<string, unknown>[];
+  otherIncomes?: Record<string, unknown>[];
+  employees?: Record<string, unknown>[];
+  employmentContracts?: Record<string, unknown>[];
+  salaryStructures?: Record<string, unknown>[];
+  employeeDocuments?: Record<string, unknown>[];
+  leavePolicies?: Record<string, unknown>[];
+  leaveEntitlements?: Record<string, unknown>[];
+  timesheets?: Record<string, unknown>[];
+  timesheetEntries?: Record<string, unknown>[];
+  payrollRuleSets?: Record<string, unknown>[];
+  payrollRuns?: Record<string, unknown>[];
+  payrollItems?: Record<string, unknown>[];
+  payslips?: Record<string, unknown>[];
+  enrolmentModules?: Record<string, unknown>[];
   files: { relativePath: string; contentBase64: string; mimeType?: string }[];
 }
 
@@ -76,5 +103,5 @@ export const SECRET_BACKUP_FIELDS = [
   "payfastPassphrase",
   "ozowPrivateKey",
   "yocoSecretKey",
-  "yocoWebhookSecret",
+  "bankAccountEnc",
 ] as const;

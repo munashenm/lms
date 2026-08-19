@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { PAYMENT_METHOD_LABELS, getOutstandingBalance } from "@/lib/finance";
 import { generatePaymentReceiptPdf } from "@/lib/pdf-payment-receipt";
 import { toSchoolBrand } from "@/lib/pdf-branding";
+import { amountInWordsZar } from "@/lib/amount-in-words";
 import { formatDate } from "@/lib/utils";
 
 interface RouteParams {
@@ -69,7 +70,13 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   const invoiceTotal = Number(invoice.total);
   const invoiceAmountPaid = Number(invoice.amountPaid);
   const outstanding = getOutstandingBalance(invoiceTotal, invoiceAmountPaid);
-  const receiptNo = `RCP-${payment.paidAt.getFullYear()}-${payment.id.slice(-8).toUpperCase()}`;
+  const receiptNo = payment.receiptNumber;
+  const recordedBy = payment.recordedById
+    ? await prisma.user.findUnique({
+        where: { id: payment.recordedById },
+        select: { firstName: true, lastName: true },
+      })
+    : null;
 
   const pdf = await generatePaymentReceiptPdf({
     brand: toSchoolBrand(invoice.school),
@@ -88,6 +95,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     invoiceTotal,
     invoiceAmountPaid,
     outstanding,
+    amountInWords: amountInWordsZar(amount),
+    receivedBy: recordedBy ? `${recordedBy.firstName} ${recordedBy.lastName}` : null,
   });
 
   return new NextResponse(Buffer.from(pdf), {

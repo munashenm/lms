@@ -2,6 +2,10 @@ import { PaymentMethod, UserRole } from "@prisma/client";
 import { prisma } from "../db";
 import { deriveInvoiceStatus } from "../finance";
 import { notifyUser, notifySchoolRoles } from "../notifications";
+import { nextReceiptNumber } from "../finance-catalog";
+import { postPaymentToStudentLedger } from "../student-ledger";
+import { allocatePaymentToOldest } from "../payment-allocation";
+import { logAudit } from "../audit";
 
 interface RecordGatewayPaymentParams {
   invoiceId: string;
@@ -33,13 +37,16 @@ export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
   const newAmountPaid = Number(invoice.amountPaid) + params.amount;
   const total = Number(invoice.total);
 
-  await prisma.payment.create({
+  const payment = await prisma.payment.create({
     data: {
+      schoolId: invoice.schoolId,
       invoiceId: params.invoiceId,
       amount: params.amount,
       method: params.method,
       reference: params.reference,
       notes: params.notes,
+      receiptNumber: await nextReceiptNumber(invoice.schoolId),
+      gatewayProvider: params.method.toLowerCase(),
     },
   });
 
@@ -53,6 +60,33 @@ export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
   await prisma.invoice.update({
     where: { id: params.invoiceId },
     data: { amountPaid: newAmountPaid, status: newStatus },
+  });
+
+  await allocatePaymentToOldest({
+    schoolId: invoice.schoolId,
+    studentId: invoice.studentId,
+    paymentId: payment.id,
+    invoiceId: params.invoiceId,
+    amount: params.amount,
+  });
+
+  await postPaymentToStudentLedger({
+    schoolId: invoice.schoolId,
+    studentId: invoice.studentId,
+    paymentId: payment.id,
+    invoiceId: params.invoiceId,
+    invoiceNumber: invoice.invoiceNumber,
+    amount: params.amount,
+    method: params.method,
+    reference: params.reference,
+  });
+
+  await logAudit({
+    schoolId: invoice.schoolId,
+    action: "PAYMENT_RECEIVED",
+    entity: "Payment",
+    entityId: payment.id,
+    metadata: { method: params.method, gateway: true, receiptNumber: payment.receiptNumber },
   });
 
   const methodLabel = params.method.replace("_", " ");

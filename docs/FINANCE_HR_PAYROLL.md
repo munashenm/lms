@@ -1,0 +1,51 @@
+# Finance + HR/Payroll — implementation plan
+
+Inspected the existing SchoolHub SA LMS (Next.js App Router, Prisma/PostgreSQL, JWT RBAC, multi-tenant `schoolId`). This plan extends current modules. It does not replace invoices, the student ledger, fee reminders, payment gateways, leave requests, or staff attendance.
+
+## Existing functionality to reuse
+
+| Area | Reuse |
+|---|---|
+| Student billing | `Invoice`, `InvoiceLineItem`, `Payment`, student/parent fee portals, branded invoice PDF |
+| Student ledger | `StudentLedgerEntry` already calculates balance from signed entries (CHARGE/PAYMENT/CREDIT/DISCOUNT/BURSARY/SPONSORSHIP/ADJUSTMENT/REFUND). **No mutable `student.balance` field exists.** |
+| Fee catalogue | `FeeScheduleItem` stays as the public/simple list. Charging uses new `FeeStructure` rules. |
+| Institution GL | `LedgerEntry` (INCOME/EXPENSE) — extended, not replaced |
+| Payments | Cash/EFT/Card/PayFast/Ozow/Yoco + provider interface in `src/lib/payment-gateways` |
+| Receipts | `generatePaymentReceiptPdf` — unique receipt numbers added on `Payment` |
+| Statements | `generateFeeStatementPdf` |
+| Enrolment | `ensureStudentEnrolment` — fee engine hooks after create/update |
+| Academic structure | Grade, Class, Course, Module, AcademicYear, Term |
+| HR today | `Teacher` (academic only), `LeaveRequest`, `StaffAttendanceRecord` (check-in/out) |
+| Licensing | Feature flag `finance` already exists. Add `hr_payroll`. |
+| Audit | `logAudit` |
+| Tenancy | `getSchoolFilter` / `canAccessSchool` |
+
+## New / extended database entities
+
+Finance: `FeeStructure`, `StudentCharge`, `ChargeInstalment`, `PaymentAllocation`, `Supplier`, `ExpenseCategory`, `IncomeCategory`, `FinancialAccount`, `RecurringExpense`. Extend `Payment` (receipt no, reversal), `StudentLedgerEntry` (source, charge, reversal), `LedgerEntry` (supplier, VAT, account, payroll run, approval).
+
+HR: `Employee` (all staff, optional link to `Teacher`/`User`), `EmploymentContract`, `SalaryStructure`, `LeavePolicy`, `LeaveEntitlement`, `EmployeeDocument`, `PayrollRuleSet`, `PayrollRun`, `PayrollItem`, `Payslip`.
+
+## Permissions (teachers do not inherit finance/payroll)
+
+`finance.view`, `finance.fees.manage`, `finance.payments.create`, `finance.payments.reverse`, `finance.receipts.view`, `finance.expenses.manage`, `finance.reports.view`, `hr.view`, `hr.employees.manage`, `hr.documents.manage`, `hr.leave.manage`, `hr.leave.approve`, `payroll.view`, `payroll.prepare`, `payroll.approve`, `payroll.finalise`.
+
+Granted to Super Admin, School Admin, Finance Officer (finance only), and the new `HR_OFFICER` role (HR/payroll). Teachers keep academic + own leave/payslips only.
+
+## Integrations
+
+Registration → enrolment → fee engine (idempotent per student + fee + year) → invoice + ledger + instalments → payment (oldest instalment or manual) → receipt.
+
+Employee → contract/salary/leave → payroll draft/calculate/approve/finalise → payslip PDF → `LedgerEntry` expense with `payrollRunId` (no double post).
+
+## Licensing
+
+`finance` and `hr_payroll` are separate licence flags. A smaller school can run Core LMS + Finance. A larger institution can add HR/Payroll (and later analytics/AI) without rewriting the product. `hr_payroll` defaults to off for new licences.
+
+## Permissions
+
+Teachers do not inherit finance or payroll access. Finance officers do not inherit payroll. HR officers do not inherit student billing writes.
+
+## Student ledger
+
+Balances are always the sum of `StudentLedgerEntry.signedAmount`. Payments, credit notes, bursaries and reversals append rows. Receipts are never deleted; reversals create a linked audit payment.

@@ -23,6 +23,8 @@ import {
   Shield,
   DatabaseBackup,
   Plug,
+  Briefcase,
+  Banknote,
   Circle,
   type LucideIcon,
 } from "lucide-react";
@@ -51,6 +53,8 @@ const ICON_MAP: Record<NavIconName, LucideIcon> = {
   Shield,
   DatabaseBackup,
   Plug,
+  Briefcase,
+  Banknote,
 };
 
 interface NavIconProps {

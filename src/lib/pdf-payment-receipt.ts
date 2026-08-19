@@ -20,6 +20,8 @@ export interface PaymentReceiptData {
   invoiceTotal: number;
   invoiceAmountPaid: number;
   outstanding: number;
+  amountInWords?: string | null;
+  receivedBy?: string | null;
 }
 
 function money(n: number): string {
@@ -101,6 +103,8 @@ export async function generatePaymentReceiptPdf(
     true,
     11
   );
+  if (data.amountInWords) line(`Amount in words: ${data.amountInWords}`);
+  if (data.receivedBy) line(`Received by: ${data.receivedBy}`);
 
   y -= 16;
   page.drawText(

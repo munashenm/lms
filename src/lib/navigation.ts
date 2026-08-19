@@ -22,7 +22,9 @@ export type NavIconName =
   | "Palmtree"
   | "Shield"
   | "DatabaseBackup"
-  | "Plug";
+  | "Plug"
+  | "Briefcase"
+  | "Banknote";
 
 export interface NavItem {
   label: string;
@@ -52,6 +54,8 @@ export function getAdminNav(
     { label: "Certificates", href: "/admin/certificates", icon: "Award" },
     { label: "Applications", href: "/admin/applications", icon: "ClipboardList" },
     { label: "Finance", href: "/admin/finance", icon: "CreditCard" },
+    { label: "HR", href: "/admin/hr", icon: "Briefcase" },
+    { label: "Payroll", href: "/admin/payroll", icon: "Banknote" },
     { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
     { label: "Communications", href: "/admin/communications", icon: "Megaphone" },
     { label: "Documents", href: "/admin/documents", icon: "FolderOpen" },
@@ -81,6 +85,7 @@ export const teacherNav: NavItem[] = [
   { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
   { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
   { label: "Materials", href: "/teacher/materials", icon: "Upload" },
+  { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },
   { label: "Announcements", href: "/teacher/announcements", icon: "Megaphone" },
 ];
 
@@ -105,9 +110,27 @@ export const financeNav: NavItem[] = [
   { label: "Debtors", href: "/finance/debtors", icon: "TrendingDown" },
   { label: "Fee Reminders", href: "/finance/reminders", icon: "Megaphone" },
   { label: "Fee Schedule", href: "/finance/fee-schedule", icon: "CreditCard" },
+  { label: "Fee Structures", href: "/finance/structures", icon: "FileText" },
+  { label: "Expenses", href: "/finance/expenses", icon: "TrendingDown" },
+  { label: "Income", href: "/finance/income", icon: "Wallet" },
+  { label: "Suppliers", href: "/finance/suppliers", icon: "Users" },
+  { label: "Accounts", href: "/finance/accounts", icon: "Wallet" },
+  { label: "Reports", href: "/finance/reports", icon: "BarChart3" },
   { label: "Ledger", href: "/finance/ledger", icon: "Wallet" },
   { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
   { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
+];
+
+export const hrNav: NavItem[] = [
+  { label: "Dashboard", href: "/hr/dashboard", icon: "LayoutDashboard" },
+  { label: "Employees", href: "/hr/employees", icon: "Users" },
+  { label: "Leave", href: "/hr/leave", icon: "Palmtree" },
+  { label: "Leave policies", href: "/hr/leave-policies", icon: "FileText" },
+  { label: "Payroll", href: "/hr/payroll", icon: "Banknote" },
+  { label: "Reports", href: "/hr/reports", icon: "BarChart3" },
+  { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
+  { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
+  { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },
 ];
 
 export const parentNav: NavItem[] = [

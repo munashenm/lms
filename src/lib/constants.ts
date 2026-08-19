@@ -15,6 +15,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   PARENT: "Parent / Guardian",
   FINANCE_OFFICER: "Finance Officer",
   ADMISSIONS_OFFICER: "Admissions Officer",
+  HR_OFFICER: "HR Officer",
 };
 
 export const ROLE_DASHBOARD: Record<UserRole, string> = {
@@ -26,6 +27,7 @@ export const ROLE_DASHBOARD: Record<UserRole, string> = {
   PARENT: "/parent/dashboard",
   FINANCE_OFFICER: "/finance/dashboard",
   ADMISSIONS_OFFICER: "/admin/applications",
+  HR_OFFICER: "/hr/dashboard",
 };
 
 export const ADMIN_ROLES: UserRole[] = [

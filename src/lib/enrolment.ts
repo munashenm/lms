@@ -1,5 +1,6 @@
 import { EnrolmentStatus, type Prisma } from "@prisma/client";
 import { prisma } from "./db";
+import { applyEnrolmentFees, syncEnrolmentModules } from "./fee-engine";
 
 /** Ensure a student has a session enrolment for the given (or current) academic year. */
 export async function ensureStudentEnrolment(params: {
@@ -10,6 +11,10 @@ export async function ensureStudentEnrolment(params: {
   gradeId?: string | null;
   classId?: string | null;
   status?: EnrolmentStatus;
+  moduleIds?: string[];
+  hostel?: boolean;
+  transport?: boolean;
+  recordedById?: string | null;
 }): Promise<void> {
   let academicYearId = params.academicYearId;
   if (!academicYearId) {
@@ -29,8 +34,9 @@ export async function ensureStudentEnrolment(params: {
     },
   });
 
+  let enrolmentId: string;
   if (existing) {
-    await prisma.enrolment.update({
+    const updated = await prisma.enrolment.update({
       where: { id: existing.id },
       data: {
         gradeId: params.gradeId ?? existing.gradeId,
@@ -39,18 +45,47 @@ export async function ensureStudentEnrolment(params: {
         status: params.status ?? existing.status,
       },
     });
-    return;
+    enrolmentId = updated.id;
+  } else {
+    const created = await prisma.enrolment.create({
+      data: {
+        studentId: params.studentId,
+        academicYearId,
+        courseId: params.courseId ?? null,
+        gradeId: params.gradeId ?? null,
+        classId: params.classId ?? null,
+        status: params.status ?? EnrolmentStatus.ENROLLED,
+      },
+    });
+    enrolmentId = created.id;
   }
 
-  await prisma.enrolment.create({
-    data: {
-      studentId: params.studentId,
-      academicYearId,
-      courseId: params.courseId ?? null,
-      gradeId: params.gradeId ?? null,
-      classId: params.classId ?? null,
-      status: params.status ?? EnrolmentStatus.ENROLLED,
-    },
+  if (params.moduleIds) {
+    await syncEnrolmentModules(enrolmentId, params.moduleIds);
+  }
+
+  const modules = await prisma.enrolmentModule.findMany({
+    where: { enrolmentId },
+    select: { moduleId: true },
+  });
+  const student = await prisma.student.findUnique({
+    where: { id: params.studentId },
+    select: { campusId: true },
+  });
+
+  await applyEnrolmentFees({
+    studentId: params.studentId,
+    schoolId: params.schoolId,
+    academicYearId,
+    enrolmentId,
+    courseId: params.courseId,
+    gradeId: params.gradeId,
+    classId: params.classId,
+    campusId: student?.campusId,
+    moduleIds: modules.map((m) => m.moduleId),
+    hostel: params.hostel,
+    transport: params.transport,
+    recordedById: params.recordedById,
   });
 }
 

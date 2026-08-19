@@ -6,6 +6,7 @@ import { requireSchoolId } from "@/lib/portal-data";
 import { teacherSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { licenseDeniedResponse, licenseWriteGuard, requireLicenseWrite } from "@/lib/licensing/enforce";
+import { ensureEmployeeForTeacher } from "@/lib/employee-sync";
 import { UserRole } from "@prisma/client";
 
 export async function GET() {
@@ -73,6 +74,13 @@ export async function POST(request: NextRequest) {
       campusId: parsed.data.campusId || null,
       saIdNumber: parsed.data.saIdNumber || null,
     },
+  });
+
+  await ensureEmployeeForTeacher({
+    schoolId,
+    teacherId: teacher.id,
+    userId: teacher.userId,
+    actorId: session!.userId,
   });
 
   await logAudit({

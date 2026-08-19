@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { logAudit } from "@/lib/audit";
 import { leaveStatusSchema } from "@/lib/validators";
 
 interface RouteParams {
@@ -10,7 +11,7 @@ interface RouteParams {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
-  if (!requirePermission(session, "staff:write")) {
+  if (!requirePermission(session, "hr.leave.approve") && !requirePermission(session, "staff:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
@@ -51,6 +52,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       });
     }
   }
+
+  await logAudit({
+    schoolId: existing.schoolId,
+    userId: session!.userId,
+    action: parsed.data.status === "APPROVED" ? "LEAVE_APPROVED" : parsed.data.status === "REJECTED" ? "LEAVE_REJECTED" : "LEAVE_UPDATED",
+    entity: "LeaveRequest",
+    entityId: leaveRequest.id,
+    metadata: { status: parsed.data.status },
+  });
 
   return NextResponse.json({ leaveRequest });
 }
