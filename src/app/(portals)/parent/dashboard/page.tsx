@@ -9,11 +9,13 @@ import { AnnouncementList } from "@/components/announcements/announcement-list";
 import { StudentCardButton } from "@/components/students/student-card-button";
 import { getOutstandingBalance } from "@/lib/finance";
 import { formatZAR } from "@/lib/utils";
+import { getTerminology } from "@/lib/terminology";
 import { ClipboardCheck, CreditCard, FileText, Users } from "lucide-react";
 
 export default async function ParentDashboardPage() {
   const session = await getSession();
   const guardian = await getGuardianForSession(session!);
+  const terms = getTerminology(guardian?.school.institutionType);
   const childIds = guardian?.students.map((sg) => sg.studentId) ?? [];
 
   const [invoices, attendanceStats, announcements] = await Promise.all([
@@ -102,6 +104,7 @@ export default async function ParentDashboardPage() {
                   <StudentCardButton
                     href={`/api/me/card?studentId=${sg.student.id}`}
                     studentNumber={sg.student.studentNumber}
+                    label={terms.identityCard}
                   />
                 </div>
               ))
@@ -120,7 +123,7 @@ export default async function ParentDashboardPage() {
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" asChild>
-              <Link href="/parent/fees">Fees</Link>
+              <Link href="/parent/fees">{terms.fees}</Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link href="/parent/leave">Apply leave</Link>

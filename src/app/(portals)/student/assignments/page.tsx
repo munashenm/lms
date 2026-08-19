@@ -2,10 +2,12 @@ import { getSession } from "@/lib/auth";
 import { getStudentForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { AssignmentBoard } from "@/components/learner/assignment-board";
+import { getTerminology } from "@/lib/terminology";
 
 export default async function StudentAssignmentsPage() {
   const session = await getSession();
   const student = await getStudentForSession(session!);
+  const terms = getTerminology(student?.school.institutionType);
 
   const assignments = student
     ? await prisma.assignment.findMany({
@@ -58,10 +60,10 @@ export default async function StudentAssignmentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Homework / Assignments</h1>
-        <p className="text-muted text-sm mt-1">Open, submit and review feedback on your assignments</p>
+        <h1 className="text-2xl font-bold">{terms.homework}</h1>
+        <p className="text-muted text-sm mt-1">Open, submit and review feedback on your {terms.homework.toLowerCase()}</p>
       </div>
-      <AssignmentBoard assignments={items} />
+      <AssignmentBoard assignments={items} homeworkLabel={terms.homework} />
     </div>
   );
 }

@@ -82,7 +82,7 @@ export default async function StudentFeesPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">My Fees</h1>
+          <h1 className="text-2xl font-bold">School Fees</h1>
           <p className="text-muted text-sm mt-1">Account balance, instalments, receipts and statements</p>
         </div>
         {student ? <FeeStatementButton /> : null}

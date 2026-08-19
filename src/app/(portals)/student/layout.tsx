@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { PortalShell } from "@/components/layout/portal-shell";
-import { studentNav } from "@/lib/navigation";
+import { getStudentNav } from "@/lib/navigation";
 import { UserRole } from "@prisma/client";
 import { getPortalSessionContext } from "@/lib/portal-session";
 import { filterNavByLicense, isFeatureEnabled } from "@/lib/licensing/portal";
@@ -22,26 +22,19 @@ export default async function StudentLayout({
 
   const ctx = await getPortalSessionContext(session);
   const terms = ctx.terminology;
-  const nav = filterNavByLicense(
-    studentNav.map((item) => {
-      if (!terms) return item;
-      if (item.href === "/student/subjects") return { ...item, label: `My ${terms.subjects}` };
-      return item;
-    }),
-    ctx.license
-  );
+  const nav = filterNavByLicense(getStudentNav(terms ?? undefined), ctx.license);
 
   return (
     <PortalShell
       user={session}
       navItems={nav}
-      portalLabel={`${terms?.student ?? "Student"} Portal`}
+      portalLabel={terms?.portal ?? "Learner Portal"}
       sessions={ctx.sessions}
       viewSessionId={ctx.viewSessionId}
       license={ctx.license}
     >
       {session.role === UserRole.STUDENT && !isFeatureEnabled(ctx.license, "student_portal") ? (
-        <PortalUnavailable moduleName="The student portal" />
+        <PortalUnavailable moduleName={`The ${(terms?.portal ?? "learner portal").toLowerCase()}`} />
       ) : (
         children
       )}

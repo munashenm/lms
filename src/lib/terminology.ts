@@ -24,6 +24,14 @@ export type Terminology = {
   programmes: string;
   module: string;
   modules: string;
+  homework: string;
+  fees: string;
+  reportCards: string;
+  admissionNumber: string;
+  identityCard: string;
+  identityCardTitle: string;
+  portal: string;
+  services: string;
 };
 
 const SCHOOL_TERMS: Terminology = {
@@ -35,8 +43,8 @@ const SCHOOL_TERMS: Terminology = {
   classes: "Classes",
   subject: "Subject",
   subjects: "Subjects",
-  teacher: "Class Teacher",
-  teachers: "Teachers",
+  teacher: "Educator",
+  teachers: "Educators",
   period: "Term",
   periods: "Terms",
   guardian: "Parent / Guardian",
@@ -46,6 +54,14 @@ const SCHOOL_TERMS: Terminology = {
   programmes: "Programmes",
   module: "Module",
   modules: "Modules",
+  homework: "Homework",
+  fees: "School Fees",
+  reportCards: "Reports",
+  admissionNumber: "Admission No",
+  identityCard: "Learner Card",
+  identityCardTitle: "LEARNER IDENTITY CARD",
+  portal: "Learner Portal",
+  services: "Learner Services",
 };
 
 const COLLEGE_TERMS: Terminology = {
@@ -68,6 +84,14 @@ const COLLEGE_TERMS: Terminology = {
   programmes: "Programmes",
   module: "Module",
   modules: "Modules",
+  homework: "Assignments",
+  fees: "Fees",
+  reportCards: "Reports",
+  admissionNumber: "Student No",
+  identityCard: "Student Card",
+  identityCardTitle: "STUDENT IDENTITY CARD",
+  portal: "Student Portal",
+  services: "Student Services",
 };
 
 export const INSTITUTION_TYPE_LABELS: Record<InstitutionType, string> = {
@@ -111,8 +135,8 @@ export function isCollegeLike(type: InstitutionType): boolean {
   );
 }
 
-export function getTerminology(type: InstitutionType): Terminology {
-  return isCollegeLike(type) ? COLLEGE_TERMS : SCHOOL_TERMS;
+export function getTerminology(type?: InstitutionType | null): Terminology {
+  return type && isCollegeLike(type) ? COLLEGE_TERMS : SCHOOL_TERMS;
 }
 
 export function getTerminologyForSchool(

@@ -1,4 +1,4 @@
-import type { Terminology } from "./terminology";
+import { getTerminology, type Terminology } from "./terminology";
 
 export type NavIconName =
   | "LayoutDashboard"
@@ -46,19 +46,19 @@ export function getAdminNav(
   const t = terms;
   const items: NavItem[] = [
     { label: "Dashboard", href: "/admin/dashboard", icon: "LayoutDashboard" },
-    { label: t?.students ?? "Students", href: "/admin/students", icon: "Users" },
+    { label: t?.students ?? "Learners", href: "/admin/students", icon: "Users" },
     { label: "Staff", href: "/admin/staff", icon: "UserCheck" },
     { label: "Users", href: "/admin/users", icon: "Users" },
     { label: "Leave", href: "/admin/leave", icon: "Palmtree" },
     { label: "Staff Attendance", href: "/admin/staff-attendance", icon: "ClipboardCheck" },
     { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
-    { label: "Academic Sessions", href: "/admin/academic", icon: "Calendar" },
+    { label: t?.academicSession ? `${t.academicSession}s` : "Academic Sessions", href: "/admin/academic", icon: "Calendar" },
     { label: t?.classes ?? "Classes", href: "/admin/classes", icon: "GraduationCap" },
     { label: t?.subjects ?? "Subjects", href: "/admin/subjects", icon: "BookOpen" },
     { label: "Timetable", href: "/admin/timetable", icon: "Calendar" },
     { label: "Attendance", href: "/admin/attendance/dashboard", icon: "ClipboardCheck" },
     { label: "Assessments", href: "/admin/assessments", icon: "FileText" },
-    { label: "Report Cards", href: "/admin/report-cards", icon: "Award" },
+    { label: t?.reportCards ?? "Reports", href: "/admin/report-cards", icon: "Award" },
     { label: "Certificates", href: "/admin/certificates", icon: "Award" },
     { label: "Applications", href: "/admin/applications", icon: "ClipboardList" },
     { label: "Finance", href: "/admin/finance", icon: "CreditCard" },
@@ -66,7 +66,7 @@ export function getAdminNav(
     { label: "Payroll", href: "/admin/payroll", icon: "Banknote" },
     { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
     { label: "Communications", href: "/admin/communications", icon: "Megaphone" },
-    { label: "Learner Leave", href: "/admin/learner-leave", icon: "Palmtree" },
+    { label: `${t?.student ?? "Learner"} Leave`, href: "/admin/learner-leave", icon: "Palmtree" },
     { label: "Documents", href: "/admin/documents", icon: "FolderOpen" },
     { label: "Reports", href: "/admin/reports", icon: "BarChart3" },
     { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
@@ -85,45 +85,57 @@ export function getAdminNav(
 /** @deprecated Use getAdminNav(terms) for institution-aware labels */
 export const adminNav: NavItem[] = getAdminNav();
 
-export const teacherNav: NavItem[] = [
-  { label: "Dashboard", href: "/teacher/dashboard", icon: "LayoutDashboard" },
-  { label: "My Classes", href: "/teacher/classes", icon: "GraduationCap" },
-  { label: "Assessments", href: "/teacher/assessments", icon: "FileText" },
-  { label: "Timetable", href: "/teacher/timetable", icon: "Calendar" },
-  { label: "Attendance", href: "/teacher/attendance", icon: "ClipboardCheck" },
-  { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
-  { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
-  { label: "Materials", href: "/teacher/materials", icon: "Upload" },
-  { label: "Lesson Plans", href: "/teacher/lesson-plans", icon: "BookOpen" },
-  { label: "Curriculum", href: "/teacher/curriculum", icon: "ClipboardList" },
-  { label: "Learner Leave", href: "/teacher/learner-leave", icon: "Palmtree" },
-  { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },
-  { label: "My Timesheets", href: "/staff/timesheets", icon: "ClipboardCheck" },
-  { label: "Announcements", href: "/teacher/announcements", icon: "Megaphone" },
-];
+export function getTeacherNav(terms?: Terminology): NavItem[] {
+  const t = terms ?? getTerminology();
+  return [
+    { label: "Dashboard", href: "/teacher/dashboard", icon: "LayoutDashboard" },
+    { label: `My ${t.classes}`, href: "/teacher/classes", icon: "GraduationCap" },
+    { label: "Assessments", href: "/teacher/assessments", icon: "FileText" },
+    { label: "Timetable", href: "/teacher/timetable", icon: "Calendar" },
+    { label: "Attendance", href: "/teacher/attendance", icon: "ClipboardCheck" },
+    { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
+    { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
+    { label: "Materials", href: "/teacher/materials", icon: "Upload" },
+    { label: "Lesson Plans", href: "/teacher/lesson-plans", icon: "BookOpen" },
+    { label: "Curriculum", href: "/teacher/curriculum", icon: "ClipboardList" },
+    { label: `${t.student} Leave`, href: "/teacher/learner-leave", icon: "Palmtree" },
+    { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },
+    { label: "My Timesheets", href: "/staff/timesheets", icon: "ClipboardCheck" },
+    { label: "Announcements", href: "/teacher/announcements", icon: "Megaphone" },
+  ];
+}
 
-export const studentNav: NavItem[] = [
-  { label: "Dashboard", href: "/student/dashboard", icon: "LayoutDashboard" },
-  { label: "My Profile", href: "/student/profile", icon: "User", section: "Profile" },
-  { label: "My Documents", href: "/student/documents", icon: "FolderOpen", section: "Profile" },
-  { label: "My Subjects", href: "/student/subjects", icon: "BookOpen", section: "Academics" },
-  { label: "Class Timetable", href: "/student/timetable", icon: "Calendar", section: "Academics" },
-  { label: "Lesson Plan", href: "/student/lesson-plans", icon: "ClipboardList", section: "Academics" },
-  { label: "Curriculum Progress", href: "/student/progress", icon: "BarChart3", section: "Academics" },
-  { label: "Homework", href: "/student/assignments", icon: "FileText", section: "Academics" },
-  { label: "Attendance", href: "/student/attendance", icon: "ClipboardCheck", section: "Academics" },
-  { label: "Online Exams", href: "/student/exams", icon: "Award", section: "Examinations" },
-  { label: "Results", href: "/student/results", icon: "Award", section: "Examinations" },
-  { label: "Report Cards", href: "/student/report-cards", icon: "Award", section: "Examinations" },
-  { label: "Certificates", href: "/student/certificates", icon: "Award", section: "Examinations" },
-  { label: "Fees", href: "/student/fees", icon: "CreditCard", section: "Finance" },
-  { label: "Notice Board", href: "/student/announcements", icon: "Megaphone", section: "Communication" },
-  { label: "Notifications", href: "/student/notifications", icon: "Bell", section: "Communication" },
-  { label: "Teacher Reviews", href: "/student/reviews", icon: "Star", section: "Communication" },
-  { label: "Apply Leave", href: "/student/leave", icon: "Palmtree", section: "Student Services" },
-  { label: "Download Centre", href: "/student/downloads", icon: "Download", section: "Student Services" },
-  { label: "Academic Calendar", href: "/student/calendar", icon: "CalendarDays", section: "Student Services" },
-];
+/** @deprecated Use getTeacherNav(terms) */
+export const teacherNav: NavItem[] = getTeacherNav();
+
+export function getStudentNav(terms?: Terminology): NavItem[] {
+  const t = terms ?? getTerminology();
+  return [
+    { label: "Dashboard", href: "/student/dashboard", icon: "LayoutDashboard" },
+    { label: "My Profile", href: "/student/profile", icon: "User", section: "Profile" },
+    { label: "My Documents", href: "/student/documents", icon: "FolderOpen", section: "Profile" },
+    { label: `My ${t.subjects}`, href: "/student/subjects", icon: "BookOpen", section: "Academics" },
+    { label: "Timetable", href: "/student/timetable", icon: "Calendar", section: "Academics" },
+    { label: "Lesson Plan", href: "/student/lesson-plans", icon: "ClipboardList", section: "Academics" },
+    { label: "Curriculum Progress", href: "/student/progress", icon: "BarChart3", section: "Academics" },
+    { label: t.homework, href: "/student/assignments", icon: "FileText", section: "Academics" },
+    { label: "Attendance", href: "/student/attendance", icon: "ClipboardCheck", section: "Academics" },
+    { label: "Examinations", href: "/student/exams", icon: "Award", section: "Examinations" },
+    { label: "Results", href: "/student/results", icon: "Award", section: "Examinations" },
+    { label: t.reportCards, href: "/student/report-cards", icon: "Award", section: "Examinations" },
+    { label: "Certificates", href: "/student/certificates", icon: "Award", section: "Examinations" },
+    { label: t.fees, href: "/student/fees", icon: "CreditCard", section: "Finance" },
+    { label: "Notice Board", href: "/student/announcements", icon: "Megaphone", section: "Communication" },
+    { label: "Notifications", href: "/student/notifications", icon: "Bell", section: "Communication" },
+    { label: `${t.teacher} Reviews`, href: "/student/reviews", icon: "Star", section: "Communication" },
+    { label: "Apply Leave", href: "/student/leave", icon: "Palmtree", section: t.services },
+    { label: "Download Centre", href: "/student/downloads", icon: "Download", section: t.services },
+    { label: "Academic Calendar", href: "/student/calendar", icon: "CalendarDays", section: t.services },
+  ];
+}
+
+/** @deprecated Use getStudentNav(terms) */
+export const studentNav: NavItem[] = getStudentNav();
 
 export const financeNav: NavItem[] = [
   { label: "Dashboard", href: "/finance/dashboard", icon: "LayoutDashboard" },
@@ -161,17 +173,23 @@ export const hrNav: NavItem[] = [
   { label: "My Timesheets", href: "/staff/timesheets", icon: "ClipboardCheck" },
 ];
 
-export const parentNav: NavItem[] = [
-  { label: "Dashboard", href: "/parent/dashboard", icon: "LayoutDashboard" },
-  { label: "My Children", href: "/parent/children", icon: "Users" },
-  { label: "Fees", href: "/parent/fees", icon: "CreditCard" },
-  { label: "Attendance", href: "/parent/attendance", icon: "ClipboardCheck" },
-  { label: "Apply Leave", href: "/parent/leave", icon: "Palmtree" },
-  { label: "Results", href: "/parent/results", icon: "Award" },
-  { label: "Report Cards", href: "/parent/report-cards", icon: "Award" },
-  { label: "Assignments", href: "/parent/assignments", icon: "FileText" },
-  { label: "Materials", href: "/parent/materials", icon: "FolderOpen" },
-  { label: "Timetable", href: "/parent/timetable", icon: "Calendar" },
-  { label: "Certificates", href: "/parent/certificates", icon: "Award" },
-  { label: "Announcements", href: "/parent/announcements", icon: "Megaphone" },
-];
+export function getParentNav(terms?: Terminology): NavItem[] {
+  const t = terms ?? getTerminology();
+  return [
+    { label: "Dashboard", href: "/parent/dashboard", icon: "LayoutDashboard" },
+    { label: "My Children", href: "/parent/children", icon: "Users" },
+    { label: t.fees, href: "/parent/fees", icon: "CreditCard" },
+    { label: "Attendance", href: "/parent/attendance", icon: "ClipboardCheck" },
+    { label: "Apply Leave", href: "/parent/leave", icon: "Palmtree" },
+    { label: "Results", href: "/parent/results", icon: "Award" },
+    { label: t.reportCards, href: "/parent/report-cards", icon: "Award" },
+    { label: t.homework, href: "/parent/assignments", icon: "FileText" },
+    { label: "Materials", href: "/parent/materials", icon: "FolderOpen" },
+    { label: "Timetable", href: "/parent/timetable", icon: "Calendar" },
+    { label: "Certificates", href: "/parent/certificates", icon: "Award" },
+    { label: "Announcements", href: "/parent/announcements", icon: "Megaphone" },
+  ];
+}
+
+/** @deprecated Use getParentNav(terms) */
+export const parentNav: NavItem[] = getParentNav();

@@ -18,6 +18,8 @@ interface ReportCardData {
   brand: SchoolBrand;
   studentName: string;
   studentNumber: string;
+  studentNumberLabel?: string;
+  learnerLabel?: string;
   grade: string;
   className: string;
   academicYear: string;
@@ -55,8 +57,8 @@ export async function generateReportCardPdf(data: ReportCardData): Promise<Uint8
     y -= size + 6;
   };
 
-  drawText(`Student: ${data.studentName}`, 50, 12, true);
-  drawText(`Student No: ${data.studentNumber}`, 50, 10);
+  drawText(`${data.learnerLabel ?? "Learner"}: ${data.studentName}`, 50, 12, true);
+  drawText(`${data.studentNumberLabel ?? "Admission No"}: ${data.studentNumber}`, 50, 10);
   drawText(`Grade: ${data.grade}  |  Class: ${data.className}`, 50, 10);
   drawText(`Academic Year: ${data.academicYear}  |  Term: ${data.term}`, 50, 10);
 

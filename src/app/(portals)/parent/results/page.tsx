@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { symbolLabel } from "@/lib/grading";
 import { formatDate } from "@/lib/utils";
+import { getTerminology } from "@/lib/terminology";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
@@ -14,6 +15,7 @@ interface PageProps {
 export default async function ParentResultsPage({ searchParams }: PageProps) {
   const session = await getSession();
   const guardian = await getGuardianForSession(session!);
+  const terms = getTerminology(guardian?.school.institutionType);
   const { studentId } = await searchParams;
 
   const children = guardian?.students.map((sg) => sg.student) ?? [];
@@ -58,10 +60,10 @@ export default async function ParentResultsPage({ searchParams }: PageProps) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-background/50">
-                    <th className="text-left px-4 py-3 font-medium text-muted">Student</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted">{terms.student}</th>
                     <th className="text-left px-4 py-3 font-medium text-muted">Assessment</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted">Subject</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted">Score</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted">{terms.subject}</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted">Marks</th>
                     <th className="text-left px-4 py-3 font-medium text-muted">Symbol</th>
                     <th className="text-left px-4 py-3 font-medium text-muted hidden sm:table-cell">Date</th>
                   </tr>

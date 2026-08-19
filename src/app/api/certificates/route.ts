@@ -7,6 +7,7 @@ import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { certificateSchema } from "@/lib/validators";
 import { generateCertificatePdf } from "@/lib/pdf-certificate";
 import { toSchoolBrand } from "@/lib/pdf-branding";
+import { getTerminology } from "@/lib/terminology";
 import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
@@ -73,6 +74,7 @@ export async function POST(request: NextRequest) {
     brand: toSchoolBrand(student.school),
     studentName: `${student.firstName} ${student.lastName}`,
     studentNumber: student.studentNumber,
+    studentNumberLabel: getTerminology(student.school.institutionType).admissionNumber,
     title: parsed.data.title,
     type: CERTIFICATE_TYPE_LABELS[parsed.data.type] ?? parsed.data.type,
     courseName: course?.name,

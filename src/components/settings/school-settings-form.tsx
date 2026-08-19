@@ -282,7 +282,7 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
         <CardHeader>
           <CardTitle className="text-base">Learner portal</CardTitle>
           <p className="text-sm text-muted">
-            Controls how learners submit leave and whether teacher reviews stay anonymous.
+            Controls how learners submit leave and whether educator reviews stay anonymous.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -293,7 +293,7 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
               defaultChecked={school.teacherReviewsAnonymous ?? true}
               className="rounded"
             />
-            Teacher reviews are anonymous to lecturers
+            Educator reviews are anonymous
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input

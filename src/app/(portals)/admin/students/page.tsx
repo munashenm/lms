@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { StudentsTable } from "@/components/students/students-table";
+import { getTerminology } from "@/lib/terminology";
 
 interface PageProps {
   searchParams: Promise<{ search?: string; status?: string; page?: string }>;
@@ -33,7 +34,7 @@ export default async function StudentsPage({ searchParams }: PageProps) {
     }),
   };
 
-  const [students, total] = await Promise.all([
+  const [students, total, school] = await Promise.all([
     prisma.student.findMany({
       where,
       include: {
@@ -46,21 +47,29 @@ export default async function StudentsPage({ searchParams }: PageProps) {
       take: limit,
     }),
     prisma.student.count({ where }),
+    session!.schoolId
+      ? prisma.school.findUnique({
+          where: { id: session!.schoolId },
+          select: { institutionType: true },
+        })
+      : Promise.resolve(null),
   ]);
+
+  const terms = getTerminology(school?.institutionType);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Students</h1>
+          <h1 className="text-2xl font-bold">{terms.students}</h1>
           <p className="text-muted text-sm mt-1">
-            {total} student{total !== 1 ? "s" : ""} registered
+            {total} {total === 1 ? terms.student.toLowerCase() : terms.students.toLowerCase()} registered
           </p>
         </div>
         <Button asChild>
           <Link href="/admin/students/new">
             <Plus className="h-4 w-4" />
-            Add Student
+            Add {terms.student}
           </Link>
         </Button>
       </div>
@@ -72,7 +81,7 @@ export default async function StudentsPage({ searchParams }: PageProps) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
               <Input
                 name="search"
-                placeholder="Search by name or student number..."
+                placeholder={`Search by name or ${terms.admissionNumber.toLowerCase()}...`}
                 defaultValue={search}
                 className="pl-9"
               />
@@ -96,6 +105,7 @@ export default async function StudentsPage({ searchParams }: PageProps) {
       <StudentsTable
         students={students}
         pagination={{ page, limit, total, pages: Math.ceil(total / limit) }}
+        terms={terms}
       />
     </div>
   );

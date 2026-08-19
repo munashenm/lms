@@ -16,6 +16,8 @@ export interface FeeStatementData {
   brand: SchoolBrand;
   studentName: string;
   studentNumber: string;
+  studentNumberLabel?: string;
+  learnerLabel?: string;
   gradeOrProgramme?: string | null;
   academicYear?: string | null;
   guardianName?: string | null;
@@ -56,8 +58,8 @@ export async function generateFeeStatementPdf(data: FeeStatementData): Promise<U
     y -= size + 6;
   };
 
-  line(`Student: ${data.studentName}`, true, 12);
-  line(`Student No: ${data.studentNumber}`);
+  line(`${data.learnerLabel ?? "Learner"}: ${data.studentName}`, true, 12);
+  line(`${data.studentNumberLabel ?? "Admission No"}: ${data.studentNumber}`);
   if (data.gradeOrProgramme) line(`Grade / Programme: ${data.gradeOrProgramme}`);
   if (data.academicYear) line(`Academic Year: ${data.academicYear}`);
   if (data.guardianName) line(`Parent / Guardian: ${data.guardianName}`);

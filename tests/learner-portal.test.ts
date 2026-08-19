@@ -12,12 +12,14 @@ import {
 } from "@/lib/learner-portal";
 import { paymentBelongsToStudent } from "@/lib/refund-payment";
 import { filterNavByLicense, navHrefFeature } from "@/lib/licensing/portal";
-import { parentNav, studentNav } from "@/lib/navigation";
+import { parentNav, studentNav, getStudentNav } from "@/lib/navigation";
 import { DEFAULT_LICENSE_FEATURES } from "@/lib/licensing/features";
 import { evaluateLicense } from "@/lib/licensing/evaluate";
 import { encodeCode39, sanitizeCode39 } from "@/lib/code39";
 import { linkedStudentIdsOrForbidden, resolveLinkedStudentId } from "@/lib/parent-scope";
 import { homeworkFileExtension } from "@/lib/homework-upload";
+import { getTerminology } from "@/lib/terminology";
+import { InstitutionType } from "@prisma/client";
 
 describe("assignment learner status", () => {
   const due = new Date("2026-08-10T12:00:00Z");
@@ -288,5 +290,36 @@ describe("leave overlap and homework files", () => {
   it("accepts common homework file extensions", () => {
     expect(homeworkFileExtension("essay.PDF")).toBe(".pdf");
     expect(homeworkFileExtension("notes.docx")).toBe(".docx");
+  });
+});
+
+describe("South African terminology", () => {
+  it("uses learner, educator and admission number for schools", () => {
+    const terms = getTerminology(InstitutionType.HIGH_SCHOOL);
+    expect(terms.student).toBe("Learner");
+    expect(terms.students).toBe("Learners");
+    expect(terms.teacher).toBe("Educator");
+    expect(terms.period).toBe("Term");
+    expect(terms.admissionNumber).toBe("Admission No");
+    expect(terms.homework).toBe("Homework");
+    expect(terms.fees).toBe("School Fees");
+    expect(terms.identityCard).toBe("Learner Card");
+  });
+
+  it("uses student and lecturer labels for TVET and colleges", () => {
+    const terms = getTerminology(InstitutionType.TVET);
+    expect(terms.student).toBe("Student");
+    expect(terms.teacher).toBe("Lecturer");
+    expect(terms.period).toBe("Semester");
+    expect(terms.homework).toBe("Assignments");
+    expect(terms.admissionNumber).toBe("Student No");
+  });
+
+  it("labels learner nav with school terms by default", () => {
+    const nav = getStudentNav();
+    expect(nav.some((item) => item.label === "Homework")).toBe(true);
+    expect(nav.some((item) => item.label === "Educator Reviews")).toBe(true);
+    expect(nav.some((item) => item.label === "School Fees")).toBe(true);
+    expect(nav.some((item) => item.section === "Learner Services")).toBe(true);
   });
 });

@@ -11,6 +11,7 @@ import { PayOnlineButton } from "@/components/finance/pay-online-button";
 import { StudentCardButton } from "@/components/students/student-card-button";
 import { StudentBarcode } from "@/components/learner/student-barcode";
 import { formatZAR, formatDate, getInitials } from "@/lib/utils";
+import { getTerminology } from "@/lib/terminology";
 import {
   BookOpen,
   Calendar,
@@ -23,6 +24,7 @@ import {
 export default async function StudentDashboardPage() {
   const session = await getSession();
   const student = await getStudentForSession(session!);
+  const terms = getTerminology(student?.school.institutionType);
   const data = student ? await getLearnerDashboardData(student) : null;
   const currentEnrolment =
     student?.enrolments.find((e) => e.academicYear?.isCurrent) ?? student?.enrolments[0];
@@ -50,14 +52,18 @@ export default async function StudentDashboardPage() {
           </p>
         </div>
         {student?.studentNumber ? (
-          <StudentCardButton href="/api/me/card" studentNumber={student.studentNumber} />
+          <StudentCardButton
+            href="/api/me/card"
+            studentNumber={student.studentNumber}
+            label={terms.identityCard}
+          />
         ) : null}
       </div>
 
       {student?.studentNumber ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Student ID</CardTitle>
+            <CardTitle className="text-base">{terms.identityCard}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-sm text-muted">
@@ -71,8 +77,8 @@ export default async function StudentDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         <Link href="/student/attendance"><StatCard title="Attendance" value={`${data?.attendance.percentage ?? 100}%`} subtitle={`${data?.attendance.present ?? 0} present`} icon={ClipboardCheck} /></Link>
         <Link href="/student/results"><StatCard title="Current average" value={data?.currentAverage != null ? `${data.currentAverage}%` : "—"} icon={Award} /></Link>
-        <Link href="/student/fees"><StatCard title="Outstanding fees" value={formatZAR(data?.outstandingFees ?? 0)} icon={CreditCard} /></Link>
-        <Link href="/student/assignments"><StatCard title="Pending homework" value={data?.pendingAssignments.length ?? 0} icon={FileText} /></Link>
+        <Link href="/student/fees"><StatCard title={terms.fees} value={formatZAR(data?.outstandingFees ?? 0)} icon={CreditCard} /></Link>
+        <Link href="/student/assignments"><StatCard title={`Pending ${terms.homework.toLowerCase()}`} value={data?.pendingAssignments.length ?? 0} icon={FileText} /></Link>
         <Link href="/student/exams"><StatCard title="Upcoming exams" value={data?.upcomingExams.length ?? 0} icon={Calendar} /></Link>
       </div>
 
@@ -138,8 +144,8 @@ export default async function StudentDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Assignments due</CardTitle>
-            <Button variant="ghost" size="sm" asChild><Link href="/student/assignments">Homework</Link></Button>
+            <CardTitle className="text-base">{terms.homework} due</CardTitle>
+            <Button variant="ghost" size="sm" asChild><Link href="/student/assignments">{terms.homework}</Link></Button>
           </CardHeader>
           <CardContent className="space-y-2">
             {!data?.pendingAssignments.length ? (

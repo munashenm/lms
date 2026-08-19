@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SA_PROVINCES } from "@/lib/constants";
+import type { Terminology } from "@/lib/terminology";
+import { getTerminology } from "@/lib/terminology";
 import { Loader2 } from "lucide-react";
 
 interface Option {
@@ -20,9 +22,15 @@ interface StudentFormProps {
   grades: Option[];
   classes: Option[];
   campuses: Option[];
+  terms?: Terminology;
 }
 
-export function StudentForm({ grades, classes, campuses }: StudentFormProps) {
+export function StudentForm({
+  grades,
+  classes,
+  campuses,
+  terms = getTerminology(),
+}: StudentFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -49,14 +57,14 @@ export function StudentForm({ grades, classes, campuses }: StudentFormProps) {
 
       if (!res.ok) {
         if (result.errors) setErrors(result.errors);
-        else toast.error(result.message || "Failed to create student");
+        else toast.error(result.message || `Failed to create ${terms.student.toLowerCase()}`);
         return;
       }
 
       toast.success(
         result.provision?.invitesSent
-          ? "Student created. Password setup email sent."
-          : "Student created successfully"
+          ? `${terms.student} created. Password setup email sent.`
+          : `${terms.student} created successfully`
       );
       router.push("/admin/students");
       router.refresh();
@@ -83,7 +91,7 @@ export function StudentForm({ grades, classes, campuses }: StudentFormProps) {
             <Input id="lastName" name="lastName" error={errors.lastName} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="studentNumber">Student Number</Label>
+            <Label htmlFor="studentNumber">{terms.admissionNumber}</Label>
             <Input
               id="studentNumber"
               name="studentNumber"

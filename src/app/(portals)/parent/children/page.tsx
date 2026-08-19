@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { getGuardianForSession } from "@/lib/portal-data";
+import { getTerminology } from "@/lib/terminology";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StudentCardButton } from "@/components/students/student-card-button";
@@ -8,12 +9,13 @@ import { StudentBarcode } from "@/components/learner/student-barcode";
 export default async function ParentChildrenPage() {
   const session = await getSession();
   const guardian = await getGuardianForSession(session!);
+  const terms = getTerminology(guardian?.school.institutionType);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">My Children</h1>
-        <p className="text-muted text-sm mt-1">Students linked to your account</p>
+        <p className="text-muted text-sm mt-1">{terms.students} linked to your account</p>
       </div>
 
       {!guardian?.students.length ? (
@@ -51,6 +53,7 @@ export default async function ParentChildrenPage() {
                 <StudentCardButton
                   href={`/api/me/card?studentId=${sg.student.id}`}
                   studentNumber={sg.student.studentNumber}
+                  label={terms.identityCard}
                 />
               </CardContent>
             </Card>

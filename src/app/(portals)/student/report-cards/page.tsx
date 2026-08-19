@@ -25,14 +25,14 @@ export default async function StudentReportCardsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Report Cards</h1>
-        <p className="text-muted text-sm mt-1">Download your official report cards</p>
+        <h1 className="text-2xl font-bold">Reports</h1>
+        <p className="text-muted text-sm mt-1">Download your official reports</p>
       </div>
 
       {reportCards.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted">
-            No report cards available yet.
+            No reports available yet.
           </CardContent>
         </Card>
       ) : (

@@ -10,6 +10,8 @@ export interface StudentCardData {
   brand: SchoolBrand;
   studentName: string;
   studentNumber: string;
+  studentNumberLabel?: string;
+  cardTitle?: string;
   gradeOrProgramme?: string | null;
   className?: string | null;
   status?: string | null;
@@ -77,7 +79,7 @@ export async function generateStudentCardPdf(
     font: fontBold,
     color: rgb(1, 1, 1),
   });
-  page.drawText("STUDENT IDENTITY CARD", {
+  page.drawText(data.cardTitle ?? "LEARNER IDENTITY CARD", {
     x: titleX,
     y: height - 56,
     size: 9,
@@ -133,7 +135,7 @@ export async function generateStudentCardPdf(
     color: rgb(0.1, 0.12, 0.18),
   });
   y -= 22;
-  page.drawText(`Student No: ${data.studentNumber}`, {
+  page.drawText(`${data.studentNumberLabel ?? "Admission No"}: ${data.studentNumber}`, {
     x: infoX,
     y,
     size: 11,

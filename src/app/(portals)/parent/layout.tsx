@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { PortalShell } from "@/components/layout/portal-shell";
-import { parentNav } from "@/lib/navigation";
+import { getParentNav } from "@/lib/navigation";
 import { UserRole } from "@prisma/client";
 import { getPortalSessionContext } from "@/lib/portal-session";
 import { filterNavByLicense, isFeatureEnabled } from "@/lib/licensing/portal";
@@ -25,7 +25,7 @@ export default async function ParentLayout({
   return (
     <PortalShell
       user={session}
-      navItems={filterNavByLicense(parentNav, ctx.license)}
+      navItems={filterNavByLicense(getParentNav(ctx.terminology ?? undefined), ctx.license)}
       portalLabel={`${ctx.terminology?.guardian ?? "Parent"} Portal`}
       sessions={ctx.sessions}
       viewSessionId={ctx.viewSessionId}

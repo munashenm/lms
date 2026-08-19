@@ -4,10 +4,12 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { TeacherReviewForm } from "@/components/learner/review-form";
 import { formatDate } from "@/lib/utils";
+import { getTerminology } from "@/lib/terminology";
 
 export default async function StudentReviewsPage() {
   const session = await getSession();
   const student = await getStudentForSession(session!);
+  const terms = getTerminology(student?.school.institutionType);
 
   const [classTeachers, classSubjects, reviews] = student
     ? await Promise.all([
@@ -38,15 +40,18 @@ export default async function StudentReviewsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Teacher Reviews</h1>
+        <h1 className="text-2xl font-bold">{terms.teacher} Reviews</h1>
         <p className="text-muted text-sm mt-1">
-          Feedback is limited to teachers currently assigned to your class.
-          {student?.school.teacherReviewsAnonymous ? " Submissions are anonymous to the teacher." : ""}
+          Feedback is limited to {terms.teachers.toLowerCase()} currently assigned to your {terms.classLabel.toLowerCase()}.
+          {student?.school.teacherReviewsAnonymous
+            ? ` Submissions are anonymous to the ${terms.teacher.toLowerCase()}.`
+            : ""}
         </p>
       </div>
       <TeacherReviewForm
         teachers={[...teachers.values()]}
         anonymous={Boolean(student?.school.teacherReviewsAnonymous)}
+        teacherLabel={terms.teacher}
       />
       <Card>
         <CardContent className="p-0 divide-y divide-border">

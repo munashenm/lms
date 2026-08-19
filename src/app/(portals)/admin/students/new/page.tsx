@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter } from "@/lib/rbac";
 import { StudentForm } from "@/components/students/student-form";
+import { getTerminology } from "@/lib/terminology";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
@@ -10,7 +11,7 @@ export default async function NewStudentPage() {
   const session = await getSession();
   const schoolFilter = getSchoolFilter(session!);
 
-  const [grades, classes, campuses] = await Promise.all([
+  const [grades, classes, campuses, school] = await Promise.all([
     prisma.grade.findMany({
       where: { ...schoolFilter, isActive: true },
       orderBy: { sortOrder: "asc" },
@@ -23,7 +24,15 @@ export default async function NewStudentPage() {
       where: { ...schoolFilter, isActive: true },
       orderBy: { name: "asc" },
     }),
+    session!.schoolId
+      ? prisma.school.findUnique({
+          where: { id: session!.schoolId },
+          select: { institutionType: true },
+        })
+      : Promise.resolve(null),
   ]);
+
+  const terms = getTerminology(school?.institutionType);
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -34,14 +43,14 @@ export default async function NewStudentPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Add Student</h1>
+          <h1 className="text-2xl font-bold">Add {terms.student}</h1>
           <p className="text-muted text-sm mt-1">
-            Register a new learner with POPIA-compliant data capture
+            Register a new {terms.student.toLowerCase()} with POPIA-compliant data capture
           </p>
         </div>
       </div>
 
-      <StudentForm grades={grades} classes={classes} campuses={campuses} />
+      <StudentForm grades={grades} classes={classes} campuses={campuses} terms={terms} />
     </div>
   );
 }

@@ -56,7 +56,13 @@ function matchesTab(status: AssignmentLearnerStatus, tab: string) {
   return true;
 }
 
-export function AssignmentBoard({ assignments }: { assignments: LearnerAssignmentItem[] }) {
+export function AssignmentBoard({
+  assignments,
+  homeworkLabel = "Homework",
+}: {
+  assignments: LearnerAssignmentItem[];
+  homeworkLabel?: string;
+}) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("pending");
   const [loading, setLoading] = useState<string | null>(null);
@@ -125,7 +131,7 @@ export function AssignmentBoard({ assignments }: { assignments: LearnerAssignmen
       {visible.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted text-sm">
-            No assignments in this view.
+            No {homeworkLabel.toLowerCase()} in this view.
           </CardContent>
         </Card>
       ) : (
@@ -200,9 +206,9 @@ export function AssignmentBoard({ assignments }: { assignments: LearnerAssignmen
                       {loading === a.assignmentId ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : a.submitted ? (
-                        "Update submission"
+                        `Update ${homeworkLabel.toLowerCase()}`
                       ) : (
-                        "Submit assignment"
+                        `Submit ${homeworkLabel.toLowerCase()}`
                       )}
                     </Button>
                   </>

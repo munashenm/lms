@@ -8,6 +8,7 @@ import { ChildFilter } from "@/components/finance/child-filter";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { getOutstandingBalance } from "@/lib/finance";
 import { formatZAR } from "@/lib/utils";
+import { getTerminology } from "@/lib/terminology";
 import { CreditCard, TrendingDown } from "lucide-react";
 import { InstalmentStatus } from "@prisma/client";
 
@@ -18,6 +19,7 @@ interface PageProps {
 export default async function ParentFeesPage({ searchParams }: PageProps) {
   const session = await getSession();
   const guardian = await getGuardianForSession(session!);
+  const terms = getTerminology(guardian?.school.institutionType);
   const { studentId } = await searchParams;
 
   const children = guardian?.students.map((sg) => sg.student) ?? [];
@@ -61,7 +63,7 @@ export default async function ParentFeesPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Fees & Invoices</h1>
+          <h1 className="text-2xl font-bold">{terms.fees}</h1>
           <p className="text-muted text-sm mt-1">View fee statements for your children</p>
         </div>
         {filterIds.length === 1 ? <FeeStatementButton studentId={filterIds[0]} /> : null}

@@ -10,6 +10,7 @@ export interface PaymentReceiptData {
   receiptNo: string;
   studentName: string;
   studentNumber: string;
+  studentNumberLabel?: string;
   gradeOrProgramme?: string | null;
   invoiceNumber: string;
   amount: number;
@@ -60,7 +61,7 @@ export async function generatePaymentReceiptPdf(
   line(`Date paid: ${data.paidAt}`);
   y -= 6;
   line(`Received from: ${data.studentName}`, true, 11);
-  line(`Student No: ${data.studentNumber}`);
+  line(`${data.studentNumberLabel ?? "Admission No"}: ${data.studentNumber}`);
   if (data.gradeOrProgramme) line(`Grade / Programme: ${data.gradeOrProgramme}`);
   y -= 8;
 

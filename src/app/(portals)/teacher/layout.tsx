@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { PortalShell } from "@/components/layout/portal-shell";
-import { teacherNav } from "@/lib/navigation";
+import { getTeacherNav } from "@/lib/navigation";
 import { UserRole } from "@prisma/client";
 import { getPortalSessionContext } from "@/lib/portal-session";
 import { isCollegeLike } from "@/lib/terminology";
@@ -23,14 +23,7 @@ export default async function TeacherLayout({
 
   const ctx = await getPortalSessionContext(session);
   const terms = ctx.terminology;
-  const nav = filterNavByLicense(
-    teacherNav.map((item) =>
-      item.href === "/teacher/classes" && terms
-        ? { ...item, label: `My ${terms.classes}` }
-        : item
-    ),
-    ctx.license
-  );
+  const nav = filterNavByLicense(getTeacherNav(terms ?? undefined), ctx.license);
 
   return (
     <PortalShell
@@ -39,14 +32,14 @@ export default async function TeacherLayout({
       portalLabel={
         ctx.institutionType && isCollegeLike(ctx.institutionType)
           ? "Lecturer Portal"
-          : "Teacher Portal"
+          : "Educator Portal"
       }
       sessions={ctx.sessions}
       viewSessionId={ctx.viewSessionId}
       license={ctx.license}
     >
       {session.role === UserRole.TEACHER && !isFeatureEnabled(ctx.license, "teacher_portal") ? (
-        <PortalUnavailable moduleName="The teacher portal" />
+        <PortalUnavailable moduleName={terms?.teacher ? `The ${terms.teacher.toLowerCase()} portal` : "The educator portal"} />
       ) : (
         children
       )}

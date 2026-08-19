@@ -48,7 +48,7 @@ export default async function StudentExamsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Online Exams</h1>
+        <h1 className="text-2xl font-bold">Examinations</h1>
         <p className="text-muted text-sm mt-1">
           Published examinations for your programme. Questions are not shown before the start time.
         </p>

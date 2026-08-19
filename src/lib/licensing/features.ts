@@ -26,9 +26,9 @@ export const LICENSE_FEATURE_KEYS = [
 export type LicenseFeatureKey = (typeof LICENSE_FEATURE_KEYS)[number];
 
 export const LICENSE_FEATURE_LABELS: Record<LicenseFeatureKey, string> = {
-  student_portal: "Student Portal",
+  student_portal: "Learner Portal",
   parent_portal: "Parent Portal",
-  teacher_portal: "Teacher Portal",
+  teacher_portal: "Educator Portal",
   admissions: "Admissions",
   finance: "Finance",
   assessments: "Assessments",
@@ -43,7 +43,7 @@ export const LICENSE_FEATURE_LABELS: Record<LicenseFeatureKey, string> = {
   api_access: "API access",
   advanced_analytics: "Advanced Analytics",
   hr_payroll: "HR & Payroll",
-  teacher_reviews: "Teacher Reviews",
+  teacher_reviews: "Educator Reviews",
   download_centre: "Download Centre",
   student_leave: "Learner Leave",
   visitor_management: "Visitor Management",

@@ -11,6 +11,7 @@ import {
 import { generateInvoicePdf } from "@/lib/pdf-invoice";
 import { toSchoolBrand } from "@/lib/pdf-branding";
 import { formatDate } from "@/lib/utils";
+import { getTerminology } from "@/lib/terminology";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -73,6 +74,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     description: invoice.description,
     studentName: `${invoice.student.firstName} ${invoice.student.lastName}`,
     studentNumber: invoice.student.studentNumber,
+    studentNumberLabel: getTerminology(invoice.school.institutionType).admissionNumber,
     gradeOrProgramme: [invoice.student.grade?.name, invoice.student.class?.name]
       .filter(Boolean)
       .join(" / "),

@@ -31,6 +31,7 @@ export async function getStudentForSession(session: SessionPayload) {
       school: {
         select: {
           name: true,
+          institutionType: true,
           teacherReviewsAnonymous: true,
           studentLeaveRequiresGuardian: true,
         },
@@ -66,6 +67,7 @@ export async function getGuardianForSession(session: SessionPayload) {
       ...(session.schoolId ? { schoolId: session.schoolId } : {}),
     },
     include: {
+      school: { select: { institutionType: true } },
       students: {
         include: {
           student: {

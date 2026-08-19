@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { getTerminology } from "@/lib/terminology";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
@@ -15,6 +16,7 @@ interface PageProps {
 export default async function ParentReportCardsPage({ searchParams }: PageProps) {
   const session = await getSession();
   const guardian = await getGuardianForSession(session!);
+  const terms = getTerminology(guardian?.school.institutionType);
   const { studentId } = await searchParams;
 
   const children = guardian?.students.map((sg) => sg.student) ?? [];
@@ -36,8 +38,8 @@ export default async function ParentReportCardsPage({ searchParams }: PageProps)
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Report Cards</h1>
-        <p className="text-muted text-sm mt-1">Published report cards for your children</p>
+        <h1 className="text-2xl font-bold">{terms.reportCards}</h1>
+        <p className="text-muted text-sm mt-1">Published reports for your children</p>
       </div>
 
       <ChildFilter

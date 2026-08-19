@@ -12,6 +12,7 @@ import { logCommunication } from "./communications";
 import { generateFeeStatementPdf } from "./pdf-fee-statement";
 import { toSchoolBrand, type SchoolBrand } from "./pdf-branding";
 import { getStudentLedger, STUDENT_LEDGER_TYPE_LABELS } from "./student-ledger";
+import { getTerminology } from "./terminology";
 import { createTwilioSmsProvider } from "./sms/twilio-provider";
 import {
   getResolvedIntegrations,
@@ -269,15 +270,22 @@ export async function createFeeCommsBatch(params: {
   });
 }
 
-async function buildStatementAttachment(studentId: string, brand: SchoolBrand) {
+async function buildStatementAttachment(
+  studentId: string,
+  brand: SchoolBrand,
+  institutionType?: Parameters<typeof getTerminology>[0]
+) {
   const ledger = await getStudentLedger({ studentId });
   if (!ledger.student) return null;
+  const terms = getTerminology(institutionType);
 
   const chronological = [...ledger.entries].reverse();
   const pdf = await generateFeeStatementPdf({
     brand,
     studentName: `${ledger.student.firstName} ${ledger.student.lastName}`,
     studentNumber: ledger.student.studentNumber,
+    studentNumberLabel: terms.admissionNumber,
+    learnerLabel: terms.student,
     gradeOrProgramme: [ledger.student.grade?.name, ledger.student.class?.name]
       .filter(Boolean)
       .join(" / "),
@@ -377,7 +385,8 @@ export async function processCommunicationBatch(batchId: string, limit = 15) {
         if (action === "FEE_STATEMENT" && item.studentId) {
           const attachment = await buildStatementAttachment(
             item.studentId,
-            toSchoolBrand(school)
+            toSchoolBrand(school),
+            school.institutionType
           );
           if (attachment) {
             attachments = [attachment];

@@ -19,6 +19,7 @@ export interface InvoicePdfData {
   description?: string | null;
   studentName: string;
   studentNumber: string;
+  studentNumberLabel?: string;
   gradeOrProgramme?: string | null;
   issuedAt: string;
   dueDate?: string | null;
@@ -67,7 +68,7 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
   if (data.dueDate) line(`Due date: ${data.dueDate}`);
   y -= 6;
   line(`Bill to: ${data.studentName}`, true, 11);
-  line(`Student No: ${data.studentNumber}`);
+  line(`${data.studentNumberLabel ?? "Admission No"}: ${data.studentNumber}`);
   if (data.gradeOrProgramme) line(`Grade / Programme: ${data.gradeOrProgramme}`);
   if (data.description) {
     y -= 4;

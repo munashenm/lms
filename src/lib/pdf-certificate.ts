@@ -9,6 +9,7 @@ interface CertificateData {
   brand: SchoolBrand;
   studentName: string;
   studentNumber: string;
+  studentNumberLabel?: string;
   title: string;
   type: string;
   courseName?: string;
@@ -69,7 +70,7 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
   drawCentered("This is to certify that", 12);
   y -= 8;
   drawCentered(data.studentName, 28, true, rgb(0.11, 0.3, 0.43));
-  drawCentered(`Student No: ${data.studentNumber}`, 10, false, rgb(0.4, 0.4, 0.4));
+  drawCentered(`${data.studentNumberLabel ?? "Admission No"}: ${data.studentNumber}`, 10, false, rgb(0.4, 0.4, 0.4));
   y -= 16;
   drawCentered(`has been awarded`, 12);
   drawCentered(data.title, 18, true);

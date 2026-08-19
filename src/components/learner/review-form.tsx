@@ -21,9 +21,11 @@ const QUESTIONS = [
 export function TeacherReviewForm({
   teachers,
   anonymous,
+  teacherLabel = "Educator",
 }: {
   teachers: Array<{ id: string; firstName: string; lastName: string }>;
   anonymous: boolean;
+  teacherLabel?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,7 @@ export function TeacherReviewForm({
     return (
       <Card>
         <CardContent className="py-8 text-sm text-muted">
-          No teachers are currently assigned to your class.
+          No {teacherLabel.toLowerCase()}s are currently assigned to your class.
         </CardContent>
       </Card>
     );
@@ -75,14 +77,14 @@ export function TeacherReviewForm({
         <CardTitle className="text-base">Submit feedback</CardTitle>
         <p className="text-xs text-muted">
           {anonymous
-            ? "Reviews are anonymous. Your name is not shown to the teacher."
+            ? `Reviews are anonymous. Your name is not shown to the ${teacherLabel.toLowerCase()}.`
             : "Your name will be visible to authorised staff with this review."}
         </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Teacher</Label>
+            <Label>{teacherLabel}</Label>
             <Select name="teacherId" required>
               {teachers.map((t) => (
                 <option key={t.id} value={t.id}>

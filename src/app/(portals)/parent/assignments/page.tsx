@@ -5,6 +5,7 @@ import { ChildFilter } from "@/components/finance/child-filter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { getTerminology } from "@/lib/terminology";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
@@ -13,6 +14,7 @@ interface PageProps {
 export default async function ParentAssignmentsPage({ searchParams }: PageProps) {
   const session = await getSession();
   const guardian = await getGuardianForSession(session!);
+  const terms = getTerminology(guardian?.school.institutionType);
   const { studentId } = await searchParams;
 
   const children = guardian?.students.map((sg) => sg.student) ?? [];
@@ -62,8 +64,8 @@ export default async function ParentAssignmentsPage({ searchParams }: PageProps)
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Assignments</h1>
-        <p className="text-muted text-sm mt-1">Homework and assignment status for your children (view only)</p>
+        <h1 className="text-2xl font-bold">{terms.homework}</h1>
+        <p className="text-muted text-sm mt-1">{terms.homework} status for your children (view only)</p>
       </div>
 
       <ChildFilter
@@ -75,7 +77,7 @@ export default async function ParentAssignmentsPage({ searchParams }: PageProps)
       {rows.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted">
-            No published assignments yet.
+            No published {terms.homework.toLowerCase()} yet.
           </CardContent>
         </Card>
       ) : (

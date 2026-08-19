@@ -8,10 +8,12 @@ import { StudentCardButton } from "@/components/students/student-card-button";
 import { StudentBarcode } from "@/components/learner/student-barcode";
 import { formatDate, getInitials } from "@/lib/utils";
 import { maskIdentityNumber } from "@/lib/learner-portal";
+import { getTerminology } from "@/lib/terminology";
 
 export default async function StudentProfilePage() {
   const session = await getSession();
   const student = await getStudentForSession(session!);
+  const terms = getTerminology(student?.school.institutionType);
   const currentEnrolment =
     student?.enrolments.find((e) => e.academicYear?.isCurrent) ?? student?.enrolments[0];
 
@@ -40,7 +42,11 @@ export default async function StudentProfilePage() {
               <p className="font-semibold">{student.firstName} {student.lastName}</p>
               <p className="text-sm text-muted">{student.studentNumber}</p>
             </div>
-            <StudentCardButton href="/api/me/card" studentNumber={student.studentNumber} />
+            <StudentCardButton
+              href="/api/me/card"
+              studentNumber={student.studentNumber}
+              label={terms.identityCard}
+            />
           </div>
           <StudentBarcode value={student.studentNumber} />
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -58,7 +64,7 @@ export default async function StudentProfilePage() {
             postalCode={student.postalCode ?? ""}
           />
           <p className="text-xs text-muted">
-            Name, student number, grade and identity details can only be changed by the school office.
+            Name, {terms.admissionNumber.toLowerCase()}, {terms.grade.toLowerCase()} and identity details can only be changed by the school office.
           </p>
         </CardContent>
       </Card>
@@ -68,8 +74,8 @@ export default async function StudentProfilePage() {
           <CardTitle className="text-base">Academic information</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div><p className="text-muted">Grade</p><p>{student.grade?.name ?? "—"}</p></div>
-          <div><p className="text-muted">Class</p><p>{student.class?.name ?? "—"}</p></div>
+          <div><p className="text-muted">{terms.grade}</p><p>{student.grade?.name ?? "—"}</p></div>
+          <div><p className="text-muted">{terms.classLabel}</p><p>{student.class?.name ?? "—"}</p></div>
           <div><p className="text-muted">Campus</p><p>{student.campus?.name ?? "—"}</p></div>
           <div><p className="text-muted">Programme</p><p>{currentEnrolment?.course?.name ?? "—"}</p></div>
           <div><p className="text-muted">Academic year</p><p>{currentEnrolment?.academicYear?.name ?? "—"}</p></div>
@@ -79,7 +85,7 @@ export default async function StudentProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Parent / guardian</CardTitle>
+          <CardTitle className="text-base">{terms.guardian}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {student.guardians.length === 0 ? (

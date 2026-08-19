@@ -8,9 +8,14 @@ import { Button } from "@/components/ui/button";
 interface StudentCardButtonProps {
   href: string;
   studentNumber: string;
+  label?: string;
 }
 
-export function StudentCardButton({ href, studentNumber }: StudentCardButtonProps) {
+export function StudentCardButton({
+  href,
+  studentNumber,
+  label = "Learner Card",
+}: StudentCardButtonProps) {
   const [loading, setLoading] = useState(false);
 
   async function download() {
@@ -36,7 +41,7 @@ export function StudentCardButton({ href, studentNumber }: StudentCardButtonProp
   return (
     <Button type="button" variant="outline" onClick={download} disabled={loading}>
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <IdCard className="h-4 w-4" />}
-      Student Card
+      {label}
     </Button>
   );
 }

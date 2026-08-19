@@ -8,6 +8,7 @@ import { getStudentLedger, STUDENT_LEDGER_TYPE_LABELS } from "@/lib/student-ledg
 import { generateFeeStatementPdf } from "@/lib/pdf-fee-statement";
 import { toSchoolBrand } from "@/lib/pdf-branding";
 import { formatDate } from "@/lib/utils";
+import { getTerminology } from "@/lib/terminology";
 import { sendLoggedEmail } from "@/lib/communications";
 import { logAudit } from "@/lib/audit";
 
@@ -66,6 +67,8 @@ async function buildStatement(studentId: string, academicYearId?: string | null)
     brand: toSchoolBrand(school),
     studentName: `${ledger.student.firstName} ${ledger.student.lastName}`,
     studentNumber: ledger.student.studentNumber,
+    studentNumberLabel: getTerminology(school.institutionType).admissionNumber,
+    learnerLabel: getTerminology(school.institutionType).student,
     gradeOrProgramme: [ledger.student.grade?.name, ledger.student.class?.name]
       .filter(Boolean)
       .join(" / "),

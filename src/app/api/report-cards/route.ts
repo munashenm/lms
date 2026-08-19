@@ -8,6 +8,7 @@ import { reportCardSchema } from "@/lib/validators";
 import { calculatePercentage, calculateWeightedAverage, percentageToSymbol } from "@/lib/grading";
 import { generateReportCardPdf } from "@/lib/pdf-report-card";
 import { toSchoolBrand } from "@/lib/pdf-branding";
+import { getTerminology } from "@/lib/terminology";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
@@ -119,6 +120,8 @@ export async function POST(request: NextRequest) {
     brand: toSchoolBrand(student.school),
     studentName: `${student.firstName} ${student.lastName}`,
     studentNumber: student.studentNumber,
+    studentNumberLabel: getTerminology(student.school.institutionType).admissionNumber,
+    learnerLabel: getTerminology(student.school.institutionType).student,
     grade: student.grade?.name ?? "—",
     className: student.class?.name ?? "—",
     academicYear: academicYear?.name ?? "—",

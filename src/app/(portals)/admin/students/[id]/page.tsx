@@ -15,6 +15,7 @@ import { StudentEditForm } from "@/components/students/student-edit-form";
 import { ArrowLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getStudentLedger } from "@/lib/student-ledger";
+import { getTerminology } from "@/lib/terminology";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -32,12 +33,13 @@ export default async function StudentDetailPage({ params }: PageProps) {
       class: true,
       campus: true,
       guardians: { include: { guardian: true } },
-      school: { select: { name: true } },
+      school: { select: { name: true, institutionType: true } },
     },
   });
 
   if (!student) notFound();
 
+  const terms = getTerminology(student.school.institutionType);
   const canExportPopia =
     requirePermission(session, "students:read") && requirePermission(session, "audit:read");
   const canFinance = requirePermission(session, "finance:read");
@@ -106,6 +108,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
           <StudentCardButton
             href={`/api/students/${student.id}/card`}
             studentNumber={student.studentNumber}
+            label={terms.identityCard}
           />
           {canExportPopia && <StudentExportButton studentId={student.id} />}
         </div>

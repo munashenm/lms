@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Eye } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import type { Terminology } from "@/lib/terminology";
+import { getTerminology } from "@/lib/terminology";
 
 interface StudentRow {
   id: string;
@@ -21,6 +23,7 @@ interface StudentRow {
 interface StudentsTableProps {
   students: StudentRow[];
   pagination: { page: number; limit: number; total: number; pages: number };
+  terms?: Terminology;
 }
 
 const statusVariant: Record<string, "success" | "warning" | "danger" | "secondary" | "default"> = {
@@ -31,12 +34,18 @@ const statusVariant: Record<string, "success" | "warning" | "danger" | "secondar
   WITHDRAWN: "secondary",
 };
 
-export function StudentsTable({ students, pagination }: StudentsTableProps) {
+export function StudentsTable({
+  students,
+  pagination,
+  terms = getTerminology(),
+}: StudentsTableProps) {
   if (students.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-muted">No students found. Add your first student to get started.</p>
+          <p className="text-muted">
+            No {terms.students.toLowerCase()} found. Add your first {terms.student.toLowerCase()} to get started.
+          </p>
         </CardContent>
       </Card>
     );
@@ -49,10 +58,10 @@ export function StudentsTable({ students, pagination }: StudentsTableProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-background/50">
-                <th className="text-left px-4 py-3 font-medium text-muted">Student No.</th>
+                <th className="text-left px-4 py-3 font-medium text-muted">{terms.admissionNumber}</th>
                 <th className="text-left px-4 py-3 font-medium text-muted">Name</th>
-                <th className="text-left px-4 py-3 font-medium text-muted hidden md:table-cell">Grade</th>
-                <th className="text-left px-4 py-3 font-medium text-muted hidden lg:table-cell">Class</th>
+                <th className="text-left px-4 py-3 font-medium text-muted hidden md:table-cell">{terms.grade}</th>
+                <th className="text-left px-4 py-3 font-medium text-muted hidden lg:table-cell">{terms.classLabel}</th>
                 <th className="text-left px-4 py-3 font-medium text-muted hidden lg:table-cell">Campus</th>
                 <th className="text-left px-4 py-3 font-medium text-muted">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-muted hidden sm:table-cell">Enrolled</th>

@@ -1,6 +1,7 @@
 import { UserRole } from "@prisma/client";
 import type { SessionPayload } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getTerminology } from "@/lib/terminology";
 import { generateStudentCardPdf } from "@/lib/pdf-student-card";
 import { toSchoolBrand } from "@/lib/pdf-branding";
 import { getChildStudentIds, getStudentForSession } from "@/lib/portal-data";
@@ -76,10 +77,13 @@ export async function buildStudentCardResponse(opts: {
     select: { name: true },
   });
 
+  const terms = getTerminology(student.school.institutionType);
   const pdf = await generateStudentCardPdf({
     brand: toSchoolBrand(student.school),
     studentName: `${student.firstName} ${student.lastName}`,
     studentNumber: student.studentNumber,
+    studentNumberLabel: terms.admissionNumber,
+    cardTitle: terms.identityCardTitle,
     gradeOrProgramme: student.grade?.name ?? null,
     className: student.class?.name ?? null,
     status: student.status,
