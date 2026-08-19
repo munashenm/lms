@@ -81,14 +81,14 @@ export function FinanceAdjustments(props: {
                   studentId: form.get("studentId"),
                   amount: Number(form.get("amount")),
                   reason: form.get("reason"),
-                }, "rf", "Refund posted to the student ledger");
+                }, "rf", "Refund submitted for approval");
                 e.currentTarget.reset();
               }}
             >
               <StudentSelect students={props.students} />
               <div><Label>Amount</Label><Input name="amount" type="number" step="0.01" required /></div>
               <div><Label>Reason</Label><Input name="reason" required /></div>
-              <Button type="submit" disabled={loading === "rf"}>Post refund</Button>
+              <Button type="submit" disabled={loading === "rf"}>Request refund</Button>
             </form>
           </CardContent>
         </Card>
@@ -134,7 +134,60 @@ export function FinanceAdjustments(props: {
             <p key={row.id}>Credit {row.number} · {row.student.firstName} {row.student.lastName} · {formatZAR(Number(row.amount))} · {formatDate(row.createdAt)}</p>
           ))}
           {props.refunds.map((row) => (
-            <p key={row.id}>Refund · {row.student.firstName} {row.student.lastName} · {formatZAR(Number(row.amount))} · {row.status}</p>
+            <div key={row.id} className="flex flex-wrap items-center justify-between gap-2">
+              <p>
+                Refund · {row.student.firstName} {row.student.lastName} · {formatZAR(Number(row.amount))} · {row.status}
+              </p>
+              {row.status === "PENDING" ? (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={loading === `ap-${row.id}`}
+                    onClick={() => {
+                      setLoading(`ap-${row.id}`);
+                      fetch(`/api/refunds/${row.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "approve" }),
+                      })
+                        .then(async (res) => {
+                          if (!res.ok) throw new Error();
+                          toast.success("Refund posted to the student ledger");
+                          router.refresh();
+                        })
+                        .catch(() => toast.error("Could not approve refund"))
+                        .finally(() => setLoading(null));
+                    }}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={loading === `rj-${row.id}`}
+                    onClick={() => {
+                      setLoading(`rj-${row.id}`);
+                      fetch(`/api/refunds/${row.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "reject" }),
+                      })
+                        .then(async (res) => {
+                          if (!res.ok) throw new Error();
+                          toast.success("Refund rejected");
+                          router.refresh();
+                        })
+                        .catch(() => toast.error("Could not reject refund"))
+                        .finally(() => setLoading(null));
+                    }}
+                  >
+                    Reject
+                  </Button>
+                </div>
+              ) : null}
+            </div>
           ))}
           {props.awards.map((row) => (
             <p key={row.id}>{row.type} {row.name} · {row.student.firstName} {row.student.lastName} · {formatZAR(Number(row.amount))}</p>

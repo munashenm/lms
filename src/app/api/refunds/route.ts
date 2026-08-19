@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ApprovalStatus, StudentLedgerType } from "@prisma/client";
+import { ApprovalStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
-import { createStudentLedgerEntry } from "@/lib/student-ledger";
 import { logAudit } from "@/lib/audit";
+import { roundMoney } from "@/lib/money";
 import { z } from "zod";
 
 const schema = z.object({
@@ -39,26 +39,21 @@ export async function POST(request: NextRequest) {
   if (denied) return denied;
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ message: "Invalid data" }, { status: 400 });
-  const ledger = await createStudentLedgerEntry({
-    schoolId,
-    studentId: parsed.data.studentId,
-    type: StudentLedgerType.REFUND,
-    description: parsed.data.reason,
-    amount: parsed.data.amount,
-    paymentId: parsed.data.paymentId,
-    recordedById: session!.userId,
+  const student = await prisma.student.findFirst({
+    where: { id: parsed.data.studentId, schoolId },
+    select: { id: true },
   });
+  if (!student) return NextResponse.json({ message: "Student not found" }, { status: 404 });
+
   const refund = await prisma.refund.create({
     data: {
       schoolId,
       studentId: parsed.data.studentId,
       paymentId: parsed.data.paymentId ?? null,
-      amount: parsed.data.amount,
+      amount: roundMoney(parsed.data.amount),
       reason: parsed.data.reason,
-      status: ApprovalStatus.POSTED,
-      ledgerEntryId: ledger.id,
+      status: ApprovalStatus.PENDING,
       createdById: session!.userId,
-      processedAt: new Date(),
     },
   });
   await logAudit({
@@ -67,7 +62,7 @@ export async function POST(request: NextRequest) {
     action: "CREATE",
     entity: "Refund",
     entityId: refund.id,
-    metadata: { amount: parsed.data.amount },
+    metadata: { amount: parsed.data.amount, status: "PENDING" },
   });
   return NextResponse.json({ refund }, { status: 201 });
 }

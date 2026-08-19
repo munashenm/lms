@@ -2,11 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter } from "@/lib/rbac";
+import { getSchoolFilter, hasPermission } from "@/lib/rbac";
 import { UserRole } from "@prisma/client";
 import { SchoolSettingsForm } from "@/components/settings/school-settings-form";
 import { IntegrationSettingsForm } from "@/components/settings/integration-settings-form";
 import { CampusCreateForm } from "@/components/settings/campus-form";
+import { CampusList } from "@/components/settings/campus-list";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface PageProps {
@@ -59,7 +60,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
 
   const school = await prisma.school.findUnique({
     where: { id: schoolId },
-    include: { campuses: { where: { isActive: true } } },
+    include: { campuses: { orderBy: { name: "asc" } } },
   });
 
   if (!school) notFound();
@@ -142,18 +143,12 @@ export default async function SettingsPage({ searchParams }: PageProps) {
 
       {school.campuses.length > 0 && (
         <Card>
-          <CardContent className="p-4">
-            <p className="text-sm font-medium mb-2">Campuses</p>
-            <div className="flex flex-wrap gap-2">
-              {school.campuses.map((c) => (
-                <span
-                  key={c.id}
-                  className="rounded-full bg-background border border-border px-3 py-1 text-xs"
-                >
-                  {c.name} ({c.code}){c.isMain && " · Main"}
-                </span>
-              ))}
-            </div>
+          <CardContent className="p-4 space-y-3">
+            <p className="text-sm font-medium">Campuses</p>
+            <CampusList
+              campuses={school.campuses}
+              canWrite={hasPermission(session!.role, "settings:write")}
+            />
           </CardContent>
         </Card>
       )}

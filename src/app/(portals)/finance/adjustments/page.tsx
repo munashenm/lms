@@ -37,7 +37,7 @@ export default async function FinanceAdjustmentsPage() {
       <div>
         <h1 className="text-2xl font-bold">Credits, refunds and aid</h1>
         <p className="text-muted text-sm mt-1">
-          Each action appends a student ledger row. Receipts and payments are never deleted.
+          Credit notes and aid post immediately. Refunds stay pending until approved, then a ledger row is appended. Receipts and payments are never deleted.
         </p>
       </div>
       <FinanceAdjustments students={students} creditNotes={creditNotes} refunds={refunds} awards={awards} />

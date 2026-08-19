@@ -6,6 +6,7 @@ import { requireSchoolId } from "@/lib/portal-data";
 import { announcementSchema } from "@/lib/validators";
 import { UserRole } from "@prisma/client";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { canPublishAnnouncementAudience } from "@/lib/announcements";
 
 const AUDIENCE_FOR_ROLE: Partial<Record<UserRole, string[]>> = {
   [UserRole.STUDENT]: ["ALL", "STUDENTS"],
@@ -57,6 +58,12 @@ export async function POST(request: NextRequest) {
   const schoolId = await requireSchoolId(session);
   const denied = await requireLicenseWrite(schoolId);
   if (denied) return denied;
+  if (!canPublishAnnouncementAudience(session.role, parsed.data.audience)) {
+    return NextResponse.json(
+      { message: "Teachers can publish to students, parents, teachers, or staff only" },
+      { status: 403 }
+    );
+  }
   const announcement = await prisma.announcement.create({
     data: {
       schoolId,

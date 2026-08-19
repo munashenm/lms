@@ -1,27 +1,28 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter } from "@/lib/rbac";
+import { getSchoolFilter, hasPermission } from "@/lib/rbac";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { SubjectsManager } from "@/components/academics/subjects-manager";
+import { StructureRecordRow } from "@/components/academics/structure-record-row";
 
 export default async function SubjectsPage() {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
+  const canWrite = hasPermission(session!.role, "classes:write");
 
   const [grades, subjects, courses] = await Promise.all([
     prisma.grade.findMany({
-      where: { ...filter, isActive: true },
+      where: filter,
       orderBy: { sortOrder: "asc" },
       include: { _count: { select: { subjects: true, students: true } } },
     }),
     prisma.subject.findMany({
-      where: { ...filter, isActive: true },
+      where: filter,
       include: { grade: { select: { name: true } } },
       orderBy: { name: "asc" },
     }),
     prisma.course.findMany({
-      where: { ...filter, isActive: true },
+      where: filter,
       include: { modules: { orderBy: { sortOrder: "asc" } } },
       orderBy: { name: "asc" },
     }),
@@ -37,9 +38,9 @@ export default async function SubjectsPage() {
       </div>
 
       <SubjectsManager
-        grades={grades}
-        subjects={subjects}
-        courses={courses}
+        grades={grades.filter((g) => g.isActive)}
+        subjects={subjects.filter((s) => s.isActive)}
+        courses={courses.filter((c) => c.isActive)}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -47,10 +48,14 @@ export default async function SubjectsPage() {
           <CardHeader><CardTitle className="text-base">Grades ({grades.length})</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {grades.map((g) => (
-              <div key={g.id} className="flex justify-between text-sm py-1 border-b border-border last:border-0">
-                <span>{g.name}</span>
-                <span className="text-muted">{g._count.students} students</span>
-              </div>
+              <StructureRecordRow
+                key={g.id}
+                endpoint={`/api/grades/${g.id}`}
+                name={g.name}
+                extra={`${g._count.students} students`}
+                isActive={g.isActive}
+                canWrite={canWrite}
+              />
             ))}
           </CardContent>
         </Card>
@@ -59,26 +64,30 @@ export default async function SubjectsPage() {
           <CardHeader><CardTitle className="text-base">Subjects ({subjects.length})</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {subjects.map((s) => (
-              <div key={s.id} className="text-sm py-1 border-b border-border last:border-0">
-                <span className="font-medium">{s.code}</span> — {s.name}
-                {s.grade && <span className="text-muted text-xs block">{s.grade.name}</span>}
-              </div>
+              <StructureRecordRow
+                key={s.id}
+                endpoint={`/api/subjects/${s.id}`}
+                name={s.name}
+                extra={`${s.code}${s.grade ? ` · ${s.grade.name}` : ""}`}
+                isActive={s.isActive}
+                canWrite={canWrite}
+              />
             ))}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader><CardTitle className="text-base">Courses ({courses.length})</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2">
             {courses.map((c) => (
-              <div key={c.id} className="text-sm py-1 border-b border-border last:border-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{c.code}</span>
-                  {c.nqfLevel && <Badge variant="accent">NQF {c.nqfLevel}</Badge>}
-                </div>
-                <p>{c.name}</p>
-                <p className="text-xs text-muted mt-1">{c.modules.length} modules</p>
-              </div>
+              <StructureRecordRow
+                key={c.id}
+                endpoint={`/api/courses/${c.id}`}
+                name={c.name}
+                extra={`${c.code}${c.nqfLevel ? ` · NQF ${c.nqfLevel}` : ""} · ${c.modules.length} modules`}
+                isActive={c.isActive}
+                canWrite={canWrite}
+              />
             ))}
           </CardContent>
         </Card>

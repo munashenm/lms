@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AccrualMethod, LeaveType, RecurringInterval, FeeChargeSource, BillingFrequency, UserRole } from "@prisma/client";
+import { AccrualMethod, LeaveType, RecurringInterval, FeeChargeSource, BillingFrequency, UserRole, ApprovalStatus } from "@prisma/client";
 import { splitInstalmentAmounts, roundMoney, addMoney } from "@/lib/money";
 import { amountInWordsZar } from "@/lib/amount-in-words";
 import {
@@ -27,6 +27,9 @@ import { learnerPortalShouldBeActive, nextSelfAttendanceAction, staffPortalShoul
 import { canInitiateInvoicePayment } from "@/lib/payment-gateways/invoice-auth";
 import { FINANCE_SLIP_TYPES, saveFinanceSlip } from "@/lib/finance-uploads";
 import { financeOpsSectionCsv, type FinanceOpsReport } from "@/lib/finance-ops-report";
+import { nextRefundStatus } from "@/lib/refund-approval";
+import { applyNoticeTemplate } from "@/lib/notice-comms";
+import { canPublishAnnouncementAudience } from "@/lib/announcements";
 
 const ctx: EnrolmentFeeContext = {
   schoolId: "sch-1",
@@ -587,5 +590,31 @@ describe("finance ops exports", () => {
     expect(methods).toContain("CASH");
     expect(methods).toContain("150.00");
     expect(financeOpsSectionCsv("unknown", report)).toBeNull();
+  });
+});
+
+describe("refund approval", () => {
+  it("posts or rejects only pending refunds and leaves posted rows final", () => {
+    expect(nextRefundStatus(ApprovalStatus.PENDING, "approve")).toBe(ApprovalStatus.POSTED);
+    expect(nextRefundStatus(ApprovalStatus.PENDING, "reject")).toBe(ApprovalStatus.REJECTED);
+    expect(nextRefundStatus(ApprovalStatus.POSTED, "approve")).toBeNull();
+    expect(nextRefundStatus(ApprovalStatus.REJECTED, "reject")).toBeNull();
+    expect(nextRefundStatus(ApprovalStatus.DRAFT, "approve")).toBeNull();
+  });
+});
+
+describe("notice templates and teacher announcements", () => {
+  it("substitutes learner names in notice copy", () => {
+    expect(applyNoticeTemplate("Hello {{firstName}} {{lastName}}", { firstName: "Thabo", lastName: "Mahlangu" }))
+      .toBe("Hello Thabo Mahlangu");
+    expect(applyNoticeTemplate("Hi {{firstName}}", { firstName: null, lastName: "X" })).toBe("Hi ");
+  });
+
+  it("stops teachers from publishing to ALL or FINANCE", () => {
+    expect(canPublishAnnouncementAudience(UserRole.TEACHER, "STUDENTS")).toBe(true);
+    expect(canPublishAnnouncementAudience(UserRole.TEACHER, "PARENTS")).toBe(true);
+    expect(canPublishAnnouncementAudience(UserRole.TEACHER, "ALL")).toBe(false);
+    expect(canPublishAnnouncementAudience(UserRole.TEACHER, "FINANCE")).toBe(false);
+    expect(canPublishAnnouncementAudience(UserRole.SCHOOL_ADMIN, "ALL")).toBe(true);
   });
 });

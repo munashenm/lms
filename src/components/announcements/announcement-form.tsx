@@ -10,7 +10,19 @@ import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
-export function AnnouncementForm() {
+const DEFAULT_AUDIENCES = [
+  { value: "ALL", label: "Everyone" },
+  { value: "STUDENTS", label: "Students" },
+  { value: "PARENTS", label: "Parents" },
+  { value: "STAFF", label: "Staff" },
+  { value: "TEACHERS", label: "Teachers" },
+] as const;
+
+export function AnnouncementForm({
+  audiences = DEFAULT_AUDIENCES,
+}: {
+  audiences?: ReadonlyArray<{ value: string; label: string }>;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -65,12 +77,10 @@ export function AnnouncementForm() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="audience">Audience</Label>
-              <Select id="audience" name="audience" defaultValue="ALL">
-                <option value="ALL">Everyone</option>
-                <option value="STUDENTS">Students</option>
-                <option value="PARENTS">Parents</option>
-                <option value="STAFF">Staff</option>
-                <option value="TEACHERS">Teachers</option>
+              <Select id="audience" name="audience" defaultValue={audiences[0]?.value ?? "ALL"}>
+                {audiences.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </Select>
             </div>
             <div className="flex items-end pb-1">

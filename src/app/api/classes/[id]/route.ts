@@ -41,6 +41,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       ...(data.academicYearId !== undefined ? { academicYearId: emptyToNull(data.academicYearId) } : {}),
       ...(data.capacity !== undefined ? { capacity: data.capacity } : {}),
       ...(data.room !== undefined ? { room: emptyToNull(data.room) } : {}),
+      ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
     },
     include: {
       grade: { select: { name: true } },

@@ -147,6 +147,10 @@ export const campusSchema = z.object({
   isMain: z.boolean().optional(),
 });
 
+export const campusPatchSchema = campusSchema.partial().extend({
+  isActive: z.boolean().optional(),
+});
+
 export const classSchema = z.object({
   name: z.string().min(1, "Class name is required"),
   gradeId: z.string().optional(),
@@ -157,13 +161,23 @@ export const classSchema = z.object({
   teacherId: z.string().optional(),
 });
 
-export const classPatchSchema = classSchema.partial();
+export const classPatchSchema = classSchema.partial().extend({
+  isActive: z.boolean().optional(),
+});
 
 export const gradeSchema = z.object({
   name: z.string().min(1, "Grade name is required"),
   level: z.coerce.number().int().optional(),
   phase: z.string().optional(),
   sortOrder: z.coerce.number().int().default(0),
+});
+
+export const gradePatchSchema = z.object({
+  name: z.string().min(1, "Grade name is required").optional(),
+  level: z.coerce.number().int().optional(),
+  phase: z.string().optional(),
+  sortOrder: z.coerce.number().int().optional(),
+  isActive: z.boolean().optional(),
 });
 
 export const subjectSchema = z.object({
@@ -174,12 +188,20 @@ export const subjectSchema = z.object({
   credits: z.coerce.number().int().positive().optional(),
 });
 
+export const subjectPatchSchema = subjectSchema.partial().extend({
+  isActive: z.boolean().optional(),
+});
+
 export const courseSchema = z.object({
   code: z.string().min(1, "Course code is required"),
   name: z.string().min(1, "Course name is required"),
   description: z.string().optional(),
   nqfLevel: z.coerce.number().int().positive().optional(),
   durationMonths: z.coerce.number().int().positive().optional(),
+});
+
+export const coursePatchSchema = courseSchema.partial().extend({
+  isActive: z.boolean().optional(),
 });
 
 export const moduleSchema = z.object({
@@ -243,6 +265,22 @@ export const announcementSchema = z.object({
   content: z.string().min(1, "Content is required"),
   audience: z.enum(["ALL", "STUDENTS", "PARENTS", "STAFF", "TEACHERS", "FINANCE"]).default("ALL"),
   isPinned: z.boolean().optional(),
+});
+
+export const noticeComposeSchema = z.object({
+  channel: z.enum(["EMAIL", "SMS", "BOTH"]).default("EMAIL"),
+  category: z.enum(["GENERAL", "ACADEMIC_NOTICE", "EXAM_NOTICE", "ANNOUNCEMENT", "EMERGENCY"]).default("GENERAL"),
+  audience: z.enum(["STUDENT", "CLASS", "GRADE", "PARENTS", "STUDENTS", "STAFF"]),
+  studentId: z.string().optional().nullable(),
+  classId: z.string().optional().nullable(),
+  gradeId: z.string().optional().nullable(),
+  subject: z.string().min(1, "Subject is required").max(200),
+  message: z.string().min(1, "Message is required"),
+  processImmediately: z.boolean().optional(),
+});
+
+export const refundPatchSchema = z.object({
+  action: z.enum(["approve", "reject"]),
 });
 
 const optionalSecret = z.string().optional();
