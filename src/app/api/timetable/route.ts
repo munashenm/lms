@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { timetableSlotSchema } from "@/lib/validators";
 import { findTimetableConflicts } from "@/lib/timetable-conflicts";
+import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -45,6 +46,12 @@ export async function POST(request: NextRequest) {
   const parsed = timetableSlotSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
+  }
+
+  const schoolId = session!.schoolId;
+  if (schoolId) {
+    const guard = await licenseWriteGuard({ schoolId, feature: "timetable", action: "write" });
+    if (!guard.ok) return licenseDeniedResponse(guard);
   }
 
   const existing = await prisma.timetableSlot.findMany({

@@ -308,6 +308,17 @@ model School {
   communicationBatches CommunicationBatch[]
   staffAttendance StaffAttendanceRecord[]
   integrationConfig SchoolIntegrationConfig?
+  license              SchoolLicense?
+  licenseInstallation  LicenseInstallation?
+  licenseChecks        LicenseCheck[]
+  backupJobs           BackupJob[]
+  backupSchedules      BackupSchedule[]
+  restoreJobs          RestoreJob[]
+  importJobs           ImportJob[]
+  importBatches        ImportBatch[]
+  importFieldMappings  ImportFieldMapping[]
+  externalRecordMappings ExternalRecordMapping[]
+  integrationProviders IntegrationProvider[]
 
   @@index([slug])
   @@map("schools")
@@ -373,6 +384,9 @@ model User {
   studentLedgerEntries StudentLedgerEntry[] @relation("StudentLedgerRecorder")
   staffAttendance    StaffAttendanceRecord[] @relation("StaffAttendanceUser")
   staffAttendanceMarked StaffAttendanceRecord[] @relation("StaffAttendanceMarker")
+  backupJobsCreated  BackupJob[] @relation("BackupCreator")
+  restoreJobsCreated RestoreJob[] @relation("RestoreCreator")
+  importJobsCreated  ImportJob[] @relation("ImportCreator")
 
   @@index([schoolId])
   @@index([role])
@@ -1360,4 +1374,547 @@ model AuditLog {
   @@index([schoolId, createdAt])
   @@index([entity, entityId])
   @@map("audit_logs")
+}
+
+// ─── Licensing ───────────────────────────────────────────────────────────────
+
+enum LicenseStatus {
+  TRIAL
+  ACTIVE
+  GRACE
+  EXPIRED
+  SUSPENDED
+  REVOKED
+}
+
+enum LicenseCheckResult {
+  VALID
+  GRACE
+  EXPIRED
+  SUSPENDED
+  REVOKED
+  INVALID_SIGNATURE
+  SERVER_UNAVAILABLE
+  OFFLINE_CACHE
+  RESTRICTED
+  ACTIVATED
+  UPDATED
+}
+
+enum BackupType {
+  CLOUD_SCHEDULED
+  CLOUD_MANUAL
+  OFFLINE
+  PRE_RESTORE
+}
+
+enum BackupJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  VERIFYING
+  VERIFIED
+  DELETED
+}
+
+enum BackupScheduleFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum RestoreJobStatus {
+  UPLOADING
+  VALIDATING
+  READY
+  RESTORING
+  COMPLETED
+  FAILED
+  ROLLED_BACK
+}
+
+enum ImportJobStatus {
+  UPLOADED
+  ANALYSING
+  ANALYSED
+  VALIDATING
+  VALIDATED
+  MAPPING
+  MAPPED
+  DETECTING_DUPLICATES
+  PREVIEW
+  IMPORTING
+  COMPLETED
+  FAILED
+  ROLLED_BACK
+}
+
+enum ImportIssueSeverity {
+  ERROR
+  WARNING
+  INFORMATION
+}
+
+enum DuplicateAction {
+  SKIP
+  UPDATE_EXISTING
+  CREATE_NEW
+  REVIEW_MANUALLY
+}
+
+/// Cached licence for one tenant. Signed payload is verified with LICENSE_PUBLIC_KEY.
+model SchoolLicense {
+  id                  String        @id @default(cuid())
+  schoolId            String        @unique
+  productCode         String        @default("lms")
+  productName         String        @default("SchoolHub SA LMS")
+  planCode            String?
+  planName            String?
+  licenseKey          String
+  status              LicenseStatus @default(TRIAL)
+  issuedAt            DateTime?
+  startsAt            DateTime?
+  expiresAt           DateTime?
+  gracePeriodDays     Int           @default(14)
+  maxLearners         Int?
+  maxEducators        Int?
+  maxAdministrators   Int?
+  maxCampuses         Int?
+  storageLimitBytes   BigInt?
+  featuresJson        Json          @default("{}")
+  signedPayload       String?
+  lastVerifiedAt      DateTime?
+  nextVerificationAt  DateTime?
+  lastCheckError      String?
+  offlineSince        DateTime?
+  installationId      String?
+  registeredDomain    String?
+  stagingDomain       String?
+  serverInstanceId    String?
+  customerName        String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  school              School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  features            LicenseFeature[]
+  checks              LicenseCheck[]
+
+  @@index([licenseKey])
+  @@index([status])
+  @@map("school_licenses")
+}
+
+model LicenseFeature {
+  id        String   @id @default(cuid())
+  licenseId String
+  featureKey String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  license   SchoolLicense @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  @@unique([licenseId, featureKey])
+  @@index([featureKey])
+  @@map("license_features")
+}
+
+model LicenseCheck {
+  id         String             @id @default(cuid())
+  schoolId   String
+  licenseId  String?
+  result     LicenseCheckResult
+  source     String
+  message    String?
+  checkedAt  DateTime           @default(now())
+  metadata   Json?
+
+  school     School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  license    SchoolLicense?     @relation(fields: [licenseId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, checkedAt])
+  @@index([licenseId, checkedAt])
+  @@map("license_checks")
+}
+
+model LicenseInstallation {
+  id                String   @id @default(cuid())
+  installationId    String   @unique
+  schoolId          String?  @unique
+  hostname          String?
+  registeredDomain  String?
+  stagingDomain     String?
+  serverInstanceId  String?
+  activatedAt       DateTime @default(now())
+  lastSeenAt        DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  school            School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("license_installations")
+}
+
+/// Vendor catalogue — used only when LICENSE_SERVER_ENABLED=true
+model LicenseCustomer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  licences  IssuedLicense[]
+
+  @@map("license_customers")
+}
+
+model LicenseProduct {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  plans       LicensePlan[]
+  licences    IssuedLicense[]
+
+  @@map("license_products")
+}
+
+model LicensePlan {
+  id               String   @id @default(cuid())
+  productId        String
+  code             String
+  name             String
+  defaultLimits    Json     @default("{}")
+  defaultFeatures  Json     @default("{}")
+  defaultGraceDays Int      @default(14)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  product          LicenseProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  licences         IssuedLicense[]
+
+  @@unique([productId, code])
+  @@map("license_plans")
+}
+
+model IssuedLicense {
+  id              String        @id @default(cuid())
+  customerId      String?
+  productId       String
+  planId          String?
+  licenseKey      String        @unique
+  institutionId   String?
+  institutionName String?
+  status          LicenseStatus @default(TRIAL)
+  issuedAt        DateTime      @default(now())
+  startsAt        DateTime      @default(now())
+  expiresAt       DateTime?
+  gracePeriodDays Int           @default(14)
+  limitsJson      Json          @default("{}")
+  featuresJson    Json          @default("{}")
+  domainsJson     Json          @default("[]")
+  maxActivations  Int           @default(1)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  customer        LicenseCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  product         LicenseProduct   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  plan            LicensePlan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
+  activations     LicenseActivation[]
+
+  @@index([institutionId])
+  @@index([status])
+  @@map("issued_licenses")
+}
+
+model LicenseActivation {
+  id               String   @id @default(cuid())
+  issuedLicenseId  String
+  installationId   String
+  domain           String?
+  serverInstanceId String?
+  isActive         Boolean  @default(true)
+  activatedAt      DateTime @default(now())
+  lastSeenAt       DateTime @default(now())
+  revokedAt        DateTime?
+
+  issuedLicense    IssuedLicense @relation(fields: [issuedLicenseId], references: [id], onDelete: Cascade)
+
+  @@unique([issuedLicenseId, installationId])
+  @@index([installationId])
+  @@map("license_activations")
+}
+
+model LicenseServerAudit {
+  id         String   @id @default(cuid())
+  action     String
+  licenseKey String?
+  actor      String?
+  result     String
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([licenseKey])
+  @@map("license_server_audits")
+}
+
+// ─── Backup & Restore ────────────────────────────────────────────────────────
+
+model BackupSchedule {
+  id          String                   @id @default(cuid())
+  schoolId    String
+  frequency   BackupScheduleFrequency
+  retainCount Int                      @default(14)
+  enabled     Boolean                  @default(true)
+  nextRunAt   DateTime?
+  lastRunAt   DateTime?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  school      School                   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, frequency])
+  @@index([enabled, nextRunAt])
+  @@map("backup_schedules")
+}
+
+model BackupJob {
+  id                  String           @id @default(cuid())
+  schoolId            String
+  type                BackupType
+  status              BackupJobStatus  @default(PENDING)
+  createdById         String?
+  applicationVersion  String
+  schemaVersion       String
+  sizeBytes           BigInt           @default(0)
+  checksum            String?
+  storageProvider     String
+  storageKey          String?
+  filename            String?
+  errorMessage        String?
+  learnerCount        Int              @default(0)
+  userCount           Int              @default(0)
+  fileCount           Int              @default(0)
+  startedAt           DateTime?
+  completedAt         DateTime?
+  verifiedAt          DateTime?
+  metadata            Json?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  school              School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  createdBy           User?            @relation("BackupCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  files               BackupFile[]
+  restoreJobs         RestoreJob[]     @relation("RestoreSourceBackup")
+  preRestoreFor       RestoreJob[]     @relation("PreRestoreBackup")
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, status])
+  @@map("backup_jobs")
+}
+
+model BackupFile {
+  id           String    @id @default(cuid())
+  jobId        String
+  relativePath String
+  sizeBytes    BigInt    @default(0)
+  checksum     String?
+  mimeType     String?
+  createdAt    DateTime  @default(now())
+
+  job          BackupJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@map("backup_files")
+}
+
+model RestoreJob {
+  id                  String            @id @default(cuid())
+  schoolId            String
+  backupJobId         String?
+  sourceType          String
+  status              RestoreJobStatus  @default(UPLOADING)
+  createdById         String?
+  preRestoreBackupId  String?
+  errorMessage        String?
+  validationReport    Json?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  school              School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  backupJob           BackupJob?        @relation("RestoreSourceBackup", fields: [backupJobId], references: [id], onDelete: SetNull)
+  preRestoreBackup    BackupJob?        @relation("PreRestoreBackup", fields: [preRestoreBackupId], references: [id], onDelete: SetNull)
+  createdBy           User?             @relation("RestoreCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, status])
+  @@map("restore_jobs")
+}
+
+// ─── Integrations & SA-SAMS Import ───────────────────────────────────────────
+
+model IntegrationProvider {
+  id        String   @id @default(cuid())
+  schoolId  String?
+  code      String
+  name      String
+  type      String
+  enabled   Boolean  @default(true)
+  config    Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school    School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, code])
+  @@index([code])
+  @@map("integration_providers")
+}
+
+model ImportJob {
+  id                  String           @id @default(cuid())
+  schoolId            String
+  providerCode        String           @default("sa-sams")
+  adapterId           String
+  filename            String
+  mimeType            String?
+  fileSize            Int              @default(0)
+  encryptedStorageKey String?
+  status              ImportJobStatus  @default(UPLOADED)
+  createdById         String?
+  analysedAt          DateTime?
+  importedAt          DateTime?
+  rolledBackAt        DateTime?
+  expiresAt           DateTime?
+  summary             Json?
+  mappingId           String?
+  errorMessage        String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  school              School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  createdBy           User?            @relation("ImportCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  mapping             ImportFieldMapping? @relation(fields: [mappingId], references: [id], onDelete: SetNull)
+  batches             ImportBatch[]
+  stagingRecords      ImportStagingRecord[]
+  errors              ImportError[]
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, status])
+  @@map("import_jobs")
+}
+
+model ImportBatch {
+  id            String          @id @default(cuid())
+  jobId         String
+  schoolId      String
+  status        ImportJobStatus @default(IMPORTING)
+  createdCount  Int             @default(0)
+  updatedCount  Int             @default(0)
+  skippedCount  Int             @default(0)
+  errorCount    Int             @default(0)
+  startedAt     DateTime        @default(now())
+  completedAt   DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  job           ImportJob       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  school        School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  mappings      ExternalRecordMapping[]
+
+  @@index([schoolId, createdAt])
+  @@index([jobId])
+  @@map("import_batches")
+}
+
+model ImportStagingRecord {
+  id               String             @id @default(cuid())
+  jobId            String
+  entityType       String
+  sourceRecordId   String?
+  sourceRow        Int?
+  rawData          Json
+  mappedData       Json?
+  validationStatus String             @default("PENDING")
+  issues           Json?
+  duplicateOfId    String?
+  duplicateAction  DuplicateAction    @default(REVIEW_MANUALLY)
+  importedEntityId String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  job              ImportJob          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  errors           ImportError[]
+
+  @@index([jobId, entityType])
+  @@index([jobId, validationStatus])
+  @@map("import_staging_records")
+}
+
+model ImportError {
+  id               String              @id @default(cuid())
+  jobId            String
+  stagingRecordId  String?
+  severity         ImportIssueSeverity
+  code             String
+  message          String
+  field            String?
+  createdAt        DateTime            @default(now())
+
+  job              ImportJob           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  stagingRecord    ImportStagingRecord? @relation(fields: [stagingRecordId], references: [id], onDelete: SetNull)
+
+  @@index([jobId, severity])
+  @@map("import_errors")
+}
+
+model ImportFieldMapping {
+  id             String   @id @default(cuid())
+  schoolId       String
+  providerCode   String   @default("sa-sams")
+  adapterVersion String
+  name           String
+  mappings       Json
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  jobs           ImportJob[]
+
+  @@index([schoolId, providerCode])
+  @@map("import_field_mappings")
+}
+
+model ExternalRecordMapping {
+  id             String      @id @default(cuid())
+  schoolId       String
+  sourceSystem   String
+  sourceRecordId String
+  entityType     String
+  localEntityId  String
+  importBatchId  String?
+  importedAt     DateTime    @default(now())
+  importedById   String?
+
+  school         School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  batch          ImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+
+  @@unique([schoolId, sourceSystem, entityType, sourceRecordId])
+  @@index([schoolId, localEntityId])
+  @@index([importBatchId])
+  @@map("external_record_mappings")
 }

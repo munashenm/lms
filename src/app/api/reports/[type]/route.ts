@@ -12,6 +12,7 @@ import { toCsv, csvDownloadHeaders } from "@/lib/csv";
 import { formatDate } from "@/lib/utils";
 import { generateTableReportPdf } from "@/lib/pdf-report";
 import { toSchoolBrand, type SchoolBrand } from "@/lib/pdf-branding";
+import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
 
 interface RouteParams {
   params: Promise<{ type: string }>;
@@ -42,12 +43,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
+  const filter = getSchoolFilter(session!);
+  if ("schoolId" in filter) {
+    const feature = request.nextUrl.searchParams.get("advanced") === "1" ? "advanced_analytics" : "reporting";
+    const guard = await licenseWriteGuard({ schoolId: filter.schoolId, feature });
+    if (!guard.ok) return licenseDeniedResponse(guard);
+  }
+
   const { type } = await params;
   if (!REPORT_TYPES.includes(type as (typeof REPORT_TYPES)[number])) {
     return NextResponse.json({ message: "Invalid report type" }, { status: 400 });
   }
 
-  const filter = getSchoolFilter(session!);
   const format = new URL(request.url).searchParams.get("format");
   const brand = await getReportSchoolBrand(filter);
   const generatedAt = new Date().toLocaleString("en-ZA", {

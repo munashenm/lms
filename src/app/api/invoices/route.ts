@@ -9,6 +9,7 @@ import { logAudit } from "@/lib/audit";
 import { notifyUser, notifyStudentGuardians } from "@/lib/notifications";
 import { postInvoiceToStudentLedger } from "@/lib/student-ledger";
 import { UserRole } from "@prisma/client";
+import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -68,6 +69,8 @@ export async function POST(request: NextRequest) {
   }
 
   const schoolId = await requireSchoolId(session!);
+  const guard = await licenseWriteGuard({ schoolId, feature: "finance", action: "write" });
+  if (!guard.ok) return licenseDeniedResponse(guard);
   const data = parsed.data;
   const { subtotal, total } = calculateInvoiceTotals(
     data.lineItems.map((i) => ({ quantity: i.quantity, unitPrice: i.unitPrice })),

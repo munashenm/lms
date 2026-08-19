@@ -6,6 +6,7 @@ import { applicationSchema } from "@/lib/validators";
 import { notifySchoolRoles } from "@/lib/notifications";
 import { sendApplicationConfirmation } from "@/lib/application-notify";
 import { UserRole } from "@prisma/client";
+import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
 
 export async function GET() {
   const session = await getSession();
@@ -39,6 +40,9 @@ export async function POST(request: NextRequest) {
   if (!school) {
     return NextResponse.json({ message: "School not found" }, { status: 404 });
   }
+
+  const guard = await licenseWriteGuard({ schoolId: school.id, feature: "admissions", action: "write" });
+  if (!guard.ok) return licenseDeniedResponse(guard);
 
   const count = await prisma.application.count({ where: { schoolId: school.id } });
   const referenceNo = `APP-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;

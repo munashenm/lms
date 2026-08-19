@@ -54,6 +54,16 @@ export async function sendLoggedSms(params: {
   metadata?: Prisma.InputJsonValue;
 }) {
   const config = await getResolvedIntegrations(params.schoolId);
+  const { licenseWriteGuard } = await import("@/lib/licensing/enforce");
+  const smsAllowed = await licenseWriteGuard({ schoolId: params.schoolId, feature: "sms" });
+  if (!smsAllowed.ok) {
+    return logCommunication({
+      ...params,
+      channel: CommunicationChannel.SMS,
+      status: CommunicationStatus.FAILED,
+      error: "SMS is not included in the current licence",
+    });
+  }
   if (!isTwilioReady(config)) {
     return logCommunication({
       ...params,

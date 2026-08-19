@@ -6,6 +6,7 @@ import { studentSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { ensureStudentEnrolment } from "@/lib/enrolment";
 import { generateStudentNumber } from "@/lib/students";
+import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -82,6 +83,10 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data;
+    if (data.status === "ACTIVE") {
+      const guard = await licenseWriteGuard({ schoolId, action: "create_learner" });
+      if (!guard.ok) return licenseDeniedResponse(guard);
+    }
     const studentNumber =
       data.studentNumber?.trim() || (await generateStudentNumber(schoolId));
 

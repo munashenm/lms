@@ -1,7 +1,7 @@
 import { UserRole } from "@prisma/client";
 import type { SessionPayload } from "./auth";
 
-type Permission =
+export type Permission =
   | "students:read"
   | "students:write"
   | "staff:read"
@@ -18,7 +18,31 @@ type Permission =
   | "settings:read"
   | "settings:write"
   | "audit:read"
-  | "announcements:write";
+  | "announcements:write"
+  | "license.view"
+  | "license.manage"
+  | "backup.view"
+  | "backup.create"
+  | "backup.download"
+  | "backup.restore"
+  | "backup.delete"
+  | "backup.settings"
+  | "sasams.view"
+  | "sasams.import"
+  | "sasams.map"
+  | "sasams.execute"
+  | "sasams.rollback";
+
+const ENTERPRISE_FULL: Permission[] = [
+  "license.view", "license.manage",
+  "backup.view", "backup.create", "backup.download", "backup.restore",
+  "backup.delete", "backup.settings",
+  "sasams.view", "sasams.import", "sasams.map", "sasams.execute", "sasams.rollback",
+];
+
+const ENTERPRISE_VIEW: Permission[] = [
+  "license.view", "backup.view", "sasams.view",
+];
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   SUPER_ADMIN: [
@@ -27,6 +51,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "marks:read", "marks:write", "finance:read", "finance:write",
     "reports:read", "settings:read", "settings:write", "audit:read",
     "announcements:write",
+    ...ENTERPRISE_FULL,
   ],
   SCHOOL_ADMIN: [
     "students:read", "students:write", "staff:read", "staff:write",
@@ -34,11 +59,13 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "marks:read", "marks:write", "finance:read", "finance:write",
     "reports:read", "settings:read", "settings:write", "audit:read",
     "announcements:write",
+    ...ENTERPRISE_FULL,
   ],
   PRINCIPAL: [
     "students:read", "staff:read", "classes:read", "attendance:read",
     "marks:read", "finance:read", "reports:read", "settings:read",
     "audit:read", "announcements:write",
+    ...ENTERPRISE_VIEW,
   ],
   TEACHER: [
     "students:read", "classes:read", "attendance:read", "attendance:write",
@@ -91,4 +118,14 @@ export function getSchoolFilter(session: SessionPayload): { schoolId: string } |
   if (session.role === UserRole.SUPER_ADMIN) return {};
   if (!session.schoolId) return { schoolId: "none" };
   return { schoolId: session.schoolId };
+}
+
+/** Tenant isolation: school users may only access their own institution. */
+export function canAccessSchool(session: SessionPayload, schoolId: string): boolean {
+  if (session.role === UserRole.SUPER_ADMIN) return true;
+  return Boolean(session.schoolId && session.schoolId === schoolId);
+}
+
+export function canManageEnterprise(role: UserRole): boolean {
+  return role === UserRole.SUPER_ADMIN || role === UserRole.SCHOOL_ADMIN;
 }

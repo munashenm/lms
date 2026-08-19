@@ -102,6 +102,30 @@ export default async function SettingsPage({ searchParams }: PageProps) {
         manageSchoolId={isSuperAdminView ? school.id : undefined}
       />
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link
+          href={`/admin/settings/licence${isSuperAdminView ? `?schoolId=${school.id}` : ""}`}
+          className="rounded-xl border border-border bg-surface p-4 hover:border-primary"
+        >
+          <p className="font-medium">Licence</p>
+          <p className="text-xs text-muted mt-1">Status, limits, modules and activation</p>
+        </Link>
+        <Link
+          href={`/admin/settings/backup${isSuperAdminView ? `?schoolId=${school.id}` : ""}`}
+          className="rounded-xl border border-border bg-surface p-4 hover:border-primary"
+        >
+          <p className="font-medium">Backup & Restore</p>
+          <p className="text-xs text-muted mt-1">Cloud schedules and offline .lmsbackup files</p>
+        </Link>
+        <Link
+          href={`/admin/integrations/sa-sams${isSuperAdminView ? `?schoolId=${school.id}` : ""}`}
+          className="rounded-xl border border-border bg-surface p-4 hover:border-primary"
+        >
+          <p className="font-medium">SA-SAMS Migration Centre</p>
+          <p className="text-xs text-muted mt-1">Authorised file import and future API connector</p>
+        </Link>
+      </div>
+
       <IntegrationSettingsForm schoolId={school.id} schoolName={school.name} />
 
       {school.campuses.length > 0 && (

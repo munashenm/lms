@@ -19,7 +19,10 @@ export type NavIconName =
   | "Upload"
   | "Wallet"
   | "TrendingDown"
-  | "Palmtree";
+  | "Palmtree"
+  | "Shield"
+  | "DatabaseBackup"
+  | "Plug";
 
 export interface NavItem {
   label: string;
@@ -51,6 +54,10 @@ export function getAdminNav(terms?: Terminology): NavItem[] {
     { label: "Documents", href: "/admin/documents", icon: "FolderOpen" },
     { label: "Reports", href: "/admin/reports", icon: "BarChart3" },
     { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
+    { label: "System Health", href: "/admin/system-health", icon: "Shield" },
+    { label: "Licence", href: "/admin/settings/licence", icon: "Shield" },
+    { label: "Backup & Restore", href: "/admin/settings/backup", icon: "DatabaseBackup" },
+    { label: "SA-SAMS", href: "/admin/integrations/sa-sams", icon: "Plug" },
     { label: "Settings", href: "/admin/settings", icon: "Settings" },
   ];
 }

@@ -89,7 +89,7 @@ src/
 | 4 | Planned | Finance, Invoices, Parent portal |
 | 5 | Planned | Analytics, Notifications, Payment gateways |
 
-See `docs/PROJECT_PLAN.md` for the full roadmap.
+See `docs/ENTERPRISE_LICENSING_BACKUP_SASAMS.md` for licensing, backup/restore and SA-SAMS import.
 
 ## South African Compliance
 

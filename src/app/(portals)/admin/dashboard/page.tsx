@@ -9,6 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Users, UserCheck, GraduationCap, CreditCard } from "lucide-react";
 import { formatZAR, formatDate } from "@/lib/utils";
 import { getMonthlyEnrollment, getMonthlyFeeCollection } from "@/lib/reports";
+import { SystemHealthCards } from "@/components/enterprise/system-health-cards";
+import { evaluateStoredLicense } from "@/lib/licensing/service";
+import { countLicenseUsage } from "@/lib/licensing/usage";
 
 async function getDashboardData(schoolId: string | null) {
   const filter = schoolId ? { schoolId } : {};
@@ -74,6 +77,49 @@ export default async function AdminDashboardPage() {
   const { stats, enrollmentData, feeData, recentStudents, announcements } =
     await getDashboardData(schoolId);
 
+  let health = null;
+  if (schoolId) {
+    const [evaluation, usage, license, lastBackup, lastImport] = await Promise.all([
+      evaluateStoredLicense(schoolId),
+      countLicenseUsage(schoolId),
+      prisma.schoolLicense.findUnique({ where: { schoolId } }),
+      prisma.backupJob.findFirst({
+        where: { schoolId, status: { in: ["SUCCEEDED", "VERIFIED"] } },
+        orderBy: { completedAt: "desc" },
+      }),
+      prisma.importJob.findFirst({
+        where: { schoolId, providerCode: "sa-sams" },
+        orderBy: { createdAt: "desc" },
+        include: { batches: { take: 1, orderBy: { createdAt: "desc" } } },
+      }),
+    ]);
+    health = {
+      licence: {
+        status: evaluation.effectiveStatus,
+        restricted: evaluation.restricted,
+        expiry: license?.expiresAt?.toISOString() ?? null,
+        usage: {
+          learners: { used: usage.activeLearners, max: license?.maxLearners ?? null },
+          educators: { used: usage.educators, max: license?.maxEducators ?? null },
+        },
+        warnings: evaluation.warnings,
+      },
+      backups: {
+        lastSuccessful: lastBackup?.completedAt?.toISOString() ?? null,
+        next: null,
+        health: lastBackup ? "healthy" : "missing",
+      },
+      integrations: {
+        provider: "SA-SAMS",
+        lastImport: (lastImport?.importedAt ?? lastImport?.createdAt)?.toISOString() ?? null,
+        status: lastImport?.status ?? "NONE",
+        recordsImported: lastImport?.batches[0]
+          ? lastImport.batches[0].createdCount + lastImport.batches[0].updatedCount
+          : 0,
+      },
+    };
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -82,6 +128,8 @@ export default async function AdminDashboardPage() {
           Welcome back, {session!.firstName}. Here&apos;s your school overview.
         </p>
       </div>
+
+      {health && <SystemHealthCards health={health} />}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard

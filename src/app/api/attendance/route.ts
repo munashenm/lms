@@ -6,6 +6,7 @@ import { attendanceBulkSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { getTeacherForSession } from "@/lib/portal-data";
 import { buildAttendanceSessionKey } from "@/lib/attendance";
+import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -64,6 +65,12 @@ export async function POST(request: NextRequest) {
     date,
     records,
   } = parsed.data;
+
+  const schoolId = session!.schoolId ?? (await getTeacherForSession(session!))?.schoolId;
+  if (schoolId) {
+    const guard = await licenseWriteGuard({ schoolId, feature: "attendance", action: "write" });
+    if (!guard.ok) return licenseDeniedResponse(guard);
+  }
 
   const attendanceDate = new Date(date);
   const teacher = await getTeacherForSession(session);

@@ -7,6 +7,7 @@ import {
   AcademicPeriodStructure,
   AcademicSessionStatus,
   AcademicPeriodStatus,
+  BackupScheduleFrequency,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -20,6 +21,27 @@ async function main() {
   console.log("🌱 Seeding SchoolHub SA demo data...");
 
   // Clean existing data (dev only)
+  await prisma.importError.deleteMany();
+  await prisma.importStagingRecord.deleteMany();
+  await prisma.externalRecordMapping.deleteMany();
+  await prisma.importBatch.deleteMany();
+  await prisma.importJob.deleteMany();
+  await prisma.importFieldMapping.deleteMany();
+  await prisma.restoreJob.deleteMany();
+  await prisma.backupFile.deleteMany();
+  await prisma.backupJob.deleteMany();
+  await prisma.backupSchedule.deleteMany();
+  await prisma.licenseCheck.deleteMany();
+  await prisma.licenseFeature.deleteMany();
+  await prisma.schoolLicense.deleteMany();
+  await prisma.licenseInstallation.deleteMany();
+  await prisma.licenseActivation.deleteMany();
+  await prisma.issuedLicense.deleteMany();
+  await prisma.licensePlan.deleteMany();
+  await prisma.licenseProduct.deleteMany();
+  await prisma.licenseCustomer.deleteMany();
+  await prisma.licenseServerAudit.deleteMany();
+  await prisma.integrationProvider.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.announcement.deleteMany();
@@ -75,6 +97,116 @@ async function main() {
       popiaConsentText:
         "I consent to the collection and processing of my personal information in accordance with POPIA.",
     },
+  });
+
+  await prisma.licenseProduct.createMany({
+    data: [
+      { code: "lms", name: "SchoolHub SA LMS" },
+      { code: "lawyer_management", name: "Lawyer Management System" },
+      { code: "workflow", name: "Workflow System" },
+      { code: "pos", name: "Point of Sale" },
+      { code: "school_management", name: "School Management System" },
+    ],
+  });
+
+  const lmsProduct = await prisma.licenseProduct.findUnique({ where: { code: "lms" } });
+  if (lmsProduct) {
+    await prisma.licensePlan.create({
+      data: {
+        productId: lmsProduct.id,
+        code: "trial",
+        name: "Trial",
+        defaultGraceDays: 14,
+        defaultLimits: { maxLearners: 1000, maxEducators: 80, maxAdministrators: 20, maxCampuses: 3 },
+        defaultFeatures: {
+          student_portal: true,
+          parent_portal: true,
+          teacher_portal: true,
+          admissions: true,
+          finance: true,
+          assessments: true,
+          attendance: true,
+          timetable: true,
+          library: false,
+          reporting: true,
+          ai_features: false,
+          sms: true,
+          whatsapp: false,
+          biometrics: false,
+          api_access: false,
+          advanced_analytics: true,
+        },
+      },
+    });
+  }
+
+  await prisma.licenseInstallation.create({
+    data: {
+      schoolId: school.id,
+      installationId: "demo-install-cyber-college",
+      registeredDomain: "http://localhost:3000",
+    },
+  });
+
+  const trialEnds = new Date("2027-12-31");
+  const license = await prisma.schoolLicense.create({
+    data: {
+      schoolId: school.id,
+      productCode: "lms",
+      productName: "SchoolHub SA LMS",
+      planCode: "trial",
+      planName: "Trial",
+      licenseKey: "SHSA-DEMO-TRIAL-0001",
+      status: "TRIAL",
+      issuedAt: new Date(),
+      startsAt: new Date(),
+      expiresAt: trialEnds,
+      gracePeriodDays: 14,
+      maxLearners: 1000,
+      maxEducators: 80,
+      maxAdministrators: 20,
+      maxCampuses: 3,
+      featuresJson: {
+        student_portal: true,
+        parent_portal: true,
+        teacher_portal: true,
+        admissions: true,
+        finance: true,
+        assessments: true,
+        attendance: true,
+        timetable: true,
+        library: false,
+        reporting: true,
+        ai_features: false,
+        sms: true,
+        whatsapp: false,
+        biometrics: false,
+        api_access: false,
+        advanced_analytics: true,
+      },
+      installationId: "demo-install-cyber-college",
+      lastVerifiedAt: new Date(),
+      nextVerificationAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    },
+  });
+  await prisma.licenseFeature.createMany({
+    data: [
+      "student_portal", "parent_portal", "teacher_portal", "admissions", "finance",
+      "assessments", "attendance", "timetable", "library", "reporting", "ai_features",
+      "sms", "whatsapp", "biometrics", "api_access", "advanced_analytics",
+    ].map((featureKey) => ({
+      licenseId: license.id,
+      featureKey,
+      enabled: !["library", "ai_features", "whatsapp", "biometrics", "api_access"].includes(featureKey),
+    })),
+  });
+
+  await prisma.backupSchedule.createMany({
+    data: [
+      { schoolId: school.id, frequency: BackupScheduleFrequency.DAILY, retainCount: 14, enabled: true, nextRunAt: new Date(Date.now() + 86400000) },
+      { schoolId: school.id, frequency: BackupScheduleFrequency.WEEKLY, retainCount: 8, enabled: true, nextRunAt: new Date(Date.now() + 7 * 86400000) },
+      { schoolId: school.id, frequency: BackupScheduleFrequency.MONTHLY, retainCount: 12, enabled: false, nextRunAt: new Date(Date.now() + 30 * 86400000) },
+    ],
   });
 
   const campus = await prisma.campus.create({
