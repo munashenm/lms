@@ -63,6 +63,7 @@ export function canLearnerResubmit(opts: {
 
 export type ExamWindow = "UPCOMING" | "AVAILABLE" | "COMPLETED";
 
+/** Listing helper only. Online sitting / question delivery is a future `online_exams` module. */
 export function examWindow(opts: {
   availableFrom?: Date | string | null;
   dueDate?: Date | string | null;

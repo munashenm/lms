@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { evaluateLicense, learnerLimitReached } from "@/lib/licensing/evaluate";
 import { generateLicenseKeyPair, signLicenseClaims, verifyLicenseToken } from "@/lib/licensing/crypto";
 import { LEARNER_LIMIT_MESSAGE, type LicenseClaims } from "@/lib/licensing/types";
-import { DEFAULT_LICENSE_FEATURES } from "@/lib/licensing/features";
+import { DEFAULT_LICENSE_FEATURES, isFutureLicenseFeature, LICENSE_FEATURE_KEYS } from "@/lib/licensing/features";
 import { canAccessSchool, hasPermission } from "@/lib/rbac";
 import { UserRole } from "@prisma/client";
 import type { SessionPayload } from "@/lib/auth";
@@ -233,6 +233,25 @@ describe("portal feature flags", () => {
     expect(navHrefFeature("/staff/attendance")).toBe("attendance");
     expect(navHrefFeature("/admin/visitors")).toBe("visitor_management");
     expect(navHrefFeature("/staff/visitors")).toBe("visitor_management");
+  });
+
+  it("reserves online examinations as a future module without hiding exam listings", () => {
+    expect(LICENSE_FEATURE_KEYS).toContain("online_exams");
+    expect(DEFAULT_LICENSE_FEATURES.online_exams).toBe(false);
+    expect(isFutureLicenseFeature("online_exams")).toBe(true);
+    expect(isFutureLicenseFeature("assessments")).toBe(false);
+    expect(navHrefFeature("/student/exams")).toBe("assessments");
+    expect(navHrefFeature("/parent/exams")).toBe("assessments");
+    const evaluation = evaluateLicense({
+      now: new Date("2026-06-15T00:00:00Z"),
+      claims: claims({ features: { ...DEFAULT_LICENSE_FEATURES, online_exams: false } }),
+      signatureValid: true,
+      lastVerifiedAt: new Date(),
+      storedStatus: "ACTIVE",
+      offlineGraceDays: 14,
+    });
+    const nav = filterNavByLicense(studentNav, evaluation);
+    expect(nav.some((item) => item.href === "/student/exams")).toBe(true);
   });
 
   it("uses a restricted banner after expiry", () => {

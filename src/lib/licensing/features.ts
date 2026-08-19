@@ -21,6 +21,7 @@ export const LICENSE_FEATURE_KEYS = [
   "student_leave",
   "visitor_management",
   "messaging",
+  "online_exams",
 ] as const;
 
 export type LicenseFeatureKey = (typeof LICENSE_FEATURE_KEYS)[number];
@@ -48,6 +49,7 @@ export const LICENSE_FEATURE_LABELS: Record<LicenseFeatureKey, string> = {
   student_leave: "Learner Leave",
   visitor_management: "Visitor Management",
   messaging: "Internal Messaging",
+  online_exams: "Online Examinations",
 };
 
 export const DEFAULT_LICENSE_FEATURES: Record<LicenseFeatureKey, boolean> = {
@@ -73,7 +75,19 @@ export const DEFAULT_LICENSE_FEATURES: Record<LicenseFeatureKey, boolean> = {
   student_leave: true,
   visitor_management: true,
   messaging: false,
+  online_exams: false,
 };
+
+export const FUTURE_LICENSE_FEATURES: readonly LicenseFeatureKey[] = ["online_exams"];
+
+export const LICENSE_FEATURE_NOTES: Partial<Record<LicenseFeatureKey, string>> = {
+  online_exams:
+    "Future module. Exam dates, venues and instructions are available now. Sitting a paper in the portal is not built yet.",
+};
+
+export function isFutureLicenseFeature(key: string): boolean {
+  return (FUTURE_LICENSE_FEATURES as readonly string[]).includes(key);
+}
 
 export function normalizeFeatures(
   input?: Record<string, boolean> | null

@@ -14,7 +14,7 @@ import {
   licenseServerUrl,
 } from "@/lib/licensing/service";
 import { getLicensePublicKey, verifyLicenseToken } from "@/lib/licensing/crypto";
-import { LICENSE_FEATURE_LABELS } from "@/lib/licensing/features";
+import { LICENSE_FEATURE_LABELS, LICENSE_FEATURE_NOTES, isFutureLicenseFeature } from "@/lib/licensing/features";
 import { UserRole } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
@@ -83,6 +83,8 @@ export async function GET(request: NextRequest) {
             key: f.featureKey,
             label: LICENSE_FEATURE_LABELS[f.featureKey as keyof typeof LICENSE_FEATURE_LABELS] ?? f.featureKey,
             enabled: f.enabled,
+            future: isFutureLicenseFeature(f.featureKey),
+            note: LICENSE_FEATURE_NOTES[f.featureKey as keyof typeof LICENSE_FEATURE_NOTES] ?? null,
           })),
         }
       : null,

@@ -50,7 +50,8 @@ export default async function StudentExamsPage() {
       <div>
         <h1 className="text-2xl font-bold">Examinations</h1>
         <p className="text-muted text-sm mt-1">
-          Published examinations for your programme. Questions are not shown before the start time.
+          Published examinations for your programme: dates, venues and office instructions. Sitting a
+          paper online is a future module — questions are not shown here.
         </p>
       </div>
       {(["AVAILABLE", "UPCOMING", "COMPLETED"] as const).map((key) => (
@@ -79,7 +80,7 @@ export default async function StudentExamsPage() {
                   {key === "AVAILABLE" ? (
                     <p className="text-muted whitespace-pre-wrap">{exam.description || "Follow your teacher’s instructions to sit this exam."}</p>
                   ) : key === "UPCOMING" ? (
-                    <p className="text-muted">Instructions and questions will be available when the exam opens.</p>
+                    <p className="text-muted">Venue and office instructions will be confirmed when the sitting opens.</p>
                   ) : (
                     <p className="text-muted">This sitting has closed. Results appear under Results once published.</p>
                   )}

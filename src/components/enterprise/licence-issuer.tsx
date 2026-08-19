@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { LICENSE_FEATURE_KEYS, LICENSE_FEATURE_LABELS, DEFAULT_LICENSE_FEATURES } from "@/lib/licensing/features";
+import { LICENSE_FEATURE_KEYS, LICENSE_FEATURE_LABELS, LICENSE_FEATURE_NOTES, DEFAULT_LICENSE_FEATURES, isFutureLicenseFeature } from "@/lib/licensing/features";
 import { formatDate } from "@/lib/utils";
 
 type Issued = {
@@ -223,7 +223,7 @@ export function LicenceIssuer() {
             <div>
               <p className="text-sm font-medium mb-2">Modules</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                {LICENSE_FEATURE_KEYS.map((key) => (
+                {LICENSE_FEATURE_KEYS.filter((key) => !isFutureLicenseFeature(key)).map((key) => (
                   <label key={key} className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -236,6 +236,36 @@ export function LicenceIssuer() {
                       }
                     />
                     {LICENSE_FEATURE_LABELS[key]}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-1">Future modules</p>
+              <p className="text-xs text-muted mb-2">
+                Reserved in the licence catalogue. Leave off until the module ships — enabling it
+                now does not unlock a player or question bank.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                {LICENSE_FEATURE_KEYS.filter((key) => isFutureLicenseFeature(key)).map((key) => (
+                  <label key={key} className="flex items-start gap-2 rounded-lg border border-border px-3 py-2">
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={form.features[key]}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          features: { ...form.features, [key]: e.target.checked },
+                        })
+                      }
+                    />
+                    <span>
+                      <span className="font-medium">{LICENSE_FEATURE_LABELS[key]}</span>
+                      {LICENSE_FEATURE_NOTES[key] ? (
+                        <span className="block text-xs text-muted">{LICENSE_FEATURE_NOTES[key]}</span>
+                      ) : null}
+                    </span>
                   </label>
                 ))}
               </div>

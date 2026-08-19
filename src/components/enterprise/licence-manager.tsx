@@ -31,7 +31,7 @@ type LicensePayload = {
       campuses: { used: number; max: number | null };
       storage: { used: number; max: string | null };
     };
-    features: { key: string; label: string; enabled: boolean }[];
+    features: { key: string; label: string; enabled: boolean; future?: boolean; note?: string | null }[];
   } | null;
   evaluation: {
     effectiveStatus: string;
@@ -214,8 +214,15 @@ export function LicenceManager({ schoolId }: { schoolId?: string }) {
             {license.features.map((f) => (
               <Badge key={f.key} variant={f.enabled ? "success" : "secondary"}>
                 {f.label}
+                {f.future ? " · future" : ""}
               </Badge>
             ))}
+            {license.features.some((f) => f.future) ? (
+              <p className="w-full text-xs text-muted mt-2">
+                {license.features.find((f) => f.future)?.note ??
+                  "Future modules are reserved on the licence. They do not unlock unfinished product features."}
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       )}
