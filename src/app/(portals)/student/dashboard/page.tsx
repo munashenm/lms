@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AnnouncementList } from "@/components/announcements/announcement-list";
 import { PayOnlineButton } from "@/components/finance/pay-online-button";
+import { StudentCardButton } from "@/components/students/student-card-button";
+import { StudentBarcode } from "@/components/learner/student-barcode";
 import { formatZAR, formatDate, getInitials } from "@/lib/utils";
 import {
   BookOpen,
@@ -34,7 +36,7 @@ export default async function StudentDashboardPage() {
             {getInitials(student?.firstName ?? session!.firstName, student?.lastName ?? session!.lastName)}
           </AvatarFallback>
         </Avatar>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">
             Welcome back, {student?.firstName ?? session!.firstName}
           </h1>
@@ -47,7 +49,24 @@ export default async function StudentDashboardPage() {
             {student?.campus?.name ? <span>{student.campus.name}</span> : null}
           </p>
         </div>
+        {student?.studentNumber ? (
+          <StudentCardButton href="/api/me/card" studentNumber={student.studentNumber} />
+        ) : null}
       </div>
+
+      {student?.studentNumber ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Student ID</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm text-muted">
+              Present this barcode at the school gate or office. Download the PDF card for printing.
+            </p>
+            <StudentBarcode value={student.studentNumber} />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         <Link href="/student/attendance"><StatCard title="Attendance" value={`${data?.attendance.percentage ?? 100}%`} subtitle={`${data?.attendance.present ?? 0} present`} icon={ClipboardCheck} /></Link>

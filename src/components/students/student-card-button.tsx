@@ -6,20 +6,17 @@ import { IdCard, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface StudentCardButtonProps {
-  studentId: string;
+  href: string;
   studentNumber: string;
 }
 
-export function StudentCardButton({
-  studentId,
-  studentNumber,
-}: StudentCardButtonProps) {
+export function StudentCardButton({ href, studentNumber }: StudentCardButtonProps) {
   const [loading, setLoading] = useState(false);
 
   async function download() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/students/${studentId}/card`);
+      const res = await fetch(href);
       if (!res.ok) throw new Error();
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -38,11 +35,7 @@ export function StudentCardButton({
 
   return (
     <Button type="button" variant="outline" onClick={download} disabled={loading}>
-      {loading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <IdCard className="h-4 w-4" />
-      )}
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <IdCard className="h-4 w-4" />}
       Student Card
     </Button>
   );

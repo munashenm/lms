@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { LearnerProfileForm } from "@/components/learner/profile-form";
+import { StudentCardButton } from "@/components/students/student-card-button";
+import { StudentBarcode } from "@/components/learner/student-barcode";
 import { formatDate, getInitials } from "@/lib/utils";
 import { maskIdentityNumber } from "@/lib/learner-portal";
 
@@ -29,7 +31,7 @@ export default async function StudentProfilePage() {
           <CardTitle className="text-base">Personal information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <Avatar className="h-16 w-16">
               {student.photoUrl ? <AvatarImage src={student.photoUrl} alt="" /> : null}
               <AvatarFallback>{getInitials(student.firstName, student.lastName)}</AvatarFallback>
@@ -38,7 +40,9 @@ export default async function StudentProfilePage() {
               <p className="font-semibold">{student.firstName} {student.lastName}</p>
               <p className="text-sm text-muted">{student.studentNumber}</p>
             </div>
+            <StudentCardButton href="/api/me/card" studentNumber={student.studentNumber} />
           </div>
+          <StudentBarcode value={student.studentNumber} />
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div><dt className="text-muted">Date of birth</dt><dd>{student.dateOfBirth ? formatDate(student.dateOfBirth) : "—"}</dd></div>
             <div><dt className="text-muted">Gender</dt><dd>{student.gender ?? "—"}</dd></div>

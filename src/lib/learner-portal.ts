@@ -89,6 +89,15 @@ export function nextAbsenceStatus(
   return null;
 }
 
+export function absenceRangesOverlap(
+  aFrom: Date,
+  aTo: Date,
+  bFrom: Date,
+  bTo: Date
+): boolean {
+  return aFrom.getTime() <= bTo.getTime() && bFrom.getTime() <= aTo.getTime();
+}
+
 export function teacherTeachesLearner(opts: {
   learnerClassId: string | null;
   teacherId: string;

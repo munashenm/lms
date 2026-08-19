@@ -2,6 +2,8 @@ import { getSession } from "@/lib/auth";
 import { getGuardianForSession } from "@/lib/portal-data";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StudentCardButton } from "@/components/students/student-card-button";
+import { StudentBarcode } from "@/components/learner/student-barcode";
 
 export default async function ParentChildrenPage() {
   const session = await getSession();
@@ -45,6 +47,11 @@ export default async function ParentChildrenPage() {
                 {sg.relationship && (
                   <p className="text-xs text-muted">Relationship: {sg.relationship}</p>
                 )}
+                <StudentBarcode value={sg.student.studentNumber} />
+                <StudentCardButton
+                  href={`/api/me/card?studentId=${sg.student.id}`}
+                  studentNumber={sg.student.studentNumber}
+                />
               </CardContent>
             </Card>
           ))}

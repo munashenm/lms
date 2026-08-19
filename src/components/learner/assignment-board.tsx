@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { assignmentLearnerStatus, canLearnerResubmit, type AssignmentLearnerStatus } from "@/lib/learner-portal";
@@ -61,7 +61,7 @@ export function AssignmentBoard({ assignments }: { assignments: LearnerAssignmen
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("pending");
   const [loading, setLoading] = useState<string | null>(null);
   const [content, setContent] = useState<Record<string, string>>({});
-  const [fileUrl, setFileUrl] = useState<Record<string, string>>({});
+  const [files, setFiles] = useState<Record<string, File | undefined>>({});
 
   const items = useMemo(
     () =>
@@ -81,15 +81,20 @@ export function AssignmentBoard({ assignments }: { assignments: LearnerAssignmen
   const visible = items.filter((a) => matchesTab(a.status, tab));
 
   async function handleSubmit(assignment: LearnerAssignmentItem) {
+    const text = (content[assignment.assignmentId] ?? assignment.content ?? "").trim();
+    const file = files[assignment.assignmentId];
+    if (!text && !file && !assignment.fileUrl) {
+      toast.error("Add written work or attach a file before submitting.");
+      return;
+    }
     setLoading(assignment.assignmentId);
     try {
+      const form = new FormData();
+      form.append("content", text);
+      if (file) form.append("file", file);
       const res = await fetch(`/api/assignments/${assignment.assignmentId}/submit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: content[assignment.assignmentId] || assignment.content || "",
-          fileUrl: fileUrl[assignment.assignmentId] || assignment.fileUrl || null,
-        }),
+        body: form,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message ?? "Submission failed");
@@ -164,13 +169,30 @@ export function AssignmentBoard({ assignments }: { assignments: LearnerAssignmen
                         setContent((prev) => ({ ...prev, [a.assignmentId]: e.target.value }))
                       }
                     />
-                    <Input
-                      placeholder="Attachment URL (optional)"
-                      value={fileUrl[a.assignmentId] ?? a.fileUrl ?? ""}
-                      onChange={(e) =>
-                        setFileUrl((prev) => ({ ...prev, [a.assignmentId]: e.target.value }))
-                      }
-                    />
+                    {a.fileUrl ? (
+                      <p className="text-xs text-muted">
+                        Current file:{" "}
+                        <a href={a.fileUrl} className="text-primary hover:underline" target="_blank" rel="noreferrer">
+                          Download attachment
+                        </a>
+                      </p>
+                    ) : null}
+                    <div className="space-y-2">
+                      <Label htmlFor={`homework-file-${a.assignmentId}`}>Attachment (optional)</Label>
+                      <input
+                        id={`homework-file-${a.assignmentId}`}
+                        type="file"
+                        accept=".pdf,.doc,.docx,.txt,.zip,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                        className="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-surface file:px-3 file:py-1.5 file:text-sm"
+                        onChange={(e) =>
+                          setFiles((prev) => ({
+                            ...prev,
+                            [a.assignmentId]: e.target.files?.[0],
+                          }))
+                        }
+                      />
+                      <p className="text-xs text-muted">PDF, Word, text, ZIP or image. Max 10 MB.</p>
+                    </div>
                     <Button
                       onClick={() => handleSubmit(a)}
                       disabled={loading === a.assignmentId}

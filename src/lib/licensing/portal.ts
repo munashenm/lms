@@ -39,7 +39,13 @@ export function navHrefFeature(href: string): LicenseFeatureKey | null {
   if (href.includes("/timetable")) return "timetable";
   if (href.includes("/reviews")) return "teacher_reviews";
   if (href.includes("/downloads")) return "download_centre";
-  if (href.includes("/learner-leave") || href === "/student/leave" || href.startsWith("/student/leave/")) {
+  if (
+    href.includes("/learner-leave") ||
+    href === "/student/leave" ||
+    href.startsWith("/student/leave/") ||
+    href === "/parent/leave" ||
+    href.startsWith("/parent/leave/")
+  ) {
     return "student_leave";
   }
   if (href.includes("/visitor")) return "visitor_management";

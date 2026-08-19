@@ -1,9 +1,10 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFPage } from "pdf-lib";
 import {
   drawBrandedFooter,
   embedSchoolLogo,
   type SchoolBrand,
 } from "./pdf-branding";
+import { encodeCode39 } from "./code39";
 
 export interface StudentCardData {
   brand: SchoolBrand;
@@ -180,13 +181,43 @@ export async function generateStudentCardPdf(
     });
   }
 
+  drawCode39Barcode(page, {
+    value: data.studentNumber,
+    x: 28,
+    y: 44,
+    width: width - 56,
+    height: 26,
+  });
+
   drawBrandedFooter({
     page,
     brand,
     font,
-    y: 28,
+    y: 22,
     color: rgb(0.4, 0.42, 0.48),
   });
 
   return doc.save();
+}
+
+function drawCode39Barcode(
+  page: PDFPage,
+  opts: { value: string; x: number; y: number; width: number; height: number }
+) {
+  const { bits } = encodeCode39(opts.value);
+  if (bits.length === 0) return;
+  const moduleWidth = opts.width / bits.length;
+  let x = opts.x;
+  for (const bit of bits) {
+    if (bit === "1") {
+      page.drawRectangle({
+        x,
+        y: opts.y,
+        width: Math.max(moduleWidth, 0.4),
+        height: opts.height,
+        color: rgb(0.07, 0.09, 0.15),
+      });
+    }
+    x += moduleWidth;
+  }
 }

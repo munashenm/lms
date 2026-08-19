@@ -166,6 +166,7 @@ export const parentNav: NavItem[] = [
   { label: "My Children", href: "/parent/children", icon: "Users" },
   { label: "Fees", href: "/parent/fees", icon: "CreditCard" },
   { label: "Attendance", href: "/parent/attendance", icon: "ClipboardCheck" },
+  { label: "Apply Leave", href: "/parent/leave", icon: "Palmtree" },
   { label: "Results", href: "/parent/results", icon: "Award" },
   { label: "Report Cards", href: "/parent/report-cards", icon: "Award" },
   { label: "Assignments", href: "/parent/assignments", icon: "FileText" },

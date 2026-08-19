@@ -104,7 +104,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <StudentCardButton
-            studentId={student.id}
+            href={`/api/students/${student.id}/card`}
             studentNumber={student.studentNumber}
           />
           {canExportPopia && <StudentExportButton studentId={student.id} />}

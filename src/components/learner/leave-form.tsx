@@ -11,7 +11,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { STUDENT_ABSENCE_TYPE_LABELS } from "@/lib/learner-portal";
 
-export function LearnerLeaveForm({ guardianRequired }: { guardianRequired: boolean }) {
+export function LearnerLeaveForm({
+  guardianRequired,
+  endpoint = "/api/me/leave",
+  studentId,
+}: {
+  guardianRequired: boolean;
+  endpoint?: string;
+  studentId?: string;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -31,10 +39,11 @@ export function LearnerLeaveForm({ guardianRequired }: { guardianRequired: boole
     setLoading(true);
     const form = new FormData(e.currentTarget);
     try {
-      const res = await fetch("/api/me/leave", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          studentId,
           type: form.get("type"),
           fromDate: form.get("fromDate"),
           toDate: form.get("toDate"),

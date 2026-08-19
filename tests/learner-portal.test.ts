@@ -7,13 +7,17 @@ import {
   examWindow,
   maskIdentityNumber,
   nextAbsenceStatus,
+  absenceRangesOverlap,
   teacherTeachesLearner,
 } from "@/lib/learner-portal";
 import { paymentBelongsToStudent } from "@/lib/refund-payment";
 import { filterNavByLicense, navHrefFeature } from "@/lib/licensing/portal";
-import { studentNav } from "@/lib/navigation";
+import { parentNav, studentNav } from "@/lib/navigation";
 import { DEFAULT_LICENSE_FEATURES } from "@/lib/licensing/features";
 import { evaluateLicense } from "@/lib/licensing/evaluate";
+import { encodeCode39, sanitizeCode39 } from "@/lib/code39";
+import { linkedStudentIdsOrForbidden, resolveLinkedStudentId } from "@/lib/parent-scope";
+import { homeworkFileExtension } from "@/lib/homework-upload";
 
 describe("assignment learner status", () => {
   const due = new Date("2026-08-10T12:00:00Z");
@@ -149,6 +153,8 @@ describe("learner licence mapping", () => {
     expect(navHrefFeature("/student/reviews")).toBe("teacher_reviews");
     expect(navHrefFeature("/student/downloads")).toBe("download_centre");
     expect(navHrefFeature("/student/leave")).toBe("student_leave");
+    expect(navHrefFeature("/parent/leave")).toBe("student_leave");
+    expect(navHrefFeature("/staff/leave")).toBe("hr_payroll");
     expect(navHrefFeature("/student/dashboard")).toBeNull();
   });
 
@@ -191,5 +197,96 @@ describe("learner licence mapping", () => {
     expect(nav.some((item) => item.href === "/student/profile")).toBe(true);
     expect(nav.some((item) => item.href.includes("visitor"))).toBe(false);
     expect(nav.some((item) => item.href.includes("messages"))).toBe(false);
+  });
+
+  it("hides parent leave when the learner-leave licence is off", () => {
+    const evaluation = evaluateLicense({
+      now: new Date("2026-06-15T00:00:00Z"),
+      claims: {
+        iss: "test",
+        sub: "sch",
+        product: "lms",
+        licenseKey: "k",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        gracePeriodDays: 14,
+        status: "ACTIVE",
+        features: {
+          ...DEFAULT_LICENSE_FEATURES,
+          student_leave: false,
+        },
+        limits: {
+          maxLearners: null,
+          maxEducators: null,
+          maxAdministrators: null,
+          maxCampuses: null,
+          storageLimitBytes: null,
+        },
+      },
+      signatureValid: true,
+      lastVerifiedAt: new Date(),
+      storedStatus: "ACTIVE",
+      offlineGraceDays: 14,
+    });
+    const nav = filterNavByLicense(parentNav, evaluation);
+    expect(nav.some((item) => item.href === "/parent/leave")).toBe(false);
+    expect(nav.some((item) => item.href === "/parent/dashboard")).toBe(true);
+  });
+});
+
+describe("parent child scope", () => {
+  it("never returns an unlinked child id", () => {
+    expect(resolveLinkedStudentId(["a", "b"], "c")).toBeNull();
+    expect(resolveLinkedStudentId(["a", "b"], "a")).toBe("a");
+    expect(resolveLinkedStudentId(["a"], undefined)).toBe("a");
+    expect(resolveLinkedStudentId(["a", "b"], undefined)).toBeNull();
+  });
+
+  it("rejects a requested id that is not in the linked set", () => {
+    expect(linkedStudentIdsOrForbidden(["a", "b"], "z")).toEqual({ ok: false, reason: "forbidden" });
+    expect(linkedStudentIdsOrForbidden(["a", "b"], "b")).toEqual({ ok: true, studentIds: ["b"] });
+    expect(linkedStudentIdsOrForbidden(["a", "b"])).toEqual({ ok: true, studentIds: ["a", "b"] });
+  });
+});
+
+describe("Code 39 learner barcode", () => {
+  it("wraps values with start/stop and a predictable unit width", () => {
+    expect(sanitizeCode39("st-01/a")).toBe("ST-01/A");
+    const { bits, display } = encodeCode39("A");
+    expect(display).toBe("A");
+    // * A * = 3 symbols × 15 units + 2 inter-character gaps
+    expect(bits.length).toBe(47);
+    expect(bits.startsWith("1")).toBe(true);
+    expect(bits.endsWith("1")).toBe(true);
+  });
+
+  it("replaces characters that Code 39 cannot encode", () => {
+    expect(sanitizeCode39("id#99")).toBe("ID-99");
+  });
+});
+
+describe("leave overlap and homework files", () => {
+  it("detects overlapping absence ranges", () => {
+    expect(
+      absenceRangesOverlap(
+        new Date("2026-08-10"),
+        new Date("2026-08-12"),
+        new Date("2026-08-12"),
+        new Date("2026-08-14")
+      )
+    ).toBe(true);
+    expect(
+      absenceRangesOverlap(
+        new Date("2026-08-10"),
+        new Date("2026-08-11"),
+        new Date("2026-08-12"),
+        new Date("2026-08-14")
+      )
+    ).toBe(false);
+  });
+
+  it("accepts common homework file extensions", () => {
+    expect(homeworkFileExtension("essay.PDF")).toBe(".pdf");
+    expect(homeworkFileExtension("notes.docx")).toBe(".docx");
   });
 });

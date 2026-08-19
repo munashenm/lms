@@ -6,6 +6,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AnnouncementList } from "@/components/announcements/announcement-list";
+import { StudentCardButton } from "@/components/students/student-card-button";
 import { getOutstandingBalance } from "@/lib/finance";
 import { formatZAR } from "@/lib/utils";
 import { ClipboardCheck, CreditCard, FileText, Users } from "lucide-react";
@@ -88,7 +89,7 @@ export default async function ParentDashboardPage() {
           <CardContent className="space-y-3">
             {guardian?.students.length ? (
               guardian.students.map((sg) => (
-                <div key={sg.studentId} className="flex items-center justify-between text-sm">
+                <div key={sg.studentId} className="flex items-center justify-between gap-3 text-sm">
                   <div>
                     <p className="font-medium">
                       {sg.student.firstName} {sg.student.lastName}
@@ -98,6 +99,10 @@ export default async function ParentDashboardPage() {
                       {sg.student.class?.name && ` · ${sg.student.class.name}`}
                     </p>
                   </div>
+                  <StudentCardButton
+                    href={`/api/me/card?studentId=${sg.student.id}`}
+                    studentNumber={sg.student.studentNumber}
+                  />
                 </div>
               ))
             ) : (
@@ -118,7 +123,7 @@ export default async function ParentDashboardPage() {
               <Link href="/parent/fees">Fees</Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
-              <Link href="/parent/attendance">Attendance</Link>
+              <Link href="/parent/leave">Apply leave</Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link href="/parent/results">Results</Link>

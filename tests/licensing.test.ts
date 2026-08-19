@@ -227,6 +227,7 @@ describe("portal feature flags", () => {
 
   it("treats staff self-service leave as an HR/Payroll feature", () => {
     expect(navHrefFeature("/staff/leave")).toBe("hr_payroll");
+    expect(navHrefFeature("/parent/leave")).toBe("student_leave");
     expect(navHrefFeature("/staff/payslips")).toBe("hr_payroll");
     expect(navHrefFeature("/staff/timesheets")).toBe("hr_payroll");
     expect(navHrefFeature("/staff/attendance")).toBe("attendance");

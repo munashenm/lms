@@ -660,6 +660,10 @@ export const studentAbsenceSchema = z.object({
   documentUrl: z.string().optional().nullable(),
 });
 
+export const parentStudentAbsenceSchema = studentAbsenceSchema.extend({
+  studentId: z.string().min(1),
+});
+
 export const studentAbsenceReviewSchema = z.object({
   action: z.enum(["approve", "reject"]),
   reviewNote: z.string().optional().nullable(),

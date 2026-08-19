@@ -3,25 +3,25 @@ import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import {
   buildStudentCardResponse,
-  sessionCanAccessStudentCard,
+  resolvePortalCardStudentId,
 } from "@/lib/student-card";
 
-interface RouteParams {
-  params: Promise<{ id: string }>;
-}
-
-export async function GET(_request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
-  if (!(await sessionCanAccessStudentCard(session, id))) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+  const requestedId = request.nextUrl.searchParams.get("studentId");
+  const resolved = await resolvePortalCardStudentId(session, requestedId);
+  if (!resolved.ok) {
+    return NextResponse.json({ message: resolved.message }, { status: resolved.status });
   }
 
-  const built = await buildStudentCardResponse({ studentId: id, session });
+  const built = await buildStudentCardResponse({
+    studentId: resolved.studentId,
+    session,
+  });
   if (!built) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
@@ -32,7 +32,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     action: "READ",
     entity: "StudentCard",
     entityId: built.student.id,
-    metadata: { studentNumber: built.student.studentNumber },
+    metadata: { studentNumber: built.student.studentNumber, via: "me" },
   });
 
   return new NextResponse(Buffer.from(built.pdf), {
