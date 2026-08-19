@@ -76,8 +76,57 @@ export const studentGuardianSchema = z.object({
 });
 
 export const studentPatchSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(100).optional(),
+  lastName: z.string().min(1, "Last name is required").max(100).optional(),
+  saIdNumber: z
+    .string()
+    .optional()
+    .refine((val) => !val || validateSAIdNumber(val), {
+      message: "Invalid 13-digit SA ID number",
+    }),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z
+    .string()
+    .optional()
+    .refine((val) => !val || validateSAPhone(val), {
+      message: "Phone must be 10 digits starting with 0",
+    }),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]).optional().or(z.literal("")),
+  gradeId: z.string().optional(),
+  classId: z.string().optional(),
+  campusId: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  province: z.string().optional(),
+  postalCode: z.string().optional(),
   status: z.enum(["APPLICANT", "ACTIVE", "SUSPENDED", "GRADUATED", "WITHDRAWN"]).optional(),
   invitePortal: z.boolean().optional(),
+});
+
+export const teacherPatchSchema = z.object({
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().optional(),
+  department: z.string().optional(),
+  campusId: z.string().optional(),
+  status: z.enum(["ACTIVE", "ON_LEAVE", "TERMINATED"]).optional(),
+  invitePortal: z.boolean().optional(),
+});
+
+export const userInviteSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(100),
+  lastName: z.string().min(1, "Last name is required").max(100),
+  email: z.string().email("Enter a valid email address"),
+  phone: z.string().optional().or(z.literal("")),
+  role: z.enum(["STAFF", "FINANCE_OFFICER", "HR_OFFICER", "ADMISSIONS_OFFICER", "PRINCIPAL", "SCHOOL_ADMIN"]),
+  schoolId: z.string().optional(),
+});
+
+export const userPatchSchema = z.object({
+  isActive: z.boolean().optional(),
+  resendInvite: z.boolean().optional(),
 });
 
 export const teacherSchema = z.object({
@@ -105,7 +154,10 @@ export const classSchema = z.object({
   academicYearId: z.string().optional(),
   capacity: z.coerce.number().int().positive().optional(),
   room: z.string().optional(),
+  teacherId: z.string().optional(),
 });
+
+export const classPatchSchema = classSchema.partial();
 
 export const gradeSchema = z.object({
   name: z.string().min(1, "Grade name is required"),

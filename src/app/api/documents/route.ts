@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     where: {
       ...getSchoolFilter(session),
       ...(type && { type }),
-      ...(session.role === "STUDENT" && { isPublic: true }),
+      ...((session.role === "STUDENT" || session.role === "PARENT") && { isPublic: true }),
     },
     include: { uploader: { select: { firstName: true, lastName: true } } },
     orderBy: { createdAt: "desc" },

@@ -22,7 +22,7 @@ import { isCollectedPayment } from "@/lib/finance";
 import { reversingLedgerAmount } from "@/lib/payroll-reversal";
 import { payrollListingCsv, payrollListingRows, PAYROLL_LISTING_HEADERS } from "@/lib/payroll-listing";
 import { matchCourseId, matchGradeId, shouldCreateStudentOnAccept } from "@/lib/application-enrolment";
-import { canAssignStaffPortalRole, defaultStaffPortalRole, planPortalProvision } from "@/lib/portal-provision";
+import { canAssignStaffPortalRole, defaultStaffPortalRole, planPortalProvision, canAssignDirectoryRole, directoryRolesForActor, needsAdministratorLicense } from "@/lib/portal-provision";
 import { learnerPortalShouldBeActive, nextSelfAttendanceAction, staffPortalShouldBeActive } from "@/lib/portal-lifecycle";
 import { canInitiateInvoicePayment } from "@/lib/payment-gateways/invoice-auth";
 import { FINANCE_SLIP_TYPES, saveFinanceSlip } from "@/lib/finance-uploads";
@@ -468,6 +468,24 @@ describe("application enrolment matching", () => {
     expect(canAssignStaffPortalRole(UserRole.HR_OFFICER, UserRole.FINANCE_OFFICER)).toBe(false);
     expect(canAssignStaffPortalRole(UserRole.HR_OFFICER, UserRole.STAFF)).toBe(true);
     expect(canAssignStaffPortalRole(UserRole.SCHOOL_ADMIN, UserRole.FINANCE_OFFICER)).toBe(true);
+  });
+
+  it("restricts directory user invites to school admins and never creates teacher/learner logins here", () => {
+    expect(canAssignDirectoryRole(UserRole.SCHOOL_ADMIN, UserRole.STAFF)).toBe(true);
+    expect(canAssignDirectoryRole(UserRole.SCHOOL_ADMIN, UserRole.PRINCIPAL)).toBe(true);
+    expect(canAssignDirectoryRole(UserRole.SCHOOL_ADMIN, UserRole.FINANCE_OFFICER)).toBe(true);
+    expect(canAssignDirectoryRole(UserRole.SCHOOL_ADMIN, UserRole.SCHOOL_ADMIN)).toBe(false);
+    expect(canAssignDirectoryRole(UserRole.SUPER_ADMIN, UserRole.SCHOOL_ADMIN)).toBe(true);
+    expect(canAssignDirectoryRole(UserRole.HR_OFFICER, UserRole.STAFF)).toBe(false);
+    expect(canAssignDirectoryRole(UserRole.SCHOOL_ADMIN, UserRole.TEACHER)).toBe(false);
+    expect(canAssignDirectoryRole(UserRole.SCHOOL_ADMIN, UserRole.STUDENT)).toBe(false);
+    expect(canAssignDirectoryRole(UserRole.SCHOOL_ADMIN, UserRole.PARENT)).toBe(false);
+    expect(canAssignDirectoryRole(UserRole.SCHOOL_ADMIN, UserRole.SUPER_ADMIN)).toBe(false);
+    expect(directoryRolesForActor(UserRole.SCHOOL_ADMIN)).not.toContain(UserRole.SCHOOL_ADMIN);
+    expect(directoryRolesForActor(UserRole.SUPER_ADMIN)).toContain(UserRole.SCHOOL_ADMIN);
+    expect(needsAdministratorLicense(UserRole.STAFF)).toBe(false);
+    expect(needsAdministratorLicense(UserRole.PRINCIPAL)).toBe(true);
+    expect(needsAdministratorLicense(UserRole.HR_OFFICER)).toBe(true);
   });
 });
 

@@ -12,13 +12,16 @@ import { Loader2 } from "lucide-react";
 
 interface Option { id: string; name: string }
 
+interface TeacherOption { id: string; firstName: string; lastName: string }
+
 interface ClassFormProps {
   grades: Option[];
   campuses: Option[];
   academicYears: Option[];
+  teachers?: TeacherOption[];
 }
 
-export function ClassForm({ grades, campuses, academicYears }: ClassFormProps) {
+export function ClassForm({ grades, campuses, academicYears, teachers = [] }: ClassFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -90,6 +93,15 @@ export function ClassForm({ grades, campuses, academicYears }: ClassFormProps) {
           <div className="space-y-2">
             <Label htmlFor="capacity">Capacity</Label>
             <Input id="capacity" name="capacity" type="number" min="1" />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="teacherId">Class teacher</Label>
+            <Select id="teacherId" name="teacherId">
+              <option value="">Unassigned</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>
+              ))}
+            </Select>
           </div>
           <div className="sm:col-span-2 flex gap-2">
             <Button type="submit" disabled={loading}>

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { getSchoolFilter } from "@/lib/rbac";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaffCreateForm } from "@/components/hr/staff-create-form";
+import { TeacherPortalButton } from "@/components/hr/teacher-portal-button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
@@ -60,15 +61,15 @@ export default async function StaffPage() {
                     <Badge variant={t.status === "ACTIVE" ? "success" : "secondary"}>{t.status}</Badge>
                   </td>
                   <td className="px-4 py-3 text-muted">
-                    {t.userId ? "Linked" : "—"}
-                    {t.employee?.id ? (
-                      <>
-                        {" · "}
-                        <Link href={`/hr/employees/${t.employee.id}`} className="text-primary hover:underline">
+                    <div className="flex flex-col gap-1">
+                      <span>{t.userId ? "Linked" : "—"}</span>
+                      <TeacherPortalButton teacherId={t.id} email={t.email} linked={Boolean(t.userId)} />
+                      {t.employee?.id ? (
+                        <Link href={`/hr/employees/${t.employee.id}`} className="text-primary hover:underline text-xs">
                           HR record
                         </Link>
-                      </>
-                    ) : null}
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

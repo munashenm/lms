@@ -11,6 +11,7 @@ import { StudentCardButton } from "@/components/students/student-card-button";
 import { StudentLedgerPanel } from "@/components/finance/student-ledger-panel";
 import { EnrolmentServicesForm } from "@/components/students/enrolment-services-form";
 import { StudentPortalPanel } from "@/components/students/student-portal-panel";
+import { StudentEditForm } from "@/components/students/student-edit-form";
 import { ArrowLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getStudentLedger } from "@/lib/student-ledger";
@@ -51,6 +52,28 @@ export default async function StudentDetailPage({ params }: PageProps) {
     include: { academicYear: { select: { id: true, name: true } } },
     orderBy: { updatedAt: "desc" },
   });
+  const [grades, classes, campuses] = canWriteStudents
+    ? await Promise.all([
+        prisma.grade.findMany({
+          where: { ...schoolFilter, isActive: true },
+          select: { id: true, name: true },
+          orderBy: { sortOrder: "asc" },
+        }),
+        prisma.class.findMany({
+          where: { ...schoolFilter, isActive: true },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        }),
+        prisma.campus.findMany({
+          where: { ...schoolFilter, isActive: true },
+          select: { id: true, name: true },
+        }),
+      ])
+    : [
+        [] as { id: string; name: string }[],
+        [] as { id: string; name: string }[],
+        [] as { id: string; name: string }[],
+      ];
 
   const statusVariant: Record<string, "success" | "warning" | "danger" | "secondary"> = {
     ACTIVE: "success",
@@ -137,6 +160,31 @@ export default async function StudentDetailPage({ params }: PageProps) {
           guardians={student.guardians}
         />
       </div>
+
+      {canWriteStudents ? (
+        <StudentEditForm
+          studentId={student.id}
+          student={{
+            firstName: student.firstName,
+            lastName: student.lastName,
+            saIdNumber: student.saIdNumber,
+            email: student.email,
+            phone: student.phone,
+            dateOfBirth: student.dateOfBirth ? student.dateOfBirth.toISOString().slice(0, 10) : null,
+            gender: student.gender,
+            gradeId: student.gradeId,
+            classId: student.classId,
+            campusId: student.campusId,
+            address: student.address,
+            city: student.city,
+            province: student.province,
+            postalCode: student.postalCode,
+          }}
+          grades={grades}
+          classes={classes}
+          campuses={campuses}
+        />
+      ) : null}
 
       {canWriteStudents && currentEnrolment ? (
         <EnrolmentServicesForm

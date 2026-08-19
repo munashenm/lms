@@ -6,6 +6,7 @@ import { requireSchoolId } from "@/lib/portal-data";
 import { classSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { assignPrimaryClassTeacher } from "@/lib/class-teachers";
 
 export async function GET() {
   const session = await getSession();
@@ -72,6 +73,17 @@ export async function POST(request: NextRequest) {
       entity: "Class",
       entityId: cls.id,
     });
+
+    if (data.teacherId) {
+      const assigned = await assignPrimaryClassTeacher({
+        classId: cls.id,
+        schoolId,
+        teacherId: data.teacherId,
+      });
+      if (!assigned.ok) {
+        return NextResponse.json({ message: assigned.message, class: cls }, { status: 201 });
+      }
+    }
 
     return NextResponse.json({ class: cls }, { status: 201 });
   } catch (error) {

@@ -89,6 +89,42 @@ export function canAssignStaffPortalRole(actorRole: UserRole, portalRole: StaffP
   return actorRole === UserRole.SCHOOL_ADMIN || actorRole === UserRole.SUPER_ADMIN;
 }
 
+/** Roles that may be invited from Admin → Users. Never STUDENT, PARENT, TEACHER, or SUPER_ADMIN. */
+export const DIRECTORY_INVITE_ROLES = [
+  UserRole.STAFF,
+  UserRole.FINANCE_OFFICER,
+  UserRole.HR_OFFICER,
+  UserRole.ADMISSIONS_OFFICER,
+  UserRole.PRINCIPAL,
+  UserRole.SCHOOL_ADMIN,
+] as const;
+
+export type DirectoryInviteRole = (typeof DIRECTORY_INVITE_ROLES)[number];
+
+export function isDirectoryInviteRole(role: string): role is DirectoryInviteRole {
+  return (DIRECTORY_INVITE_ROLES as readonly string[]).includes(role);
+}
+
+export function canAssignDirectoryRole(actorRole: UserRole, targetRole: UserRole): boolean {
+  if (!isDirectoryInviteRole(targetRole)) return false;
+  if (targetRole === UserRole.SCHOOL_ADMIN) return actorRole === UserRole.SUPER_ADMIN;
+  return actorRole === UserRole.SCHOOL_ADMIN || actorRole === UserRole.SUPER_ADMIN;
+}
+
+export function directoryRolesForActor(actorRole: UserRole): DirectoryInviteRole[] {
+  return DIRECTORY_INVITE_ROLES.filter((role) => canAssignDirectoryRole(actorRole, role));
+}
+
+export function needsAdministratorLicense(role: UserRole): boolean {
+  return (
+    role === UserRole.SCHOOL_ADMIN ||
+    role === UserRole.PRINCIPAL ||
+    role === UserRole.FINANCE_OFFICER ||
+    role === UserRole.HR_OFFICER ||
+    role === UserRole.ADMISSIONS_OFFICER
+  );
+}
+
 export function defaultStaffPortalRole(input: {
   category?: string | null;
   teacherId?: string | null;
