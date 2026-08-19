@@ -84,7 +84,13 @@ export async function POST(request: NextRequest) {
 
   let processResult: Awaited<ReturnType<typeof processCommunicationBatch>> | null = null;
   if (parsed.data.processImmediately !== false && batch.queuedCount > 0) {
-    processResult = await processCommunicationBatch(batch.id, 40);
+    let remaining = batch.queuedCount;
+    let rounds = 0;
+    while (remaining > 0 && rounds < 8) {
+      processResult = await processCommunicationBatch(batch.id, 50);
+      remaining = processResult.remaining;
+      rounds += 1;
+    }
   }
 
   await logAudit({
