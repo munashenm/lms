@@ -21,6 +21,7 @@ import { isCollectedPayment } from "@/lib/finance";
 import { reversingLedgerAmount } from "@/lib/payroll-reversal";
 import { payrollListingCsv, payrollListingRows, PAYROLL_LISTING_HEADERS } from "@/lib/payroll-listing";
 import { matchCourseId, matchGradeId, shouldCreateStudentOnAccept } from "@/lib/application-enrolment";
+import { planPortalProvision } from "@/lib/portal-provision";
 import { FINANCE_SLIP_TYPES, saveFinanceSlip } from "@/lib/finance-uploads";
 import { financeOpsSectionCsv, type FinanceOpsReport } from "@/lib/finance-ops-report";
 
@@ -391,6 +392,57 @@ describe("application enrolment matching", () => {
     expect(shouldCreateStudentOnAccept({ nextStatus: "ACCEPTED", studentId: "stu-1" })).toBe(false);
     expect(shouldCreateStudentOnAccept({ nextStatus: "REJECTED", studentId: null })).toBe(false);
     expect(shouldCreateStudentOnAccept({ nextStatus: "UNDER_REVIEW", studentId: null })).toBe(false);
+  });
+
+  it("plans student vs parent portal logins without sharing one email across roles", () => {
+    const adult = planPortalProvision({
+      applicantLastName: "Molefe",
+      applicantEmail: "ada@college.co.za",
+    });
+    expect(adult.studentLoginEmail).toBe("ada@college.co.za");
+    expect(adult.guardian).toBeNull();
+
+    const schoolChild = planPortalProvision({
+      applicantLastName: "Mahlangu",
+      applicantEmail: "thabo@student.school.co.za",
+      guardianFirstName: "Grace",
+      guardianLastName: "Mahlangu",
+      guardianEmail: "parent@school.co.za",
+      guardianRelationship: "Mother",
+    });
+    expect(schoolChild.studentLoginEmail).toBe("thabo@student.school.co.za");
+    expect(schoolChild.guardian?.loginEmail).toBe("parent@school.co.za");
+    expect(schoolChild.guardian?.relationship).toBe("Mother");
+
+    const sharedEmail = planPortalProvision({
+      applicantLastName: "Mahlangu",
+      applicantEmail: "family@school.co.za",
+      guardianFirstName: "Grace",
+      guardianLastName: "Mahlangu",
+      guardianEmail: "family@school.co.za",
+    });
+    expect(sharedEmail.studentLoginEmail).toBeNull();
+    expect(sharedEmail.guardian?.loginEmail).toBe("family@school.co.za");
+
+    const namesOnly = planPortalProvision({
+      applicantLastName: "Mahlangu",
+      applicantEmail: "thabo@student.school.co.za",
+      guardianFirstName: "Grace",
+      guardianLastName: "Mahlangu",
+    });
+    expect(namesOnly.studentLoginEmail).toBe("thabo@student.school.co.za");
+    expect(namesOnly.guardian?.loginEmail).toBeNull();
+    expect(namesOnly.guardian?.firstName).toBe("Grace");
+
+    const emailOnlyGuardian = planPortalProvision({
+      applicantLastName: "Mahlangu",
+      applicantEmail: "thabo@student.school.co.za",
+      guardianEmail: "parent@school.co.za",
+    });
+    expect(emailOnlyGuardian.guardian?.firstName).toBe("Guardian");
+    expect(emailOnlyGuardian.guardian?.lastName).toBe("Mahlangu");
+    expect(emailOnlyGuardian.guardian?.relationship).toBe("Parent");
+    expect(emailOnlyGuardian.guardian?.loginEmail).toBe("parent@school.co.za");
   });
 });
 

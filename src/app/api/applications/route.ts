@@ -59,6 +59,11 @@ export async function POST(request: NextRequest) {
       gradeApplied: parsed.data.gradeApplied || null,
       courseApplied: parsed.data.courseApplied || null,
       notes: parsed.data.notes || null,
+      guardianFirstName: parsed.data.guardianFirstName || null,
+      guardianLastName: parsed.data.guardianLastName || null,
+      guardianEmail: parsed.data.guardianEmail || null,
+      guardianPhone: parsed.data.guardianPhone || null,
+      guardianRelationship: parsed.data.guardianRelationship || null,
     },
   });
 

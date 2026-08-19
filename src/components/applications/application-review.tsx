@@ -24,7 +24,11 @@ interface Application {
   submittedAt: Date;
   notes: string | null;
   studentId: string | null;
-  student?: { id: string; studentNumber: string } | null;
+  student?: { id: string; studentNumber: string; userId?: string | null } | null;
+  guardianFirstName?: string | null;
+  guardianLastName?: string | null;
+  guardianEmail?: string | null;
+  guardianRelationship?: string | null;
 }
 
 const statusVariant: Record<string, "success" | "warning" | "danger" | "secondary" | "default"> = {
@@ -56,7 +60,22 @@ export function ApplicationReview({ applications }: { applications: Application[
       if (!res.ok) throw new Error(data.message || "Failed to update application");
       const label = APPLICATION_STATUS_LABELS[status] ?? status;
       if (data.student?.studentNumber) {
-        toast.success(`Accepted and enrolled ${data.student.studentNumber}`);
+        const invite = data.provision?.invitesSent
+          ? " Password setup email sent where an address was provided."
+          : "";
+        toast.success(`Accepted and enrolled ${data.student.studentNumber}.${invite}`);
+      } else if (status === "ACCEPTED" && data.provision) {
+        if (data.provision.invitesSent) {
+          toast.success(
+            `Portal setup complete. ${data.provision.invitesSent} password setup email(s) sent.`
+          );
+        } else if (data.provision.studentLoginCreated || data.provision.guardianLinked) {
+          toast.success("Portal accounts linked. No new invites were sent.");
+        } else {
+          toast.success(
+            "No new portal accounts created. Add an email on the application, or that address may already belong to another role or school."
+          );
+        }
       } else {
         toast.success(`Application marked as ${label}`);
       }
@@ -128,6 +147,13 @@ export function ApplicationReview({ applications }: { applications: Application[
                   <p className="text-sm text-muted">
                     {app.email} {app.phone && `· ${app.phone}`}
                   </p>
+                  {app.guardianFirstName || app.guardianLastName || app.guardianEmail ? (
+                    <p className="text-sm text-muted mt-1">
+                      Guardian: {[app.guardianFirstName, app.guardianLastName].filter(Boolean).join(" ") || "—"}
+                      {app.guardianRelationship ? ` (${app.guardianRelationship})` : ""}
+                      {app.guardianEmail ? ` · ${app.guardianEmail}` : ""}
+                    </p>
+                  ) : null}
                   <p className="text-xs text-muted mt-1">Submitted {formatDate(app.submittedAt)}</p>
                   {app.student?.studentNumber ? (
                     <p className="text-sm mt-2">
@@ -135,6 +161,7 @@ export function ApplicationReview({ applications }: { applications: Application[
                       <Link href={`/admin/students/${app.student.id}`} className="text-primary hover:underline font-mono">
                         {app.student.studentNumber}
                       </Link>
+                      {app.student.userId ? " · student portal linked" : ""}
                     </p>
                   ) : null}
                 </div>
@@ -185,6 +212,17 @@ export function ApplicationReview({ applications }: { applications: Application[
                       onClick={() => updateStatus(app.id, "REJECTED")}
                     >
                       Reject
+                    </Button>
+                  </div>
+                ) : app.status === "ACCEPTED" && app.studentId ? (
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={loading === app.id}
+                      onClick={() => updateStatus(app.id, "ACCEPTED")}
+                    >
+                      Set up portal
                     </Button>
                   </div>
                 ) : null}

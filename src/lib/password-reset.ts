@@ -13,6 +13,40 @@ export function hashResetToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+export async function issuePasswordSetup(params: {
+  userId: string;
+  schoolId: string | null;
+  email: string;
+  firstName: string;
+  kind: "reset" | "welcome_student" | "welcome_parent";
+}) {
+  const token = generateResetToken();
+  const tokenHash = hashResetToken(token);
+  const expires = new Date(Date.now() + RESET_TTL_MS);
+
+  await prisma.user.update({
+    where: { id: params.userId },
+    data: {
+      passwordResetTokenHash: tokenHash,
+      passwordResetExpires: expires,
+    },
+  });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const setupUrl = `${appUrl}/reset-password?token=${token}`;
+  const portal = params.kind === "welcome_parent" ? "parent" : "student";
+  const subject =
+    params.kind === "reset"
+      ? "Reset your SchoolHub SA password"
+      : "Set up your SchoolHub SA portal password";
+  const body =
+    params.kind === "reset"
+      ? `Hi ${params.firstName},\n\nUse this link to reset your password (valid for 1 hour):\n${setupUrl}\n\nIf you did not request this, you can ignore this email.`
+      : `Hi ${params.firstName},\n\nA ${portal} portal account was created for you. Set your password using this link (valid for 1 hour):\n${setupUrl}\n\nIf you were not expecting this, contact your school.`;
+
+  await sendOutboundMessage(params.schoolId, "email", params.email, subject, body);
+}
+
 export async function createPasswordResetRequest(email: string) {
   const user = await prisma.user.findUnique({
     where: { email: email.toLowerCase().trim() },
@@ -23,28 +57,13 @@ export async function createPasswordResetRequest(email: string) {
     return { sent: true as const };
   }
 
-  const token = generateResetToken();
-  const tokenHash = hashResetToken(token);
-  const expires = new Date(Date.now() + RESET_TTL_MS);
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      passwordResetTokenHash: tokenHash,
-      passwordResetExpires: expires,
-    },
+  await issuePasswordSetup({
+    userId: user.id,
+    schoolId: user.schoolId,
+    email: user.email,
+    firstName: user.firstName,
+    kind: "reset",
   });
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const resetUrl = `${appUrl}/reset-password?token=${token}`;
-
-  await sendOutboundMessage(
-    user.schoolId,
-    "email",
-    user.email,
-    "Reset your SchoolHub SA password",
-    `Hi ${user.firstName},\n\nUse this link to reset your password (valid for 1 hour):\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`
-  );
 
   return { sent: true as const };
 }

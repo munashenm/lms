@@ -910,6 +910,11 @@ model Application {
   phone           String?
   gradeApplied    String?
   courseApplied   String?
+  guardianFirstName    String?
+  guardianLastName     String?
+  guardianEmail        String?
+  guardianPhone        String?
+  guardianRelationship String?
   status          ApplicationStatus @default(SUBMITTED)
   notes           String?
   submittedAt     DateTime          @default(now())

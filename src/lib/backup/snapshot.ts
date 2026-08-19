@@ -310,5 +310,5 @@ export function snapshotCounts(snapshot: BackupSnapshot) {
   };
 }
 
-export const SCHEMA_VERSION = "20260819090000_enrolment_hostel_transport";
+export const SCHEMA_VERSION = "20260819100000_application_guardian";
 export const APP_VERSION = process.env.npm_package_version || "0.1.0";

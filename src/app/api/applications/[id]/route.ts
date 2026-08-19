@@ -11,6 +11,7 @@ import {
   findStudentForApplication,
   shouldCreateStudentOnAccept,
 } from "@/lib/application-enrolment";
+import { provisionPortalAccounts } from "@/lib/portal-provision";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -66,6 +67,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
   }
 
+  const studentId = enrolled?.studentId ?? existing.studentId;
+
   const application = await prisma.application.update({
     where: { id },
     data: {
@@ -75,6 +78,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       studentId: enrolled?.studentId ?? undefined,
     },
   });
+
+  let provision: { studentLoginCreated: boolean; guardianLinked: boolean; invitesSent: number } | null = null;
+  if (parsed.data.status === "ACCEPTED" && studentId) {
+    try {
+      provision = await provisionPortalAccounts({
+        studentId,
+        schoolId: existing.schoolId,
+        actorId: session.userId,
+        application: existing,
+      });
+    } catch {
+      provision = { studentLoginCreated: false, guardianLinked: false, invitesSent: 0 };
+    }
+  }
 
   if (existing.status !== parsed.data.status) {
     await sendApplicationStatusUpdate({
@@ -93,5 +110,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     student: enrolled
       ? { id: enrolled.studentId, studentNumber: enrolled.studentNumber, created: enrolled.created }
       : null,
+    provision,
   });
 }

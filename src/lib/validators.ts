@@ -275,6 +275,16 @@ export const applicationSchema = z.object({
   gradeApplied: z.string().optional(),
   courseApplied: z.string().optional(),
   notes: z.string().optional(),
+  guardianFirstName: z.string().optional(),
+  guardianLastName: z.string().optional(),
+  guardianEmail: z.string().email().optional().or(z.literal("")),
+  guardianPhone: z
+    .string()
+    .optional()
+    .refine((val) => !val || validateSAPhone(val), {
+      message: "Phone must be 10 digits starting with 0",
+    }),
+  guardianRelationship: z.string().optional(),
 });
 
 export const applicationStatusSchema = z.object({

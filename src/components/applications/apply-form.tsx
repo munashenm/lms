@@ -132,6 +132,39 @@ export function ApplyForm({
               <Input name="courseApplied" placeholder="e.g. Information Technology" defaultValue={initialCourse ?? ""} />
             </div>
           </div>
+          <div className="rounded-lg border border-border p-4 space-y-4">
+            <div>
+              <p className="text-sm font-medium">Parent / guardian (optional)</p>
+              <p className="text-xs text-muted mt-1">
+                Fill this in for a school learner so a parent portal account can be created on acceptance.
+                Leave it blank if the applicant is an adult student using their own email.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Guardian first name</Label>
+                <Input name="guardianFirstName" error={errors.guardianFirstName} />
+              </div>
+              <div className="space-y-2">
+                <Label>Guardian last name</Label>
+                <Input name="guardianLastName" error={errors.guardianLastName} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Guardian email</Label>
+                <Input name="guardianEmail" type="email" error={errors.guardianEmail} />
+              </div>
+              <div className="space-y-2">
+                <Label>Guardian phone</Label>
+                <Input name="guardianPhone" placeholder="082 123 4567" error={errors.guardianPhone} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Relationship</Label>
+              <Input name="guardianRelationship" placeholder="Mother, Father, Guardian" />
+            </div>
+          </div>
           <div className="space-y-2">
             <Label>Additional Notes</Label>
             <textarea
@@ -143,7 +176,8 @@ export function ApplyForm({
           </div>
           <p className="text-xs text-muted">
             By submitting, you consent to the processing of your personal information in
-            accordance with POPIA.
+            accordance with POPIA. A parent or student portal login is only created after the application
+            is accepted, and only if an email address is provided.
           </p>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit Application"}
