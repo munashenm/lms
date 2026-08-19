@@ -61,6 +61,24 @@ export function ExpenseManager(props: {
     }
   }
 
+  async function postExpense(id: string) {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/expenses/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "post" }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Expense posted to the ledger");
+      router.refresh();
+    } catch {
+      toast.error("Could not post expense");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -128,6 +146,7 @@ export function ExpenseManager(props: {
                 <th className="text-left px-4 py-3 font-medium text-muted">Category</th>
                 <th className="text-right px-4 py-3 font-medium text-muted">Amount</th>
                 <th className="text-left px-4 py-3 font-medium text-muted">Status</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -138,6 +157,11 @@ export function ExpenseManager(props: {
                   <td className="px-4 py-3 text-muted">{row.category?.name ?? "—"}</td>
                   <td className="px-4 py-3 text-right">{formatZAR(row.amount)}</td>
                   <td className="px-4 py-3"><Badge>{row.approvalStatus}</Badge></td>
+                  <td className="px-4 py-3 text-right">
+                    {row.approvalStatus !== "POSTED" ? (
+                      <Button size="sm" variant="outline" disabled={loading} onClick={() => postExpense(row.id)}>Post</Button>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
             </tbody>

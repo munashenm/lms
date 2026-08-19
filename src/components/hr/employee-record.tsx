@@ -59,6 +59,13 @@ export function EmployeeRecord(props: {
     taken: unknown;
     leavePolicy: { name: string; leaveType: string };
   }>;
+  contracts: Array<{
+    id: string;
+    title: string;
+    startDate: Date | string;
+    endDate: Date | string | null;
+    notes: string | null;
+  }>;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
@@ -104,6 +111,32 @@ export function EmployeeRecord(props: {
       router.refresh();
     } catch {
       toast.error("Could not upload document");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function addContract(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading("contract");
+    const form = new FormData(e.currentTarget);
+    try {
+      const res = await fetch(`/api/employees/${props.employee.id}/contracts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.get("title"),
+          startDate: form.get("startDate"),
+          endDate: form.get("endDate") || null,
+          notes: form.get("notes") || null,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Contract recorded");
+      e.currentTarget.reset();
+      router.refresh();
+    } catch {
+      toast.error("Could not save contract");
     } finally {
       setLoading(null);
     }
@@ -194,6 +227,28 @@ export function EmployeeRecord(props: {
                   {doc.title} <span className="text-muted">({doc.type})</span>
                 </a>
                 {doc.expiresAt ? <span className="text-muted">Expires {formatDate(doc.expiresAt)}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Contracts</CardTitle></CardHeader>
+        <CardContent>
+          <form onSubmit={addContract} className="grid gap-4 sm:grid-cols-2 mb-6">
+            <div><Label htmlFor="contractTitle">Title</Label><Input id="contractTitle" name="title" required placeholder="Permanent educator" /></div>
+            <div><Label htmlFor="contractStart">Start</Label><Input id="contractStart" name="startDate" type="date" required /></div>
+            <div><Label htmlFor="contractEnd">End (optional)</Label><Input id="contractEnd" name="endDate" type="date" /></div>
+            <div><Label htmlFor="contractNotes">Notes</Label><Input id="contractNotes" name="notes" /></div>
+            <div className="sm:col-span-2"><Button type="submit" disabled={loading === "contract"}>Save contract</Button></div>
+          </form>
+          <ul className="space-y-2 text-sm">
+            {props.contracts.length === 0 ? <li className="text-muted">No contracts recorded.</li> : null}
+            {props.contracts.map((row) => (
+              <li key={row.id}>
+                {row.title} · {formatDate(row.startDate)}
+                {row.endDate ? ` – ${formatDate(row.endDate)}` : " – open"}
               </li>
             ))}
           </ul>

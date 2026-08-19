@@ -9,7 +9,8 @@ import {
   planInstalments,
   type EnrolmentFeeContext,
 } from "@/lib/fee-matching";
-import { calculateEmployeePay, EMPTY_PAYROLL_RULES } from "@/lib/payroll-engine";
+import { calculateEmployeePay, EMPTY_PAYROLL_RULES, parsePayrollRules } from "@/lib/payroll-engine";
+import { hoursBetweenHhmm, parseClockPunches } from "@/lib/clock-hours";
 import { hasPermission } from "@/lib/rbac";
 import { remainingLeaveDays, accruedDaysFor, unpaidLeaveDoesNotConsume } from "@/lib/leave-balance";
 import { DEFAULT_LICENSE_FEATURES } from "@/lib/licensing/features";
@@ -97,6 +98,7 @@ describe("fee matching", () => {
     expect(instalmentCountFor(BillingFrequency.MONTHLY, true)).toBe(12);
     expect(instalmentCountFor(BillingFrequency.QUARTERLY, true)).toBe(4);
     expect(instalmentCountFor(BillingFrequency.HALF_YEARLY, true)).toBe(2);
+    expect(instalmentCountFor(BillingFrequency.ONCE, true, { instalmentCount: 3 })).toBe(3);
     const planned = planInstalments({
       amount: 12000,
       frequency: BillingFrequency.MONTHLY,
@@ -220,11 +222,32 @@ describe("timesheets and documents", () => {
     });
   });
 
+  it("converts check-in/out clock times to hours, including overnight shifts", () => {
+    expect(hoursBetweenHhmm("08:00", "16:30")).toBe(8.5);
+    expect(hoursBetweenHhmm("22:00", "06:00")).toBe(8);
+    expect(hoursBetweenHhmm("08:00", null)).toBe(0);
+  });
+
+  it("parses a generic clock payload without vendor-specific schemas", () => {
+    const punches = parseClockPunches({
+      punches: [{ employeeNumber: "E-1", workDate: "2026-08-01", checkIn: "08:00", checkOut: "17:00" }],
+    });
+    expect(punches).toHaveLength(1);
+    expect(punches[0].employeeNumber).toBe("E-1");
+  });
+
   it("hides disciplinary files from the employee and from view-only roles", () => {
     const docs = [{ type: "CV" }, { type: "DISCIPLINARY" }];
     expect(visibleEmployeeDocuments(docs, { isSelf: true, canManageDocs: false })).toEqual([{ type: "CV" }]);
     expect(visibleEmployeeDocuments(docs, { isSelf: false, canManageDocs: false, canView: true })).toEqual([{ type: "CV" }]);
     expect(visibleEmployeeDocuments(docs, { isSelf: true, canManageDocs: true })).toHaveLength(2);
+  });
+});
+
+describe("payroll configuration", () => {
+  it("does not invent statutory percents from empty rules", () => {
+    expect(parsePayrollRules(null).employeeTaxPercent).toBeUndefined();
+    expect(EMPTY_PAYROLL_RULES.employeeTaxPercent).toBe(0);
   });
 });
 

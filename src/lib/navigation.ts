@@ -112,6 +112,7 @@ export const financeNav: NavItem[] = [
   { label: "Fee Reminders", href: "/finance/reminders", icon: "Megaphone" },
   { label: "Fee Schedule", href: "/finance/fee-schedule", icon: "CreditCard" },
   { label: "Fee Structures", href: "/finance/structures", icon: "FileText" },
+  { label: "Charges & plans", href: "/finance/charges", icon: "CreditCard" },
   { label: "Expenses", href: "/finance/expenses", icon: "TrendingDown" },
   { label: "Adjustments", href: "/finance/adjustments", icon: "FileText" },
   { label: "Income", href: "/finance/income", icon: "Wallet" },

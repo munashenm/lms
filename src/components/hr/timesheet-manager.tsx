@@ -77,6 +77,31 @@ export function TimesheetManager(props: {
     }
   }
 
+  async function fromClock(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading("clock");
+    const form = new FormData(e.currentTarget);
+    try {
+      const res = await fetch("/api/timesheets/from-clock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          periodStart: form.get("clockStart"),
+          periodEnd: form.get("clockEnd"),
+          employeeId: form.get("clockEmployeeId") || undefined,
+          fromAttendance: true,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Draft timesheets generated from clock / attendance");
+      router.refresh();
+    } catch {
+      toast.error("Could not import clock hours");
+    } finally {
+      setLoading(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -99,6 +124,27 @@ export function TimesheetManager(props: {
             <div><Label htmlFor="overtimeHours">Overtime</Label><Input id="overtimeHours" name="overtimeHours" type="number" step="0.25" defaultValue="0" /></div>
             <div className="sm:col-span-2"><Button type="submit" disabled={loading === "create"}>Save draft</Button></div>
           </form>
+          {!props.selfService ? (
+            <form onSubmit={fromClock} className="grid gap-4 sm:grid-cols-2 mt-6 pt-6 border-t border-border">
+              <p className="sm:col-span-2 text-sm text-muted">
+                Import check-in/out hours from staff attendance or a generic clock payload. Biometric vendors map to the same punches; their native tables are not invented here.
+              </p>
+              {!props.selfService && props.employees ? (
+                <div className="sm:col-span-2">
+                  <Label htmlFor="clockEmployeeId">Employee (optional)</Label>
+                  <select id="clockEmployeeId" name="clockEmployeeId" className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm">
+                    <option value="">All employees with attendance</option>
+                    {props.employees.map((e) => (
+                      <option key={e.id} value={e.id}>{e.lastName}, {e.firstName}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+              <div><Label htmlFor="clockStart">Period start</Label><Input id="clockStart" name="clockStart" type="date" required /></div>
+              <div><Label htmlFor="clockEnd">Period end</Label><Input id="clockEnd" name="clockEnd" type="date" required /></div>
+              <div className="sm:col-span-2"><Button type="submit" variant="outline" disabled={loading === "clock"}>Generate from clock</Button></div>
+            </form>
+          ) : null}
         </CardContent>
       </Card>
       <Card>

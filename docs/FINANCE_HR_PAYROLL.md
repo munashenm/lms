@@ -61,3 +61,9 @@ Timesheets capture hours/overtime. Approved timesheets feed hourly payroll. Miss
 Recurring expenses generate draft/pending expenses (`POST /api/cron/recurring-expenses` with `CRON_SECRET`, or Finance “Generate due now”). Credit notes, refunds and bursaries have a Finance adjustments screen.
 
 Payroll run review lists exception notes. Salary changes are recorded on the employee record without logging amounts or full bank numbers.
+
+Payroll statutory percents are versioned in `PayrollRuleSet` and edited in the payroll UI. Defaults stay at 0 until configured.
+
+Manual, hostel and transport charges are created from `/finance/charges`. Instalment plans are created only when the instalment count is greater than 1. Draft expenses can be posted to the ledger later.
+
+Employment contracts sit on the employee record. Clock/attendance punches import into draft timesheets through a generic punch payload (`POST /api/timesheets/from-clock`). Vendor-native biometric schemas are not invented.

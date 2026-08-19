@@ -61,6 +61,7 @@ export function FeeStructureManager(props: {
           chargeSource: form.get("chargeSource"),
           billingFrequency: form.get("billingFrequency"),
           allowInstalments: form.get("allowInstalments") === "on",
+          instalmentCount: form.get("instalmentCount") ? Number(form.get("instalmentCount")) : null,
           gradeId: form.get("gradeId") || null,
           courseId: form.get("courseId") || null,
           academicYearId: form.get("academicYearId") || null,
@@ -113,6 +114,10 @@ export function FeeStructureManager(props: {
             <div className="flex items-center gap-2 pt-6">
               <input id="allowInstalments" name="allowInstalments" type="checkbox" />
               <Label htmlFor="allowInstalments">Allow instalments (do not auto-split unless checked)</Label>
+            </div>
+            <div>
+              <Label htmlFor="instalmentCount">Instalment count (optional)</Label>
+              <Input id="instalmentCount" name="instalmentCount" type="number" min="1" placeholder="Uses frequency default" />
             </div>
             <div>
               <Label htmlFor="academicYearId">Academic year</Label>

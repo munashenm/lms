@@ -1,4 +1,5 @@
 import {
+  BillingFrequency,
   FeeChargeSource,
   InvoiceStatus,
   StudentLedgerType,
@@ -193,13 +194,29 @@ export async function createManualStudentCharge(params: {
   schoolId: string;
   studentId: string;
   academicYearId?: string | null;
+  feeStructureId?: string | null;
   source?: FeeChargeSource;
   description: string;
   amount: number;
   dueDate?: Date | null;
+  allowInstalments?: boolean;
+  instalmentCount?: number | null;
+  frequency?: BillingFrequency;
   recordedById?: string | null;
 }) {
-  const key = `manual:${params.studentId}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+  if (params.feeStructureId && params.academicYearId) {
+    const key = chargeIdempotencyKey(params.studentId, params.feeStructureId, params.academicYearId);
+    const existing = await prisma.studentCharge.findUnique({
+      where: { idempotencyKey: key },
+      include: { invoice: true, instalments: true },
+    });
+    if (existing) return { charge: existing, invoice: existing.invoice, skipped: true as const };
+  }
+
+  const key =
+    params.feeStructureId && params.academicYearId
+      ? chargeIdempotencyKey(params.studentId, params.feeStructureId, params.academicYearId)
+      : `manual:${params.studentId}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
   const invoiceNumber = await generateInvoiceNumber(params.schoolId, () =>
     prisma.invoice.count({ where: { schoolId: params.schoolId } })
   );
@@ -241,14 +258,20 @@ export async function createManualStudentCharge(params: {
       description: params.description,
       amount: params.amount,
       idempotencyKey: key,
+      feeStructureId: params.feeStructureId ?? null,
       instalments: {
-        create: [
-          {
-            sequence: 1,
-            dueDate: params.dueDate ?? new Date(),
-            amount: params.amount,
-          },
-        ],
+        create: planInstalments({
+          amount: params.amount,
+          frequency: params.frequency ?? BillingFrequency.ONCE,
+          allowInstalments: Boolean(params.allowInstalments || (params.instalmentCount ?? 1) > 1),
+          instalmentCount: params.instalmentCount,
+          startDate: params.dueDate ?? new Date(),
+          yearStart: params.dueDate ?? new Date(),
+        }).map((row) => ({
+          sequence: row.sequence,
+          dueDate: row.dueDate,
+          amount: row.amount,
+        })),
       },
     },
   });
@@ -267,7 +290,7 @@ export async function createManualStudentCharge(params: {
     studentChargeId: charge.id,
   });
 
-  return { charge, invoice };
+  return { charge, invoice, skipped: false as const };
 }
 
 export type StudentChargeCreate = Prisma.StudentChargeGetPayload<{

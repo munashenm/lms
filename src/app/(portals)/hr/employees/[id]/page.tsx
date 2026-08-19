@@ -19,6 +19,7 @@ export default async function EmployeeDetailPage({ params }: Params) {
       salaryStructures: { orderBy: { effectiveFrom: "desc" } },
       documents: { orderBy: { createdAt: "desc" } },
       leaveEntitlements: { include: { leavePolicy: true }, orderBy: { cycleYear: "desc" } },
+      contracts: { orderBy: { startDate: "desc" } },
     },
   });
   if (!employee || !session || !canAccessSchool(session, employee.schoolId)) notFound();
@@ -42,6 +43,7 @@ export default async function EmployeeDetailPage({ params }: Params) {
           canView: requirePermission(session, "hr.view"),
         })}
         entitlements={employee.leaveEntitlements}
+        contracts={employee.contracts}
       />
     </div>
   );
