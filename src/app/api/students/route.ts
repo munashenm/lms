@@ -83,10 +83,11 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data;
-    if (data.status === "ACTIVE") {
-      const guard = await licenseWriteGuard({ schoolId, action: "create_learner" });
-      if (!guard.ok) return licenseDeniedResponse(guard);
-    }
+    const guard = await licenseWriteGuard({
+      schoolId,
+      action: data.status === "ACTIVE" ? "create_learner" : "write",
+    });
+    if (!guard.ok) return licenseDeniedResponse(guard);
     const studentNumber =
       data.studentNumber?.trim() || (await generateStudentNumber(schoolId));
 

@@ -12,6 +12,7 @@ import {
 } from "@/lib/staff-leave";
 import { notifySchoolRoles } from "@/lib/notifications";
 import { UserRole, LeaveType } from "@prisma/client";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 function calcLeaveDays(start: Date, end: Date): number {
   const diff = end.getTime() - start.getTime();
@@ -75,6 +76,9 @@ export async function POST(request: NextRequest) {
   if (!applicant) {
     return NextResponse.json({ message: "School context required" }, { status: 400 });
   }
+
+  const denied = await requireLicenseWrite(applicant.schoolId);
+  if (denied) return denied;
 
   const formData = await request.formData();
   const type = formData.get("type") as string;

@@ -4,6 +4,7 @@ import { detectImporter } from "@/lib/integrations/sasams/detect";
 import { applyMapping, autoMapHeaders } from "@/lib/integrations/sasams/mapping";
 import { findDuplicateSourceRecords, validateMappedRecord } from "@/lib/integrations/sasams/validation";
 import { matchExistingLearner } from "@/lib/integrations/sasams/duplicates";
+import { shouldSkipStagingRecord } from "@/lib/integrations/sasams/duplicates";
 import { validateUpload } from "@/lib/integrations/sasams/security";
 
 const csv = `Learner Name,Learner Surname,Identity Number,Admission Number,Grade,Class,Date of Birth
@@ -64,6 +65,12 @@ describe("SA-SAMS import framework", () => {
     );
     expect(match.existingId).toBe("existing-1");
     expect(match.suggested).toBe("UPDATE_EXISTING");
+  });
+
+  it("does not import rows marked for manual review or skip", () => {
+    expect(shouldSkipStagingRecord({ validationStatus: "OK", duplicateAction: "REVIEW_MANUALLY" })).toBe(true);
+    expect(shouldSkipStagingRecord({ validationStatus: "ERROR", duplicateAction: "CREATE_NEW" })).toBe(true);
+    expect(shouldSkipStagingRecord({ validationStatus: "OK", duplicateAction: "CREATE_NEW" })).toBe(false);
   });
 
   it("auto-maps common SA-SAMS-style headers to LMS fields", () => {

@@ -15,14 +15,26 @@ export async function GET() {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   await ensureDefaultCatalog();
-  const licences = await prisma.issuedLicense.findMany({
-    include: { product: true, plan: true, customer: true, activations: true },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+  const [licences, products, plans, schools] = await Promise.all([
+    prisma.issuedLicense.findMany({
+      include: { product: true, plan: true, customer: true, activations: true },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
+    prisma.licenseProduct.findMany({ orderBy: { name: "asc" } }),
+    prisma.licensePlan.findMany({ orderBy: { name: "asc" } }),
+    prisma.school.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, slug: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
   return NextResponse.json({
     enabled: isLicenseServerEnabled(),
     licences,
+    products,
+    plans,
+    schools,
   });
 }
 

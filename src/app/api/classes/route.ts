@@ -5,6 +5,7 @@ import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { classSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET() {
   const session = await getSession();
@@ -47,6 +48,8 @@ export async function POST(request: NextRequest) {
     }
 
     const schoolId = await requireSchoolId(session);
+    const denied = await requireLicenseWrite(schoolId);
+    if (denied) return denied;
     const data = parsed.data;
 
     const cls = await prisma.class.create({

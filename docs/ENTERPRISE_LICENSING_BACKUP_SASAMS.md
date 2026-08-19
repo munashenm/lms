@@ -104,10 +104,15 @@ All require `Authorization: Bearer $CRON_SECRET` (or `x-cron-secret` / `?secret=
 ## UI
 
 - Settings → Licence (`/admin/settings/licence`)
+- Super Admin → Issue licences (`/admin/settings/licence-server`)
 - Settings → Backup & Restore (`/admin/settings/backup`)
 - Restore (`/admin/settings/backup/restore`)
 - Administration → Integrations → SA-SAMS (`/admin/integrations/sa-sams`)
 - System Health (`/admin/system-health`) plus cards on the admin dashboard
+
+Restricted / grace banners appear in every portal shell. Login, licence, backup and contact support remain available. Student, parent and teacher portals honour licence feature flags. Write APIs refuse work in restricted mode except licence and backup routes.
+
+SA-SAMS duplicate detection lets an admin choose Skip, Update existing, Create new, or Review manually per row. Review-manually rows are not imported.
 
 ## SA-SAMS sample data still needed
 

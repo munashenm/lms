@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { DocumentType } from "@prisma/client";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -47,6 +48,8 @@ export async function POST(request: NextRequest) {
   }
 
   const schoolId = await requireSchoolId(session!);
+  const denied = await requireLicenseWrite(schoolId);
+  if (denied) return denied;
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
 

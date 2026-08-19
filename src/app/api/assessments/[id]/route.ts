@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission } from "@/lib/rbac";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -38,6 +39,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (!requirePermission(session, "marks:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
+
+  const denied = await requireLicenseWrite(session!.schoolId, { feature: "assessments" });
+  if (denied) return denied;
 
   const { id } = await params;
   const body = await request.json();

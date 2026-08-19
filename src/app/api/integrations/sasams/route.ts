@@ -6,6 +6,7 @@ import { resolveLicenseSchoolId } from "@/lib/licensing/enforce";
 import { requestMeta } from "@/lib/request-meta";
 import {
   analyseImportJob,
+  applyDuplicateActions,
   createImportJob,
   detectDuplicates,
   executeImport,
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
     jobId?: string;
     mappings?: Parameters<typeof saveMappings>[2];
     mappingName?: string;
+    actions?: { id: string; action: string }[];
   };
 
   if (!body.jobId) return NextResponse.json({ message: "jobId required" }, { status: 400 });
@@ -106,6 +108,10 @@ export async function POST(request: NextRequest) {
     if (body.action === "duplicates") {
       if (!requirePermission(session, "sasams.import")) return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
       return NextResponse.json(await detectDuplicates(body.jobId, schoolId));
+    }
+    if (body.action === "duplicate-actions") {
+      if (!requirePermission(session, "sasams.import")) return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+      return NextResponse.json(await applyDuplicateActions(body.jobId, schoolId, body.actions ?? []));
     }
     if (body.action === "preview") {
       if (!requirePermission(session, "sasams.view")) return NextResponse.json({ message: "Unauthorized" }, { status: 403 });

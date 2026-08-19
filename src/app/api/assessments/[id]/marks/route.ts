@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/rbac";
 import { marksBulkSchema } from "@/lib/validators";
 import { percentageToSymbol } from "@/lib/grading";
 import { logAudit } from "@/lib/audit";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -27,6 +28,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   if (!assessment) {
     return NextResponse.json({ message: "Assessment not found" }, { status: 404 });
   }
+
+  const denied = await requireLicenseWrite(session!.schoolId, { feature: "assessments" });
+  if (denied) return denied;
 
   const maxMarks = Number(assessment.maxMarks);
   const results = await Promise.all(

@@ -6,6 +6,7 @@ import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { termSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { parseDateInput, setCurrentTerm } from "@/lib/academic-session";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -53,6 +54,9 @@ export async function POST(request: NextRequest) {
   if (!year) {
     return NextResponse.json({ message: "Academic session not found" }, { status: 404 });
   }
+
+  const denied = await requireLicenseWrite(year.schoolId);
+  if (denied) return denied;
 
   if (
     session!.role !== UserRole.SUPER_ADMIN &&

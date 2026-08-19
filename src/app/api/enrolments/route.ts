@@ -11,6 +11,7 @@ import {
   resolveViewSession,
 } from "@/lib/academic-session";
 import { requireSchoolId } from "@/lib/portal-data";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -72,6 +73,9 @@ export async function POST(request: NextRequest) {
   if (!student) {
     return NextResponse.json({ message: "Student not found" }, { status: 404 });
   }
+
+  const denied = await requireLicenseWrite(student.schoolId);
+  if (denied) return denied;
 
   const year = await prisma.academicYear.findFirst({
     where: { id: parsed.data.academicYearId, schoolId: student.schoolId },

@@ -1,0 +1,53 @@
+import type { NavItem } from "@/lib/navigation";
+import type { LicenseFeatureKey } from "./features";
+import type { EvaluatedLicense } from "./types";
+
+export function isFeatureEnabled(
+  evaluation: EvaluatedLicense | null | undefined,
+  feature: LicenseFeatureKey
+): boolean {
+  if (!evaluation?.claims) return true;
+  return evaluation.claims.features[feature] !== false;
+}
+
+export function navHrefFeature(href: string): LicenseFeatureKey | null {
+  if (href.includes("/applications")) return "admissions";
+  if (href.includes("/finance") || href.includes("/fees") || href.includes("/debtors") || href.includes("/ledger")) {
+    return "finance";
+  }
+  if (
+    href.includes("/assessments") ||
+    href.includes("/assignments") ||
+    href.includes("/results") ||
+    href.includes("/report-cards") ||
+    href.includes("/certificates")
+  ) {
+    return "assessments";
+  }
+  if (href.includes("/attendance") && !href.includes("staff-attendance")) return "attendance";
+  if (href.includes("/timetable")) return "timetable";
+  if (href === "/admin/reports" || href.startsWith("/admin/reports/")) return "reporting";
+  return null;
+}
+
+export function filterNavByLicense(
+  items: NavItem[],
+  evaluation: EvaluatedLicense | null | undefined
+): NavItem[] {
+  if (!evaluation?.claims) return items;
+  return items.filter((item) => {
+    const feature = navHrefFeature(item.href);
+    if (!feature) return true;
+    return isFeatureEnabled(evaluation, feature);
+  });
+}
+
+export function licenseBannerTone(
+  evaluation: EvaluatedLicense | null | undefined
+): "restricted" | "grace" | "warning" | null {
+  if (!evaluation) return null;
+  if (evaluation.restricted) return "restricted";
+  if (evaluation.effectiveStatus === "GRACE") return "grace";
+  if (evaluation.warnings.length > 0) return "warning";
+  return null;
+}

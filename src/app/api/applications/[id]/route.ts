@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/rbac";
 import { applicationStatusSchema } from "@/lib/validators";
 import { sendApplicationStatusUpdate } from "@/lib/application-notify";
 import { APPLICATION_STATUS_LABELS } from "@/lib/application-status";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -30,6 +31,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
+
+  const denied = await requireLicenseWrite(existing.schoolId, { feature: "admissions" });
+  if (denied) return denied;
 
   const application = await prisma.application.update({
     where: { id },

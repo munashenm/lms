@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { packBackup, unpackBackup, verifyBackupIntegrity } from "@/lib/backup/package";
 import { deriveBackupKey } from "@/lib/backup/crypto";
-import { checkBackupCompatibility } from "@/lib/backup/compatibility";
+import { checkBackupCompatibility, assertBackupBelongsToSchool } from "@/lib/backup/compatibility";
 import { BACKUP_COMPATIBILITY_VERSION, BACKUP_FORMAT_VERSION } from "@/lib/backup/types";
 
 const key = deriveBackupKey("test-backup-secret");
@@ -76,5 +76,10 @@ describe("backup packages", () => {
     expect(SECRET_BACKUP_FIELDS).toContain("sendgridApiKey");
     expect(SECRET_BACKUP_FIELDS).toContain("twilioAuthToken");
     expect(SECRET_BACKUP_FIELDS).toContain("yocoSecretKey");
+  });
+
+  it("rejects restoring Institution A backup into Institution B", () => {
+    expect(assertBackupBelongsToSchool("school-a", "school-b")).toContain("different institution");
+    expect(assertBackupBelongsToSchool("school-a", "school-a")).toBeNull();
   });
 });

@@ -8,6 +8,7 @@ import { reportCardSchema } from "@/lib/validators";
 import { calculatePercentage, calculateWeightedAverage, percentageToSymbol } from "@/lib/grading";
 import { generateReportCardPdf } from "@/lib/pdf-report-card";
 import { toSchoolBrand } from "@/lib/pdf-branding";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -68,6 +69,9 @@ export async function POST(request: NextRequest) {
   if (!student) {
     return NextResponse.json({ message: "Student not found" }, { status: 404 });
   }
+
+  const denied = await requireLicenseWrite(student.schoolId, { feature: "assessments" });
+  if (denied) return denied;
 
   const academicYear = await prisma.academicYear.findUnique({ where: { id: academicYearId } });
   const term = termId ? await prisma.term.findUnique({ where: { id: termId } }) : null;

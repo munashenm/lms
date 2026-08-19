@@ -3,6 +3,17 @@ import { identityKeys } from "./validation";
 
 export type DuplicateDecision = "SKIP" | "UPDATE_EXISTING" | "CREATE_NEW" | "REVIEW_MANUALLY";
 
+export function shouldSkipStagingRecord(record: {
+  validationStatus: string;
+  duplicateAction: string;
+}): boolean {
+  return (
+    record.validationStatus === "ERROR" ||
+    record.duplicateAction === "SKIP" ||
+    record.duplicateAction === "REVIEW_MANUALLY"
+  );
+}
+
 export interface ExistingLearner {
   id: string;
   firstName: string;

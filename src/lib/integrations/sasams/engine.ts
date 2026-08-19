@@ -5,7 +5,7 @@ import { detectImporter } from "./detect";
 import { applyMapping, autoMapHeaders, guessEntityFromFilename, guessEntityFromSheet } from "./mapping";
 import type { FieldMapping } from "./mapping";
 import { classifyRecordStatus, findDuplicateSourceRecords, validateMappedRecord } from "./validation";
-import { matchExistingEducator, matchExistingLearner } from "./duplicates";
+import { matchExistingEducator, matchExistingLearner, shouldSkipStagingRecord } from "./duplicates";
 import { looksExecutable, readEncryptedImport, safeFilename, storeEncryptedImport, validateUpload } from "./security";
 import { SASAMS_SOURCE, type ImportEntityType, type ParsedSource } from "./types";
 import { asInputJson } from "@/lib/json";
@@ -255,7 +255,24 @@ export async function detectDuplicates(jobId: string, schoolId: string) {
     }
   }
   await prisma.importJob.update({ where: { id: jobId }, data: { status: ImportJobStatus.DETECTING_DUPLICATES } });
-  return previewImport(jobId, schoolId);
+  const preview = await previewImport(jobId, schoolId);
+  const staging = await prisma.importStagingRecord.findMany({
+    where: { jobId, job: { schoolId } },
+    orderBy: { sourceRow: "asc" },
+    take: 500,
+  });
+  return {
+    ...preview,
+    records: staging.map((r) => ({
+      id: r.id,
+      entityType: r.entityType,
+      sourceRow: r.sourceRow,
+      duplicateAction: r.duplicateAction,
+      duplicateOfId: r.duplicateOfId,
+      validationStatus: r.validationStatus,
+      mappedData: r.mappedData,
+    })),
+  };
 }
 
 export async function previewImport(jobId: string, schoolId: string) {
@@ -284,6 +301,28 @@ export async function previewImport(jobId: string, schoolId: string) {
   return summary;
 }
 
+const DUPLICATE_ACTIONS = new Set<string>(["SKIP", "UPDATE_EXISTING", "CREATE_NEW", "REVIEW_MANUALLY"]);
+
+export async function applyDuplicateActions(
+  jobId: string,
+  schoolId: string,
+  actions: { id: string; action: string }[]
+) {
+  const records = await prisma.importStagingRecord.findMany({
+    where: { jobId, job: { schoolId } },
+    select: { id: true },
+  });
+  const allowedIds = new Set(records.map((r) => r.id));
+  for (const item of actions) {
+    if (!allowedIds.has(item.id) || !DUPLICATE_ACTIONS.has(item.action)) continue;
+    await prisma.importStagingRecord.update({
+      where: { id: item.id },
+      data: { duplicateAction: item.action as DuplicateAction },
+    });
+  }
+  return previewImport(jobId, schoolId);
+}
+
 export async function executeImport(jobId: string, schoolId: string, userId: string) {
   const job = await prisma.importJob.findFirst({ where: { id: jobId, schoolId } });
   if (!job) throw new Error("Import job not found");
@@ -307,11 +346,7 @@ export async function executeImport(jobId: string, schoolId: string, userId: str
 
   try {
     for (const record of records) {
-      if (record.validationStatus === "ERROR") {
-        skipped += 1;
-        continue;
-      }
-      if (record.duplicateAction === DuplicateAction.SKIP) {
+      if (shouldSkipStagingRecord(record)) {
         skipped += 1;
         continue;
       }

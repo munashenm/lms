@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter } from "@/lib/rbac";
 import { Card, CardContent } from "@/components/ui/card";
+import { StaffCreateForm } from "@/components/hr/staff-create-form";
 import { Badge } from "@/components/ui/badge";
 
 export default async function StaffPage() {
@@ -23,6 +24,8 @@ export default async function StaffPage() {
         <h1 className="text-2xl font-bold">Staff</h1>
         <p className="text-muted text-sm mt-1">{teachers.length} teachers and lecturers</p>
       </div>
+
+      <StaffCreateForm />
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">

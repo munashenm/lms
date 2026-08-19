@@ -5,6 +5,7 @@ import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { announcementSchema } from "@/lib/validators";
 import { UserRole } from "@prisma/client";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 const AUDIENCE_FOR_ROLE: Partial<Record<UserRole, string[]>> = {
   [UserRole.STUDENT]: ["ALL", "STUDENTS"],
@@ -53,6 +54,8 @@ export async function POST(request: NextRequest) {
   }
 
   const schoolId = await requireSchoolId(session);
+  const denied = await requireLicenseWrite(schoolId);
+  if (denied) return denied;
   const announcement = await prisma.announcement.create({
     data: {
       schoolId,

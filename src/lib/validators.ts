@@ -60,6 +60,24 @@ export const studentSchema = z.object({
   popiaConsent: z.boolean().optional(),
 });
 
+export const teacherSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(100),
+  lastName: z.string().min(1, "Last name is required").max(100),
+  employeeNumber: z.string().max(40).optional().or(z.literal("")),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().optional(),
+  department: z.string().optional(),
+  campusId: z.string().optional(),
+  saIdNumber: z.string().optional(),
+});
+
+export const campusSchema = z.object({
+  name: z.string().min(1, "Campus name is required").max(120),
+  code: z.string().min(1, "Campus code is required").max(20),
+  address: z.string().optional(),
+  isMain: z.boolean().optional(),
+});
+
 export const classSchema = z.object({
   name: z.string().min(1, "Class name is required"),
   gradeId: z.string().optional(),

@@ -7,6 +7,7 @@ import { feeScheduleItemSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { UserRole } from "@prisma/client";
 import { resolveSettingsSchoolId } from "@/lib/school-integrations";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -57,6 +58,9 @@ export async function POST(request: NextRequest) {
     session!.role === UserRole.SUPER_ADMIN && body.schoolId
       ? body.schoolId
       : await requireSchoolId(session!);
+
+  const denied = await requireLicenseWrite(schoolId, { feature: "finance" });
+  if (denied) return denied;
 
   const item = await prisma.feeScheduleItem.create({
     data: {

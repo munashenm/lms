@@ -28,6 +28,17 @@ export function SaSamsWizard({ schoolId }: { schoolId?: string }) {
   const [headers, setHeaders] = useState<string[]>([]);
   const [mappings, setMappings] = useState<{ sourceField: string; entityType: ImportEntityType; targetField: string }[]>([]);
   const [preview, setPreview] = useState<Record<string, number> | null>(null);
+  const [duplicateRecords, setDuplicateRecords] = useState<
+    Array<{
+      id: string;
+      entityType: string;
+      sourceRow: number | null;
+      duplicateAction: string;
+      duplicateOfId: string | null;
+      validationStatus: string;
+      mappedData: Record<string, string> | null;
+    }>
+  >([]);
   const [history, setHistory] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(false);
   const [apiStatus, setApiStatus] = useState<string>("");
@@ -135,9 +146,25 @@ export function SaSamsWizard({ schoolId }: { schoolId?: string }) {
     try {
       const json = await postAction("duplicates");
       setPreview(json);
+      setDuplicateRecords(json.records ?? []);
       setStep(6);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Duplicate detection failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveDuplicateActions() {
+    setLoading(true);
+    try {
+      const json = await postAction("duplicate-actions", {
+        actions: duplicateRecords.map((r) => ({ id: r.id, action: r.duplicateAction })),
+      });
+      setPreview(json);
+      toast.success("Duplicate actions saved");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save duplicate actions");
     } finally {
       setLoading(false);
     }
@@ -298,16 +325,74 @@ export function SaSamsWizard({ schoolId }: { schoolId?: string }) {
       {step === 6 && preview && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Step 6 — Preview</CardTitle>
+            <CardTitle className="text-base">Step 6 — Preview & duplicate actions</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {Object.entries(preview).map(([k, v]) => (
+          <CardContent className="space-y-4 text-sm">
+            <p>
+              Choose Skip, Update existing, Create new, or Review manually for each matched record.
+              Rows marked Review manually are not imported until you pick another action.
+            </p>
+            {duplicateRecords.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-muted">
+                      <th className="py-2">Row</th>
+                      <th>Type</th>
+                      <th>Record</th>
+                      <th>Match</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {duplicateRecords.map((record, index) => {
+                      const mapped = record.mappedData ?? {};
+                      const label =
+                        [mapped.firstName, mapped.lastName, mapped.studentNumber, mapped.employeeNumber]
+                          .filter(Boolean)
+                          .join(" ") || record.id.slice(0, 8);
+                      return (
+                        <tr key={record.id} className="border-t border-border">
+                          <td className="py-2">{record.sourceRow ?? index + 1}</td>
+                          <td className="capitalize">{record.entityType}</td>
+                          <td>{label}</td>
+                          <td>{record.duplicateOfId ? "Existing LMS record" : "New"}</td>
+                          <td>
+                            <Select
+                              value={record.duplicateAction}
+                              onChange={(e) => {
+                                const next = [...duplicateRecords];
+                                next[index] = { ...next[index], duplicateAction: e.target.value };
+                                setDuplicateRecords(next);
+                              }}
+                            >
+                              <option value="CREATE_NEW">Create new</option>
+                              <option value="UPDATE_EXISTING">Update existing</option>
+                              <option value="SKIP">Skip</option>
+                              <option value="REVIEW_MANUALLY">Review manually</option>
+                            </Select>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {Object.entries(preview)
+              .filter(([k]) => k !== "records")
+              .map(([k, v]) => (
               <div key={k} className="flex justify-between">
                 <span className="capitalize">{k.replace(/[A-Z]/g, (m) => ` ${m}`)}</span>
-                <span className="font-medium">{v}</span>
+                <span className="font-medium">{String(v)}</span>
               </div>
             ))}
-            <Button onClick={execute} disabled={loading}>Start final import</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={saveDuplicateActions} disabled={loading}>
+                Save actions
+              </Button>
+              <Button onClick={execute} disabled={loading}>Start final import</Button>
+            </div>
           </CardContent>
         </Card>
       )}

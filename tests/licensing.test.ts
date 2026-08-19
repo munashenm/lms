@@ -6,6 +6,9 @@ import { DEFAULT_LICENSE_FEATURES } from "@/lib/licensing/features";
 import { canAccessSchool, hasPermission } from "@/lib/rbac";
 import { UserRole } from "@prisma/client";
 import type { SessionPayload } from "@/lib/auth";
+import { isRestrictedPathAllowed } from "@/lib/licensing/restricted-paths";
+import { filterNavByLicense, isFeatureEnabled, licenseBannerTone } from "@/lib/licensing/portal";
+import { getAdminNav, studentNav } from "@/lib/navigation";
 
 function claims(overrides: Partial<LicenseClaims> = {}): LicenseClaims {
   const now = new Date("2026-06-01T00:00:00Z");
@@ -179,5 +182,58 @@ describe("multi-tenancy isolation", () => {
     expect(hasPermission(UserRole.SCHOOL_ADMIN, "backup.restore")).toBe(true);
     expect(hasPermission(UserRole.TEACHER, "backup.delete")).toBe(false);
     expect(hasPermission(UserRole.SCHOOL_ADMIN, "sasams.execute")).toBe(true);
+  });
+});
+
+describe("restricted mode paths", () => {
+  it("keeps licence, backup, auth and support reachable", () => {
+    expect(isRestrictedPathAllowed("/admin/settings/licence", "GET")).toBe(true);
+    expect(isRestrictedPathAllowed("/admin/settings/backup", "POST")).toBe(true);
+    expect(isRestrictedPathAllowed("/api/auth/login", "POST")).toBe(true);
+    expect(isRestrictedPathAllowed("/login", "GET")).toBe(true);
+    expect(isRestrictedPathAllowed("/contact", "GET")).toBe(true);
+    expect(isRestrictedPathAllowed("/api/license", "GET")).toBe(true);
+  });
+
+  it("does not treat ordinary writes as allowed", () => {
+    expect(isRestrictedPathAllowed("/api/students", "POST")).toBe(false);
+    expect(isRestrictedPathAllowed("/api/payments", "POST")).toBe(false);
+    expect(isRestrictedPathAllowed("/admin/students/new", "GET")).toBe(false);
+  });
+});
+
+describe("portal feature flags", () => {
+  const evaluation = evaluateLicense({
+    now: new Date("2026-06-15T00:00:00Z"),
+    claims: claims({ features: { ...DEFAULT_LICENSE_FEATURES, finance: false, student_portal: false } }),
+    signatureValid: true,
+    lastVerifiedAt: new Date(),
+    storedStatus: "ACTIVE",
+    offlineGraceDays: 14,
+  });
+
+  it("hides finance nav when the module is not licensed", () => {
+    expect(isFeatureEnabled(evaluation, "finance")).toBe(false);
+    const nav = filterNavByLicense(getAdminNav(), evaluation);
+    expect(nav.some((item) => item.href === "/admin/finance")).toBe(false);
+    expect(nav.some((item) => item.href === "/admin/settings/licence")).toBe(true);
+  });
+
+  it("hides learner fee links in the student portal", () => {
+    const nav = filterNavByLicense(studentNav, evaluation);
+    expect(nav.some((item) => item.href === "/student/fees")).toBe(false);
+    expect(nav.some((item) => item.href === "/student/dashboard")).toBe(true);
+  });
+
+  it("uses a restricted banner after expiry", () => {
+    const expired = evaluateLicense({
+      now: new Date("2026-08-01T00:00:00Z"),
+      claims: claims({ expiresAt: "2026-06-01T00:00:00Z", gracePeriodDays: 7, status: "ACTIVE" }),
+      signatureValid: true,
+      lastVerifiedAt: new Date("2026-08-01T00:00:00Z"),
+      storedStatus: "EXPIRED",
+      offlineGraceDays: 14,
+    });
+    expect(licenseBannerTone(expired)).toBe("restricted");
   });
 });

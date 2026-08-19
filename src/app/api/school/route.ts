@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/rbac";
 import { schoolSettingsSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { resolveSettingsSchoolId } from "@/lib/school-integrations";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -52,6 +53,9 @@ export async function PATCH(request: NextRequest) {
   if (!schoolId) {
     return NextResponse.json({ message: "School context required" }, { status: 400 });
   }
+
+  const denied = await requireLicenseWrite(schoolId);
+  if (denied) return denied;
 
   const parsed = schoolSettingsSchema.safeParse(body);
   if (!parsed.success) {

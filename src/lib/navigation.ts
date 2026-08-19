@@ -30,9 +30,12 @@ export interface NavItem {
   icon: NavIconName;
 }
 
-export function getAdminNav(terms?: Terminology): NavItem[] {
+export function getAdminNav(
+  terms?: Terminology,
+  opts?: { vendorTools?: boolean }
+): NavItem[] {
   const t = terms;
-  return [
+  const items: NavItem[] = [
     { label: "Dashboard", href: "/admin/dashboard", icon: "LayoutDashboard" },
     { label: t?.students ?? "Students", href: "/admin/students", icon: "Users" },
     { label: "Staff", href: "/admin/staff", icon: "UserCheck" },
@@ -56,10 +59,14 @@ export function getAdminNav(terms?: Terminology): NavItem[] {
     { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
     { label: "System Health", href: "/admin/system-health", icon: "Shield" },
     { label: "Licence", href: "/admin/settings/licence", icon: "Shield" },
+    ...(opts?.vendorTools
+      ? [{ label: "Issue licences", href: "/admin/settings/licence-server", icon: "Shield" as const }]
+      : []),
     { label: "Backup & Restore", href: "/admin/settings/backup", icon: "DatabaseBackup" },
     { label: "SA-SAMS", href: "/admin/integrations/sa-sams", icon: "Plug" },
     { label: "Settings", href: "/admin/settings", icon: "Settings" },
   ];
+  return items;
 }
 
 /** @deprecated Use getAdminNav(terms) for institution-aware labels */

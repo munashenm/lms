@@ -13,6 +13,7 @@ import {
   currentTimeHHMM,
   getApprovedLeaveUserIds,
 } from "@/lib/staff-attendance";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -66,6 +67,9 @@ export async function POST(request: NextRequest) {
   if (!session?.schoolId) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
+
+  const denied = await requireLicenseWrite(session.schoolId, { feature: "attendance" });
+  if (denied) return denied;
 
   const body = await request.json();
 

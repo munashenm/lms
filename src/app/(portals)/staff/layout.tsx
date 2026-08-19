@@ -5,6 +5,7 @@ import { PortalShell } from "@/components/layout/portal-shell";
 import { canApplyForLeave } from "@/lib/staff-leave";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import type { NavItem } from "@/lib/navigation";
+import { getPortalSessionContext } from "@/lib/portal-session";
 
 const staffLeaveNav: NavItem[] = [
   { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
@@ -21,8 +22,17 @@ export default async function StaffLayout({
     redirect("/login");
   }
 
+  const ctx = await getPortalSessionContext(session);
+
   return (
-    <PortalShell user={session} navItems={staffLeaveNav} portalLabel="Staff">
+    <PortalShell
+      user={session}
+      navItems={staffLeaveNav}
+      portalLabel="Staff"
+      sessions={ctx.sessions}
+      viewSessionId={ctx.viewSessionId}
+      license={ctx.license}
+    >
       <div className="mb-6">
         <Link
           href={ROLE_DASHBOARD[session.role]}

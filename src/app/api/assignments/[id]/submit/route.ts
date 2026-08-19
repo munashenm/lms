@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getStudentForSession } from "@/lib/portal-data";
 import { submissionSchema } from "@/lib/validators";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -18,6 +19,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   if (!student) {
     return NextResponse.json({ message: "Student profile not found" }, { status: 404 });
   }
+
+  const denied = await requireLicenseWrite(student.schoolId, { feature: "assessments" });
+  if (denied) return denied;
 
   const { id: assignmentId } = await params;
   const body = await request.json();

@@ -8,6 +8,7 @@ import { certificateSchema } from "@/lib/validators";
 import { generateCertificatePdf } from "@/lib/pdf-certificate";
 import { toSchoolBrand } from "@/lib/pdf-branding";
 import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -53,6 +54,9 @@ export async function POST(request: NextRequest) {
   if (!student) {
     return NextResponse.json({ message: "Student not found" }, { status: 404 });
   }
+
+  const denied = await requireLicenseWrite(student.schoolId);
+  if (denied) return denied;
 
   const course = parsed.data.courseId
     ? await prisma.course.findUnique({ where: { id: parsed.data.courseId } })

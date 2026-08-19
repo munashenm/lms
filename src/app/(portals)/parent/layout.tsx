@@ -4,6 +4,8 @@ import { PortalShell } from "@/components/layout/portal-shell";
 import { parentNav } from "@/lib/navigation";
 import { UserRole } from "@prisma/client";
 import { getPortalSessionContext } from "@/lib/portal-session";
+import { filterNavByLicense, isFeatureEnabled } from "@/lib/licensing/portal";
+import { PortalUnavailable } from "@/components/enterprise/license-banner";
 
 export default async function ParentLayout({
   children,
@@ -23,12 +25,17 @@ export default async function ParentLayout({
   return (
     <PortalShell
       user={session}
-      navItems={parentNav}
+      navItems={filterNavByLicense(parentNav, ctx.license)}
       portalLabel={`${ctx.terminology?.guardian ?? "Parent"} Portal`}
       sessions={ctx.sessions}
       viewSessionId={ctx.viewSessionId}
+      license={ctx.license}
     >
-      {children}
+      {session.role === UserRole.PARENT && !isFeatureEnabled(ctx.license, "parent_portal") ? (
+        <PortalUnavailable moduleName="The parent portal" />
+      ) : (
+        children
+      )}
     </PortalShell>
   );
 }

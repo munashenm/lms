@@ -6,6 +6,7 @@ import { getSchoolFilter } from "@/lib/rbac";
 import { UserRole } from "@prisma/client";
 import { SchoolSettingsForm } from "@/components/settings/school-settings-form";
 import { IntegrationSettingsForm } from "@/components/settings/integration-settings-form";
+import { CampusCreateForm } from "@/components/settings/campus-form";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface PageProps {
@@ -124,9 +125,20 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           <p className="font-medium">SA-SAMS Migration Centre</p>
           <p className="text-xs text-muted mt-1">Authorised file import and future API connector</p>
         </Link>
+        {session!.role === UserRole.SUPER_ADMIN && (
+          <Link
+            href="/admin/settings/licence-server"
+            className="rounded-xl border border-border bg-surface p-4 hover:border-primary"
+          >
+            <p className="font-medium">Issue licences</p>
+            <p className="text-xs text-muted mt-1">Vendor catalogue, signed keys and activations</p>
+          </Link>
+        )}
       </div>
 
       <IntegrationSettingsForm schoolId={school.id} schoolName={school.name} />
+
+      <CampusCreateForm schoolId={isSuperAdminView ? school.id : undefined} />
 
       {school.campuses.length > 0 && (
         <Card>

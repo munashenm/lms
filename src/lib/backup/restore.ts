@@ -7,7 +7,7 @@ import { notifySchoolRoles } from "@/lib/notifications";
 import type { BackupSnapshot } from "./types";
 import { getBackupEncryptionKey } from "./crypto";
 import { unpackBackup, verifyBackupIntegrity } from "./package";
-import { checkBackupCompatibility, describeSnapshot } from "./compatibility";
+import { checkBackupCompatibility, describeSnapshot, assertBackupBelongsToSchool } from "./compatibility";
 import { runBackupJob } from "./engine";
 import { getBackupStorage } from "./storage";
 import { asInputJson } from "@/lib/json";
@@ -54,13 +54,13 @@ export async function validateRestorePackage(opts: {
     return { ok: false as const, error: integrity.error ?? "Invalid backup" };
   }
 
-  if (integrity.manifest.institutionId && integrity.manifest.institutionId !== opts.schoolId) {
-    const msg = "This backup belongs to a different institution and cannot be restored here.";
+  const tenantError = assertBackupBelongsToSchool(integrity.manifest.institutionId, opts.schoolId);
+  if (tenantError) {
     await prisma.restoreJob.update({
       where: { id: opts.restoreJobId },
-      data: { status: RestoreJobStatus.FAILED, errorMessage: msg },
+      data: { status: RestoreJobStatus.FAILED, errorMessage: tenantError },
     });
-    return { ok: false as const, error: msg };
+    return { ok: false as const, error: tenantError };
   }
 
   const unpacked = unpackBackup(opts.pkg, getBackupEncryptionKey());

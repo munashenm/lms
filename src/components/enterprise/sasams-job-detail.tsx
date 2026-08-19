@@ -72,6 +72,36 @@ export function SaSamsJobDetail({ job, schoolId }: { job: JobDetail; schoolId?: 
           {job.errors.length === 0 && <p className="text-muted">No issues recorded</p>}
         </CardContent>
       </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Staging records</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto text-sm">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left text-muted">
+                <th className="py-2">Type</th>
+                <th>Status</th>
+                <th>Duplicate action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {job.stagingRecords.map((r) => (
+                <tr key={r.id} className="border-t border-border">
+                  <td className="py-2 capitalize">{r.entityType}</td>
+                  <td>{r.validationStatus}</td>
+                  <td>{r.duplicateAction}</td>
+                </tr>
+              ))}
+              {job.stagingRecords.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="py-4 text-muted">No staging rows loaded</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

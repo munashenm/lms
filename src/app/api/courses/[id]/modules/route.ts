@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission } from "@/lib/rbac";
 import { moduleSchema } from "@/lib/validators";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -25,6 +26,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   if (!course) {
     return NextResponse.json({ message: "Course not found" }, { status: 404 });
   }
+
+  const denied = await requireLicenseWrite(course.schoolId);
+  if (denied) return denied;
 
   const mod = await prisma.module.create({
     data: {

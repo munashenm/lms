@@ -7,6 +7,7 @@ import { deriveInvoiceStatus } from "@/lib/finance";
 import { logAudit } from "@/lib/audit";
 import { notifyUser, notifyStudentGuardians } from "@/lib/notifications";
 import { postPaymentToStudentLedger } from "@/lib/student-ledger";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET() {
   const session = await getSession();
@@ -52,6 +53,9 @@ export async function POST(request: NextRequest) {
   if (!invoice) {
     return NextResponse.json({ message: "Invoice not found" }, { status: 404 });
   }
+
+  const denied = await requireLicenseWrite(invoice.schoolId, { feature: "finance" });
+  if (denied) return denied;
 
   const newAmountPaid = Number(invoice.amountPaid) + amount;
   const total = Number(invoice.total);

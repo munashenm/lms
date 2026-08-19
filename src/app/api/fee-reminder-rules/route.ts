@@ -11,6 +11,7 @@ import {
   ensureDefaultFeeReminderRules,
   runFeeReminderRules,
 } from "@/lib/fee-reminder-rules";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -83,6 +84,9 @@ export async function POST(request: NextRequest) {
         ? body.schoolId
         : await requireSchoolId(session!);
 
+    const denied = await requireLicenseWrite(schoolId, { feature: "finance" });
+    if (denied) return denied;
+
     const summary = await runFeeReminderRules({
       schoolId,
       limitPerSchool: 50,
@@ -112,6 +116,9 @@ export async function POST(request: NextRequest) {
     session!.role === UserRole.SUPER_ADMIN && body.schoolId
       ? body.schoolId
       : await requireSchoolId(session!);
+
+  const denied = await requireLicenseWrite(schoolId, { feature: "finance" });
+  if (denied) return denied;
 
   try {
     const rule = await prisma.feeReminderRule.create({

@@ -11,6 +11,7 @@ import {
   processCommunicationBatch,
 } from "@/lib/bulk-fee-comms";
 import { logAudit } from "@/lib/audit";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 const createSchema = z.object({
   action: z.enum(["FEE_REMINDER", "FEE_STATEMENT"]),
@@ -86,6 +87,9 @@ export async function POST(request: NextRequest) {
     session!.role === UserRole.SUPER_ADMIN && body.schoolId
       ? body.schoolId
       : await requireSchoolId(session!);
+
+  const denied = await requireLicenseWrite(schoolId, { feature: "finance" });
+  if (denied) return denied;
 
   const batch = await createFeeCommsBatch({
     schoolId,

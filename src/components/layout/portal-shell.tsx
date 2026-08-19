@@ -6,6 +6,8 @@ import { Header } from "./header";
 import type { SessionPayload } from "@/lib/auth";
 import type { NavItem } from "@/lib/navigation";
 import type { SessionOption } from "@/lib/academic-session-shared";
+import type { EvaluatedLicense } from "@/lib/licensing/types";
+import { LicenseStatusBanner } from "@/components/enterprise/license-banner";
 
 interface PortalShellProps {
   user: SessionPayload;
@@ -14,6 +16,8 @@ interface PortalShellProps {
   portalLabel: string;
   sessions?: SessionOption[];
   viewSessionId?: string | null;
+  license?: EvaluatedLicense | null;
+  canManageLicense?: boolean;
   children: React.ReactNode;
 }
 
@@ -24,6 +28,8 @@ export function PortalShell({
   portalLabel,
   sessions = [],
   viewSessionId = null,
+  license = null,
+  canManageLicense = false,
   children,
 }: PortalShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -44,7 +50,10 @@ export function PortalShell({
           sessions={sessions}
           viewSessionId={viewSessionId}
         />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+          <LicenseStatusBanner evaluation={license} canManage={canManageLicense} />
+          {children}
+        </main>
       </div>
     </div>
   );

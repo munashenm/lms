@@ -9,6 +9,7 @@ import {
   saveIntegrationSettings,
 } from "@/lib/school-integrations";
 import { prisma } from "@/lib/db";
+import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -58,6 +59,9 @@ export async function PATCH(request: NextRequest) {
   if (!schoolId) {
     return NextResponse.json({ message: "School context required" }, { status: 400 });
   }
+
+  const denied = await requireLicenseWrite(schoolId);
+  if (denied) return denied;
 
   const { schoolId: _ignored, ...settings } = parsed.data;
 

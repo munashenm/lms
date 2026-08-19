@@ -23,6 +23,16 @@ export function checkBackupCompatibility(manifest: BackupManifest): {
   return { ok: errors.length === 0, warnings, errors };
 }
 
+export function assertBackupBelongsToSchool(
+  manifestInstitutionId: string | undefined | null,
+  schoolId: string
+): string | null {
+  if (manifestInstitutionId && manifestInstitutionId !== schoolId) {
+    return "This backup belongs to a different institution and cannot be restored here.";
+  }
+  return null;
+}
+
 export function describeSnapshot(snapshot: BackupSnapshot) {
   return {
     institutionId: snapshot.school.id,
