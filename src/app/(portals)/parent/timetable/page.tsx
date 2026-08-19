@@ -45,7 +45,7 @@ export default async function ParentTimetablePage({ searchParams }: PageProps) {
       </div>
 
       <ChildFilter
-        children={children.map((c) => ({ id: c.id, firstName: c.firstName, lastName: c.lastName }))}
+        students={children.map((c) => ({ id: c.id, firstName: c.firstName, lastName: c.lastName }))}
         selectedId={selected?.id}
         basePath="/parent/timetable"
       />

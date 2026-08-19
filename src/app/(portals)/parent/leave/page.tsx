@@ -51,7 +51,7 @@ export default async function ParentLeavePage({ searchParams }: PageProps) {
       </div>
 
       <ChildFilter
-        children={children.map((c) => ({
+        students={children.map((c) => ({
           id: c.id,
           firstName: c.firstName,
           lastName: c.lastName,

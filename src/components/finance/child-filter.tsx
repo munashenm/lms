@@ -8,13 +8,13 @@ interface Child {
 }
 
 interface ChildFilterProps {
-  children: Child[];
+  students: Child[];
   selectedId?: string;
   basePath: string;
 }
 
-export function ChildFilter({ children, selectedId, basePath }: ChildFilterProps) {
-  if (children.length <= 1) return null;
+export function ChildFilter({ students, selectedId, basePath }: ChildFilterProps) {
+  if (students.length <= 1) return null;
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -29,7 +29,7 @@ export function ChildFilter({ children, selectedId, basePath }: ChildFilterProps
       >
         All children
       </Link>
-      {children.map((child) => (
+      {students.map((child) => (
         <Link
           key={child.id}
           href={`${basePath}?studentId=${child.id}`}

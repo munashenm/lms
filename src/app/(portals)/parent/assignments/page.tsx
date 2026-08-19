@@ -67,7 +67,7 @@ export default async function ParentAssignmentsPage({ searchParams }: PageProps)
       </div>
 
       <ChildFilter
-        children={children.map((c) => ({ id: c.id, firstName: c.firstName, lastName: c.lastName }))}
+        students={children.map((c) => ({ id: c.id, firstName: c.firstName, lastName: c.lastName }))}
         selectedId={studentId}
         basePath="/parent/assignments"
       />
