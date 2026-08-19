@@ -166,7 +166,7 @@ export default async function FinanceDashboardPage() {
             <Link href="/finance/expenses">Expenses</Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <Link href="/finance/adjustments">Adjustments</Link>
+            <Link href="/finance/adjustments">Credits & aid</Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
             <Link href="/finance/reports">Reports</Link>

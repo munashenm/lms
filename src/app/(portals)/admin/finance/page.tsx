@@ -53,48 +53,12 @@ export default async function AdminFinancePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Finance</h1>
-          <p className="text-muted text-sm mt-1">
-            Student billing, invoices, payments and debtor tracking in ZAR
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/admin/finance/fee-schedule">Fee Schedule</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/finance/structures">Fee Structures</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/finance/charges">Charges & plans</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/finance/expenses">Expenses</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/finance/adjustments">Credits & aid</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/finance/reports">Reports</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/finance/ledger">Income & Expenses</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/admin/finance/debtors">Debtors</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href="/admin/finance/reminders">Fee Reminders</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/admin/finance/collect">Collect fees</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/admin/finance/invoices/new">New Invoice</Link>
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold">Finance</h1>
+        <p className="text-muted text-sm mt-1">
+          Student billing, invoices, payments and debtor tracking in ZAR. Use the Finance menu for
+          schedule, collections, debtors and reports.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

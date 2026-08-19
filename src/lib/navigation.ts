@@ -60,6 +60,24 @@ export function isNavHrefActive(pathname: string, href: string, allHrefs: string
   );
 }
 
+/** Admin Finance dropdown — billing, collections and ledgers. */
+export function getAdminFinanceNavItems(): Array<Omit<NavItem, "section" | "sectionIcon">> {
+  return [
+    { label: "Overview", href: "/admin/finance", icon: "LayoutDashboard" },
+    { label: "Fee Schedule", href: "/admin/finance/fee-schedule", icon: "CreditCard" },
+    { label: "Fee Structures", href: "/finance/structures", icon: "FileText" },
+    { label: "Charges & plans", href: "/finance/charges", icon: "CreditCard" },
+    { label: "Expenses", href: "/finance/expenses", icon: "TrendingDown" },
+    { label: "Credits & aid", href: "/finance/adjustments", icon: "FileText" },
+    { label: "Reports", href: "/finance/reports", icon: "BarChart3" },
+    { label: "Income & Expenses", href: "/finance/ledger", icon: "Wallet" },
+    { label: "Debtors", href: "/admin/finance/debtors", icon: "TrendingDown" },
+    { label: "Fee Reminders", href: "/admin/finance/reminders", icon: "Megaphone" },
+    { label: "Collect fees", href: "/admin/finance/collect", icon: "Wallet" },
+    { label: "New Invoice", href: "/admin/finance/invoices/new", icon: "FileText" },
+  ];
+}
+
 export function getAdminNav(
   terms?: Terminology,
   opts?: { vendorTools?: boolean }
@@ -94,8 +112,8 @@ export function getAdminNav(
     ...grouped("Admissions", "ClipboardList", [
       { label: "Applications", href: "/admin/applications", icon: "ClipboardList" },
     ]),
+    ...grouped("Finance", "CreditCard", getAdminFinanceNavItems()),
     ...grouped("Organisation", "Briefcase", [
-      { label: "Finance", href: "/admin/finance", icon: "CreditCard" },
       { label: "HR", href: "/admin/hr", icon: "Briefcase" },
       { label: "Payroll", href: "/admin/payroll", icon: "Banknote" },
     ]),
@@ -199,26 +217,25 @@ export const studentNav: NavItem[] = getStudentNav();
 
 export const financeNav: NavItem[] = [
   { label: "Dashboard", href: "/finance/dashboard", icon: "LayoutDashboard" },
-  ...grouped("Fees", "CreditCard", [
-    { label: "Collect fees", href: "/finance/collect", icon: "Wallet" },
-    { label: "Invoices", href: "/finance/invoices", icon: "FileText" },
-    { label: "Payments", href: "/finance/payments", icon: "Wallet" },
-    { label: "Debtors", href: "/finance/debtors", icon: "TrendingDown" },
-    { label: "Fee Reminders", href: "/finance/reminders", icon: "Megaphone" },
+  ...grouped("Finance", "CreditCard", [
     { label: "Fee Schedule", href: "/finance/fee-schedule", icon: "CreditCard" },
     { label: "Fee Structures", href: "/finance/structures", icon: "FileText" },
     { label: "Charges & plans", href: "/finance/charges", icon: "CreditCard" },
+    { label: "Expenses", href: "/finance/expenses", icon: "TrendingDown" },
+    { label: "Credits & aid", href: "/finance/adjustments", icon: "FileText" },
+    { label: "Reports", href: "/finance/reports", icon: "BarChart3" },
+    { label: "Income & Expenses", href: "/finance/ledger", icon: "Wallet" },
+    { label: "Debtors", href: "/finance/debtors", icon: "TrendingDown" },
+    { label: "Fee Reminders", href: "/finance/reminders", icon: "Megaphone" },
+    { label: "Collect fees", href: "/finance/collect", icon: "Wallet" },
+    { label: "New Invoice", href: "/finance/invoices/new", icon: "FileText" },
+    { label: "Invoices", href: "/finance/invoices", icon: "FileText" },
+    { label: "Payments", href: "/finance/payments", icon: "Wallet" },
   ]),
   ...grouped("Operations", "Wallet", [
-    { label: "Expenses", href: "/finance/expenses", icon: "TrendingDown" },
-    { label: "Adjustments", href: "/finance/adjustments", icon: "FileText" },
     { label: "Income", href: "/finance/income", icon: "Wallet" },
     { label: "Suppliers", href: "/finance/suppliers", icon: "Users" },
     { label: "Accounts", href: "/finance/accounts", icon: "Wallet" },
-  ]),
-  ...grouped("Insights", "BarChart3", [
-    { label: "Reports", href: "/finance/reports", icon: "BarChart3" },
-    { label: "Ledger", href: "/finance/ledger", icon: "Wallet" },
   ]),
   ...grouped("My work", "User", [
     { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },

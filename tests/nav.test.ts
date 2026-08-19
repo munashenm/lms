@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { getAdminNav, getParentNav, getStudentNav, getTeacherNav, financeNav, isNavHrefActive } from "@/lib/navigation";
+import {
+  getAdminNav,
+  getAdminFinanceNavItems,
+  getParentNav,
+  getStudentNav,
+  getTeacherNav,
+  financeNav,
+  isNavHrefActive,
+} from "@/lib/navigation";
 
 describe("admin nav groups", () => {
   it("places licence, backup, system health and SA-SAMS under Settings", () => {
@@ -29,8 +37,31 @@ describe("admin nav groups", () => {
     const nav = getAdminNav();
     expect(nav.find((item) => item.href === "/admin/students")?.section).toBe("People");
     expect(nav.find((item) => item.href === "/admin/classes")?.section).toBe("Academics");
-    expect(nav.find((item) => item.href === "/admin/finance")?.section).toBe("Organisation");
+    expect(nav.find((item) => item.href === "/admin/hr")?.section).toBe("Organisation");
     expect(nav.find((item) => item.href === "/admin/visitors")?.section).toBe("School");
+  });
+
+  it("lists finance tools in a Finance dropdown", () => {
+    const nav = getAdminNav();
+    const finance = nav.filter((item) => item.section === "Finance");
+    expect(finance.map((item) => item.label)).toEqual([
+      "Overview",
+      "Fee Schedule",
+      "Fee Structures",
+      "Charges & plans",
+      "Expenses",
+      "Credits & aid",
+      "Reports",
+      "Income & Expenses",
+      "Debtors",
+      "Fee Reminders",
+      "Collect fees",
+      "New Invoice",
+    ]);
+    expect(finance.every((item) => item.sectionIcon === "CreditCard")).toBe(true);
+    expect(getAdminFinanceNavItems().find((item) => item.label === "Collect fees")?.href).toBe(
+      "/admin/finance/collect"
+    );
   });
 });
 
@@ -49,12 +80,23 @@ describe("other portal groups", () => {
     expect(getTeacherNav().find((item) => item.href === "/staff/payslips")?.section).toBe("My work");
   });
 
-  it("puts Collect fees first under Finance Fees", () => {
-    const fees = financeNav.filter((item) => item.section === "Fees");
-    expect(fees[0]?.href).toBe("/finance/collect");
-    expect(fees[0]?.label).toBe("Collect fees");
-    expect(fees.map((item) => item.href)).toContain("/finance/invoices");
-    expect(fees.map((item) => item.href)).toContain("/finance/payments");
+  it("puts the listed finance tools under the Finance dropdown", () => {
+    const finance = financeNav.filter((item) => item.section === "Finance");
+    expect(finance.map((item) => item.label).slice(0, 11)).toEqual([
+      "Fee Schedule",
+      "Fee Structures",
+      "Charges & plans",
+      "Expenses",
+      "Credits & aid",
+      "Reports",
+      "Income & Expenses",
+      "Debtors",
+      "Fee Reminders",
+      "Collect fees",
+      "New Invoice",
+    ]);
+    expect(finance.map((item) => item.href)).toContain("/finance/invoices");
+    expect(finance.map((item) => item.href)).toContain("/finance/payments");
   });
 });
 
@@ -68,5 +110,12 @@ describe("nav active matching", () => {
 
   it("marks the school settings page itself", () => {
     expect(isNavHrefActive("/admin/settings", "/admin/settings", hrefs)).toBe(true);
+  });
+
+  it("does not mark Finance overview active on Collect fees", () => {
+    const financeHrefs = getAdminFinanceNavItems().map((item) => item.href);
+    expect(isNavHrefActive("/admin/finance/collect", "/admin/finance", financeHrefs)).toBe(false);
+    expect(isNavHrefActive("/admin/finance/collect", "/admin/finance/collect", financeHrefs)).toBe(true);
+    expect(isNavHrefActive("/admin/finance", "/admin/finance", financeHrefs)).toBe(true);
   });
 });
