@@ -23,7 +23,7 @@ export default async function FinanceCollectFeesPage({ searchParams }: PageProps
         schoolName={ctx.schoolName}
         schoolLines={ctx.schoolLines}
         classes={ctx.classes}
-        invoiceHref={(id) => `/finance/invoices/${id}`}
+        invoiceBasePath="/finance/invoices"
         newInvoiceHref="/finance/invoices/new"
         initialStudentId={studentId}
       />

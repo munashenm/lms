@@ -25,7 +25,7 @@ interface FeeCollectionDeskProps {
   schoolName: string;
   schoolLines: string[];
   classes: ClassOption[];
-  invoiceHref: (id: string) => string;
+  invoiceBasePath: string;
   newInvoiceHref: string;
   initialStudentId?: string;
 }
@@ -34,7 +34,7 @@ export function FeeCollectionDesk({
   schoolName,
   schoolLines,
   classes: initialClasses,
-  invoiceHref,
+  invoiceBasePath,
   newInvoiceHref,
   initialStudentId,
 }: FeeCollectionDeskProps) {
@@ -297,7 +297,7 @@ export function FeeCollectionDesk({
                       invoiceNumber={selectedInvoice.invoiceNumber}
                     />
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={invoiceHref(selectedInvoice.id)}>Open invoice</Link>
+                      <Link href={`${invoiceBasePath}/${selectedInvoice.id}`}>Open invoice</Link>
                     </Button>
                   </div>
                   <PaymentForm
