@@ -25,6 +25,7 @@ export function EmployeeManager(props: {
     category: string;
     department: string | null;
     status: string;
+    userId?: string | null;
     campus?: { name: string } | null;
     salaryStructures?: Array<{ baseSalary: unknown }>;
   }>;
@@ -52,10 +53,16 @@ export function EmployeeManager(props: {
           baseSalary: form.get("baseSalary") ? Number(form.get("baseSalary")) : undefined,
           bankAccountNumber: form.get("bankAccountNumber") || undefined,
           bankName: form.get("bankName") || undefined,
+          portalRole: form.get("portalRole") || undefined,
         }),
       });
-      if (!res.ok) throw new Error();
-      toast.success("Employee created");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Could not create employee");
+      toast.success(
+        data.provision?.invitesSent
+          ? "Employee created. Password setup email sent."
+          : "Employee created"
+      );
       e.currentTarget.reset();
       router.refresh();
     } catch {
@@ -93,6 +100,17 @@ export function EmployeeManager(props: {
               </select>
             </div>
             <div><Label htmlFor="startDate">Start date</Label><Input id="startDate" name="startDate" type="date" /></div>
+            <div>
+              <Label htmlFor="portalRole">Portal role</Label>
+              <select id="portalRole" name="portalRole" className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm">
+                <option value="STAFF">Staff (self-service)</option>
+                <option value="TEACHER">Teacher / lecturer</option>
+                <option value="FINANCE_OFFICER">Finance officer</option>
+                <option value="HR_OFFICER">HR officer</option>
+                <option value="ADMISSIONS_OFFICER">Admissions officer</option>
+              </select>
+              <p className="text-xs text-muted mt-1">Used only when an email is provided. Privileged officer roles are never inferred from category.</p>
+            </div>
             <div><Label htmlFor="baseSalary">Base salary (ZAR)</Label><Input id="baseSalary" name="baseSalary" type="number" step="0.01" /></div>
             <div><Label htmlFor="bankName">Bank</Label><Input id="bankName" name="bankName" /></div>
             <div><Label htmlFor="bankAccountNumber">Account number</Label><Input id="bankAccountNumber" name="bankAccountNumber" autoComplete="off" /></div>
@@ -111,6 +129,7 @@ export function EmployeeManager(props: {
                 <th className="text-left px-4 py-3 font-medium text-muted">Department</th>
                 <th className="text-right px-4 py-3 font-medium text-muted">Salary</th>
                 <th className="text-left px-4 py-3 font-medium text-muted">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-muted">Portal</th>
               </tr>
             </thead>
             <tbody>
@@ -126,6 +145,7 @@ export function EmployeeManager(props: {
                   <td className="px-4 py-3 text-muted">{e.department ?? "—"}</td>
                   <td className="px-4 py-3 text-right">{formatZAR(Number(e.salaryStructures?.[0]?.baseSalary ?? 0))}</td>
                   <td className="px-4 py-3"><Badge variant={e.status === "ACTIVE" ? "success" : "secondary"}>{e.status}</Badge></td>
+                  <td className="px-4 py-3 text-muted">{e.userId ? "Linked" : "—"}</td>
                 </tr>
               ))}
             </tbody>

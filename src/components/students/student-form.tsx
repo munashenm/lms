@@ -53,7 +53,11 @@ export function StudentForm({ grades, classes, campuses }: StudentFormProps) {
         return;
       }
 
-      toast.success("Student created successfully");
+      toast.success(
+        result.provision?.invitesSent
+          ? "Student created. Password setup email sent."
+          : "Student created successfully"
+      );
       router.push("/admin/students");
       router.refresh();
     } catch {

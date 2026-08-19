@@ -18,7 +18,7 @@ export async function issuePasswordSetup(params: {
   schoolId: string | null;
   email: string;
   firstName: string;
-  kind: "reset" | "welcome_student" | "welcome_parent";
+  kind: "reset" | "welcome_student" | "welcome_parent" | "welcome_staff";
 }) {
   const token = generateResetToken();
   const tokenHash = hashResetToken(token);
@@ -34,7 +34,8 @@ export async function issuePasswordSetup(params: {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const setupUrl = `${appUrl}/reset-password?token=${token}`;
-  const portal = params.kind === "welcome_parent" ? "parent" : "student";
+  const portal =
+    params.kind === "welcome_parent" ? "parent" : params.kind === "welcome_staff" ? "staff" : "student";
   const subject =
     params.kind === "reset"
       ? "Reset your SchoolHub SA password"

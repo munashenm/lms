@@ -7,6 +7,8 @@ import { teacherSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { licenseDeniedResponse, licenseWriteGuard, requireLicenseWrite } from "@/lib/licensing/enforce";
 import { ensureEmployeeForTeacher } from "@/lib/employee-sync";
+import { ensureEmployeeLeaveEntitlements } from "@/lib/leave-entitlement";
+import { provisionStaffAccount } from "@/lib/portal-provision";
 import { UserRole } from "@prisma/client";
 
 export async function GET() {
@@ -76,12 +78,35 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  await ensureEmployeeForTeacher({
+  const employee = await ensureEmployeeForTeacher({
     schoolId,
     teacherId: teacher.id,
     userId: teacher.userId,
     actorId: session!.userId,
   });
+  if (employee) {
+    await ensureEmployeeLeaveEntitlements({ schoolId, employeeId: employee.id });
+  }
+
+  let provision: { created: boolean; linked: boolean; invitesSent: number; skipped: boolean } | null = null;
+  if (parsed.data.email) {
+    try {
+      provision = await provisionStaffAccount({
+        schoolId,
+        actorId: session!.userId,
+        firstName: teacher.firstName,
+        lastName: teacher.lastName,
+        email: teacher.email,
+        phone: teacher.phone,
+        role: UserRole.TEACHER,
+        employeeId: employee?.id,
+        teacherId: teacher.id,
+        source: "teacher",
+      });
+    } catch {
+      provision = { created: false, linked: false, invitesSent: 0, skipped: true };
+    }
+  }
 
   await logAudit({
     schoolId,
@@ -92,5 +117,5 @@ export async function POST(request: NextRequest) {
     metadata: { employeeNumber },
   });
 
-  return NextResponse.json({ teacher }, { status: 201 });
+  return NextResponse.json({ teacher, provision }, { status: 201 });
 }

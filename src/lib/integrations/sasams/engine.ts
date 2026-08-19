@@ -12,6 +12,8 @@ import { asInputJson } from "@/lib/json";
 import { generateStudentNumber } from "@/lib/students";
 import { licenseWriteGuard } from "@/lib/licensing/enforce";
 import { NATIVE_DATABASE_ADAPTER_ID, NATIVE_DATABASE_PLACEHOLDER_MESSAGE } from "./native-database";
+import { ensureEmployeeForTeacher } from "@/lib/employee-sync";
+import { ensureEmployeeLeaveEntitlements } from "@/lib/leave-entitlement";
 
 const FILE_TTL_HOURS = Number(process.env.IMPORT_FILE_TTL_HOURS ?? "24");
 
@@ -542,6 +544,15 @@ async function importEducator(
       department: mapped.department || null,
     },
   });
+  const employee = await ensureEmployeeForTeacher({
+    schoolId,
+    teacherId: teacher.id,
+    userId: teacher.userId,
+    actorId: userId,
+  });
+  if (employee) {
+    await ensureEmployeeLeaveEntitlements({ schoolId, employeeId: employee.id });
+  }
   await prisma.externalRecordMapping.create({
     data: {
       schoolId,

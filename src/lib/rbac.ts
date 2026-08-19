@@ -118,6 +118,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   HR_OFFICER: [
     "staff:read", "staff:write", ...HR_ALL, ...PAYROLL_ALL, "reports:read",
   ],
+  STAFF: [],
 };
 
 export function hasPermission(role: UserRole, permission: Permission): boolean {

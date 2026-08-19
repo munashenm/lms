@@ -33,7 +33,11 @@ export function StaffCreateForm({ schoolId }: { schoolId?: string }) {
         toast.error(json.message ?? "Could not add staff member");
         return;
       }
-      toast.success("Staff member added");
+      toast.success(
+        json.provision?.invitesSent
+          ? "Staff member added. Password setup email sent."
+          : "Staff member added"
+      );
       setForm({ firstName: "", lastName: "", employeeNumber: "", email: "", department: "" });
       router.refresh();
     } finally {

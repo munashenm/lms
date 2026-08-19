@@ -52,7 +52,7 @@ export async function getGuardianForSession(session: SessionPayload) {
               studentNumber: true,
               status: true,
               grade: { select: { name: true } },
-              class: { select: { name: true } },
+              class: { select: { id: true, name: true } },
             },
           },
         },

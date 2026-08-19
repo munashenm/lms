@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { EmployeeCategory, EmploymentType, StaffStatus } from "@prisma/client";
+import { EmployeeCategory, EmploymentType, StaffStatus, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
-import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { licenseDeniedResponse, licenseWriteGuard, requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { encryptSecret } from "@/lib/secret-crypto";
 import { nextHrEmployeeNumber } from "@/lib/employee-sync";
+import { ensureEmployeeLeaveEntitlements } from "@/lib/leave-entitlement";
+import {
+  canAssignStaffPortalRole,
+  defaultStaffPortalRole,
+  isOfficerPortalRole,
+  isStaffPortalRole,
+  provisionStaffAccount,
+} from "@/lib/portal-provision";
 import { z } from "zod";
 
 function stripBank<T extends { bankAccountEnc?: string | null }>(row: T) {
@@ -39,6 +47,7 @@ const schema = z.object({
   baseSalary: z.coerce.number().min(0).optional(),
   payType: z.enum(["MONTHLY", "HOURLY"]).optional(),
   hourlyRate: z.coerce.number().min(0).optional(),
+  portalRole: z.nativeEnum(UserRole).optional(),
 });
 
 export async function GET() {
@@ -64,6 +73,18 @@ export async function POST(request: NextRequest) {
   if (denied) return denied;
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ message: "Invalid data", errors: parsed.error.issues }, { status: 400 });
+  const requestedRole = parsed.data.portalRole;
+  let role =
+    requestedRole && isStaffPortalRole(requestedRole)
+      ? requestedRole
+      : defaultStaffPortalRole({ category: parsed.data.category, teacherId: parsed.data.teacherId });
+  if (!canAssignStaffPortalRole(session!.role, role)) {
+    role = defaultStaffPortalRole({ category: parsed.data.category, teacherId: parsed.data.teacherId });
+  }
+  if (isOfficerPortalRole(role) && parsed.data.email) {
+    const adminGuard = await licenseWriteGuard({ schoolId, action: "create_administrator" });
+    if (!adminGuard.ok) return licenseDeniedResponse(adminGuard);
+  }
   const employeeNumber = parsed.data.employeeNumber?.trim() || (await nextHrEmployeeNumber(schoolId));
   const last4 = parsed.data.bankAccountNumber ? parsed.data.bankAccountNumber.slice(-4) : null;
   const employee = await prisma.employee.create({
@@ -111,5 +132,26 @@ export async function POST(request: NextRequest) {
     entityId: employee.id,
     metadata: { employeeNumber, category: employee.category },
   });
-  return NextResponse.json({ employee: stripBank(employee) }, { status: 201 });
+  await ensureEmployeeLeaveEntitlements({ schoolId, employeeId: employee.id });
+
+  let provision: { created: boolean; linked: boolean; invitesSent: number; skipped: boolean } | null = null;
+  if (parsed.data.email) {
+    try {
+      provision = await provisionStaffAccount({
+        schoolId,
+        actorId: session!.userId,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        email: employee.email,
+        phone: employee.phone,
+        role,
+        employeeId: employee.id,
+        teacherId: employee.teacherId,
+        source: "employee",
+      });
+    } catch {
+      provision = { created: false, linked: false, invitesSent: 0, skipped: true };
+    }
+  }
+  return NextResponse.json({ employee: stripBank(employee), provision }, { status: 201 });
 }

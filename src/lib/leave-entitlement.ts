@@ -128,6 +128,27 @@ export async function accrueSchoolLeaveEntitlements(params: {
   return { employees: employees.length, policies: policies.length, entitlements: updated };
 }
 
+export async function ensureEmployeeLeaveEntitlements(params: {
+  schoolId: string;
+  employeeId: string;
+  asOf?: Date;
+}) {
+  const asOf = params.asOf ?? new Date();
+  const cycleYear = asOf.getUTCFullYear();
+  const policies = await prisma.leavePolicy.findMany({
+    where: { schoolId: params.schoolId, isActive: true },
+  });
+  for (const policy of policies) {
+    await ensureLeaveEntitlement({
+      employeeId: params.employeeId,
+      policy,
+      cycleYear,
+      asOf,
+    });
+  }
+  return { policies: policies.length };
+}
+
 export async function syncLeaveTakenOnStatusChange(params: {
   previousStatus: LeaveStatus;
   nextStatus: LeaveStatus;

@@ -11,6 +11,7 @@ const AUDIENCE_FOR_ROLE: Partial<Record<UserRole, string[]>> = {
   [UserRole.STUDENT]: ["ALL", "STUDENTS"],
   [UserRole.PARENT]: ["ALL", "PARENTS", "STUDENTS"],
   [UserRole.TEACHER]: ["ALL", "STAFF", "TEACHERS"],
+  [UserRole.STAFF]: ["ALL", "STAFF"],
 };
 
 export async function GET(request: NextRequest) {

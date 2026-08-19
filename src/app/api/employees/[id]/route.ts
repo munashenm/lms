@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { StaffStatus } from "@prisma/client";
+import { StaffStatus, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canAccessSchool, requirePermission } from "@/lib/rbac";
-import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { licenseDeniedResponse, licenseWriteGuard, requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
+import {
+  canAssignStaffPortalRole,
+  defaultStaffPortalRole,
+  isOfficerPortalRole,
+  isStaffPortalRole,
+  provisionStaffAccount,
+} from "@/lib/portal-provision";
 import { z } from "zod";
 
 interface Params {
@@ -17,6 +24,8 @@ const schema = z.object({
   status: z.nativeEnum(StaffStatus).optional(),
   endDate: z.string().optional().nullable(),
   campusId: z.string().optional().nullable(),
+  invitePortal: z.boolean().optional(),
+  portalRole: z.nativeEnum(UserRole).optional(),
 });
 
 export async function GET(_request: NextRequest, { params }: Params) {
@@ -59,11 +68,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (denied) return denied;
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ message: "Invalid data" }, { status: 400 });
+  const { invitePortal, portalRole, ...updates } = parsed.data;
   const employee = await prisma.employee.update({
     where: { id },
     data: {
-      ...parsed.data,
-      endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : parsed.data.endDate,
+      ...updates,
+      endDate: updates.endDate ? new Date(updates.endDate) : updates.endDate,
     },
   });
   if (parsed.data.status === "TERMINATED") {
@@ -75,7 +85,40 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       entityId: id,
     });
   }
+  let provision: { created: boolean; linked: boolean; invitesSent: number; skipped: boolean } | null = null;
+  if (invitePortal) {
+    const requested = portalRole && isStaffPortalRole(portalRole) ? portalRole : null;
+    let role =
+      requested ?? defaultStaffPortalRole({ category: employee.category, teacherId: employee.teacherId });
+    if (!canAssignStaffPortalRole(session!.role, role)) {
+      role = defaultStaffPortalRole({ category: employee.category, teacherId: employee.teacherId });
+    }
+    if (isOfficerPortalRole(role) && !employee.userId) {
+      const adminGuard = await licenseWriteGuard({
+        schoolId: existing.schoolId,
+        action: "create_administrator",
+      });
+      if (!adminGuard.ok) return licenseDeniedResponse(adminGuard);
+    }
+    try {
+      provision = await provisionStaffAccount({
+        schoolId: existing.schoolId,
+        actorId: session!.userId,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        email: employee.email,
+        phone: employee.phone,
+        role,
+        employeeId: employee.id,
+        teacherId: employee.teacherId,
+        resend: true,
+        source: "employee",
+      });
+    } catch {
+      provision = { created: false, linked: false, invitesSent: 0, skipped: true };
+    }
+  }
   const { bankAccountEnc, ...safe } = employee;
   void bankAccountEnc;
-  return NextResponse.json({ employee: safe });
+  return NextResponse.json({ employee: safe, provision });
 }

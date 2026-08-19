@@ -12,6 +12,7 @@ import {
 import { calculateEmployeePay, EMPTY_PAYROLL_RULES, parsePayrollRules } from "@/lib/payroll-engine";
 import { hoursBetweenHhmm, parseClockPunches } from "@/lib/clock-hours";
 import { hasPermission } from "@/lib/rbac";
+import { canApplyForLeave } from "@/lib/staff-leave";
 import { remainingLeaveDays, accruedDaysFor, unpaidLeaveDoesNotConsume } from "@/lib/leave-balance";
 import { DEFAULT_LICENSE_FEATURES } from "@/lib/licensing/features";
 import { advanceRecurringDate } from "@/lib/recurring-schedule";
@@ -21,7 +22,8 @@ import { isCollectedPayment } from "@/lib/finance";
 import { reversingLedgerAmount } from "@/lib/payroll-reversal";
 import { payrollListingCsv, payrollListingRows, PAYROLL_LISTING_HEADERS } from "@/lib/payroll-listing";
 import { matchCourseId, matchGradeId, shouldCreateStudentOnAccept } from "@/lib/application-enrolment";
-import { planPortalProvision } from "@/lib/portal-provision";
+import { canAssignStaffPortalRole, defaultStaffPortalRole, planPortalProvision } from "@/lib/portal-provision";
+import { canInitiateInvoicePayment } from "@/lib/payment-gateways/invoice-auth";
 import { FINANCE_SLIP_TYPES, saveFinanceSlip } from "@/lib/finance-uploads";
 import { financeOpsSectionCsv, type FinanceOpsReport } from "@/lib/finance-ops-report";
 
@@ -164,6 +166,15 @@ describe("RBAC isolation", () => {
     expect(hasPermission(UserRole.HR_OFFICER, "finance:write")).toBe(false);
     expect(hasPermission(UserRole.HR_OFFICER, "payroll.finalise")).toBe(true);
     expect(hasPermission(UserRole.SCHOOL_ADMIN, "finance.fees.manage")).toBe(true);
+  });
+
+  it("keeps operational STAFF on self-service without finance, HR or payroll writes", () => {
+    expect(hasPermission(UserRole.STAFF, "finance:write")).toBe(false);
+    expect(hasPermission(UserRole.STAFF, "finance.payments.create")).toBe(false);
+    expect(hasPermission(UserRole.STAFF, "payroll.finalise")).toBe(false);
+    expect(hasPermission(UserRole.STAFF, "hr.employees.manage")).toBe(false);
+    expect(hasPermission(UserRole.STAFF, "staff:write")).toBe(false);
+    expect(canApplyForLeave(UserRole.STAFF)).toBe(true);
   });
 });
 
@@ -443,6 +454,54 @@ describe("application enrolment matching", () => {
     expect(emailOnlyGuardian.guardian?.lastName).toBe("Mahlangu");
     expect(emailOnlyGuardian.guardian?.relationship).toBe("Parent");
     expect(emailOnlyGuardian.guardian?.loginEmail).toBe("parent@school.co.za");
+  });
+
+  it("defaults HR employees to STAFF and linked educators to TEACHER", () => {
+    expect(defaultStaffPortalRole({ category: "CLEANER" })).toBe(UserRole.STAFF);
+    expect(defaultStaffPortalRole({ category: "FINANCE" })).toBe(UserRole.STAFF);
+    expect(defaultStaffPortalRole({ category: "EDUCATOR" })).toBe(UserRole.STAFF);
+    expect(defaultStaffPortalRole({ category: "EDUCATOR", teacherId: "t1" })).toBe(UserRole.TEACHER);
+    expect(canAssignStaffPortalRole(UserRole.HR_OFFICER, UserRole.FINANCE_OFFICER)).toBe(false);
+    expect(canAssignStaffPortalRole(UserRole.HR_OFFICER, UserRole.STAFF)).toBe(true);
+    expect(canAssignStaffPortalRole(UserRole.SCHOOL_ADMIN, UserRole.FINANCE_OFFICER)).toBe(true);
+  });
+});
+
+describe("invoice payment authorization", () => {
+  const base = {
+    invoiceStudentId: "stu-1",
+    invoiceSchoolId: "sch-1",
+    sessionSchoolId: "sch-1",
+    sessionUserId: "user-1",
+    studentUserId: "user-1",
+    childStudentIds: [] as string[],
+  };
+
+  it("lets a student pay only their own invoice and a parent pay only a linked child", () => {
+    expect(canInitiateInvoicePayment({ ...base, role: UserRole.STUDENT })).toBe(true);
+    expect(canInitiateInvoicePayment({ ...base, role: UserRole.STUDENT, studentUserId: "other" })).toBe(false);
+    expect(
+      canInitiateInvoicePayment({
+        ...base,
+        role: UserRole.PARENT,
+        sessionUserId: "parent-1",
+        childStudentIds: ["stu-1"],
+      })
+    ).toBe(true);
+    expect(
+      canInitiateInvoicePayment({
+        ...base,
+        role: UserRole.PARENT,
+        sessionUserId: "parent-1",
+        childStudentIds: ["stu-other"],
+      })
+    ).toBe(false);
+  });
+
+  it("does not let teachers or operational staff start gateway checkout", () => {
+    expect(canInitiateInvoicePayment({ ...base, role: UserRole.TEACHER })).toBe(false);
+    expect(canInitiateInvoicePayment({ ...base, role: UserRole.STAFF })).toBe(false);
+    expect(canInitiateInvoicePayment({ ...base, role: UserRole.FINANCE_OFFICER })).toBe(true);
   });
 });
 

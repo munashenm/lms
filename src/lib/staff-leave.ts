@@ -11,6 +11,7 @@ export const STAFF_LEAVE_ROLES: UserRole[] = [
   UserRole.SCHOOL_ADMIN,
   UserRole.PRINCIPAL,
   UserRole.SUPER_ADMIN,
+  UserRole.STAFF,
 ];
 
 export function canApplyForLeave(role: UserRole): boolean {

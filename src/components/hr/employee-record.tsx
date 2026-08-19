@@ -33,6 +33,7 @@ export function EmployeeRecord(props: {
     position: string | null;
     employmentType: string;
     status: string;
+    userId?: string | null;
     bankName: string | null;
     bankAccountLast4: string | null;
   };
@@ -67,6 +68,7 @@ export function EmployeeRecord(props: {
     notes: string | null;
   }>;
   canChangeStatus?: boolean;
+  canInvitePortal?: boolean;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
@@ -140,6 +142,33 @@ export function EmployeeRecord(props: {
     }
   }
 
+  async function invitePortal() {
+    setLoading("portal");
+    try {
+      const res = await fetch(`/api/employees/${props.employee.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invitePortal: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Could not set up portal");
+      if (data.provision?.invitesSent) {
+        toast.success("Password setup email sent.");
+      } else if (data.provision?.linked) {
+        toast.success("Portal account is already linked.");
+      } else {
+        toast.error(
+          "No portal account created. Add an email, or that address may already belong to another role or school."
+        );
+      }
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not set up portal");
+    } finally {
+      setLoading(null);
+    }
+  }
+
   async function addContract(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading("contract");
@@ -181,9 +210,25 @@ export function EmployeeRecord(props: {
           <p><span className="text-muted">Position:</span> {props.employee.position ?? "—"}</p>
           <p><span className="text-muted">Type:</span> {props.employee.employmentType}</p>
           <p><span className="text-muted">Status:</span> <Badge>{props.employee.status}</Badge></p>
+          <p><span className="text-muted">Email:</span> {props.employee.email ?? "—"}</p>
+          <p><span className="text-muted">Portal:</span> {props.employee.userId ? "Linked" : "Not linked"}</p>
           <p><span className="text-muted">Bank:</span> {props.employee.bankName ?? "—"} {props.employee.bankAccountLast4 ? `••••${props.employee.bankAccountLast4}` : ""}</p>
         </CardContent>
       </Card>
+
+      {props.canInvitePortal ? (
+        <Card>
+          <CardHeader><CardTitle>Staff portal</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted">
+              Creates a staff login from the employee email, or resends the password setup link if a portal account is already linked. Plaintext passwords are never emailed.
+            </p>
+            <Button type="button" variant="outline" disabled={loading === "portal"} onClick={invitePortal}>
+              {props.employee.userId ? "Resend portal invite" : "Set up portal"}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {props.canChangeStatus ? (
         <Card>
@@ -316,7 +361,7 @@ export function EmployeeRecord(props: {
         <CardHeader><CardTitle>Leave balances</CardTitle></CardHeader>
         <CardContent>
           {props.entitlements.length === 0 ? (
-            <p className="text-sm text-muted">No entitlements accrued yet. Balances are created when leave is requested against a policy.</p>
+            <p className="text-sm text-muted">No leave balances yet. They are created when the employee is added, if the school has active leave policies.</p>
           ) : (
             <table className="w-full text-sm">
               <thead>

@@ -60,14 +60,58 @@ export function planPortalProvision(input: {
   };
 }
 
+export const STAFF_PORTAL_ROLES = [
+  UserRole.STAFF,
+  UserRole.TEACHER,
+  UserRole.FINANCE_OFFICER,
+  UserRole.HR_OFFICER,
+  UserRole.ADMISSIONS_OFFICER,
+] as const;
+
+export type StaffPortalRole = (typeof STAFF_PORTAL_ROLES)[number];
+
+export function isStaffPortalRole(role: string): role is StaffPortalRole {
+  return (STAFF_PORTAL_ROLES as readonly string[]).includes(role);
+}
+
+export function isOfficerPortalRole(role: UserRole): boolean {
+  return (
+    role === UserRole.FINANCE_OFFICER ||
+    role === UserRole.HR_OFFICER ||
+    role === UserRole.ADMISSIONS_OFFICER
+  );
+}
+
+export function canAssignStaffPortalRole(actorRole: UserRole, portalRole: StaffPortalRole): boolean {
+  if (portalRole === UserRole.STAFF || portalRole === UserRole.TEACHER) return true;
+  return actorRole === UserRole.SCHOOL_ADMIN || actorRole === UserRole.SUPER_ADMIN;
+}
+
+export function defaultStaffPortalRole(input: {
+  category?: string | null;
+  teacherId?: string | null;
+}): StaffPortalRole {
+  if (input.teacherId) return UserRole.TEACHER;
+  return UserRole.STAFF;
+}
+
+function portalWelcomeKind(
+  role: UserRole
+): "welcome_student" | "welcome_parent" | "welcome_staff" {
+  if (role === UserRole.STUDENT) return "welcome_student";
+  if (role === UserRole.PARENT) return "welcome_parent";
+  return "welcome_staff";
+}
+
 export async function findOrCreatePortalUser(params: {
   schoolId: string;
   email: string;
   firstName: string;
   lastName: string;
   phone?: string | null;
-  role: typeof UserRole.STUDENT | typeof UserRole.PARENT;
+  role: UserRole;
   actorId: string;
+  source?: string;
 }): Promise<{ userId: string; created: boolean } | { skipped: true }> {
   const email = normalizePortalEmail(params.email);
   if (!email) return { skipped: true };
@@ -98,7 +142,7 @@ export async function findOrCreatePortalUser(params: {
     schoolId: params.schoolId,
     email,
     firstName: params.firstName,
-    kind: params.role === UserRole.PARENT ? "welcome_parent" : "welcome_student",
+    kind: portalWelcomeKind(params.role),
   });
   await logAudit({
     schoolId: params.schoolId,
@@ -106,7 +150,7 @@ export async function findOrCreatePortalUser(params: {
     action: "CREATE",
     entity: "User",
     entityId: user.id,
-    metadata: { role: params.role, source: "application" },
+    metadata: { role: params.role, source: params.source ?? "application" },
   });
   return { userId: user.id, created: true };
 }
@@ -231,4 +275,97 @@ export async function provisionPortalAccounts(params: {
   }
 
   return { studentLoginCreated, guardianLinked, invitesSent };
+}
+
+export async function provisionStaffAccount(params: {
+  schoolId: string;
+  actorId: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone?: string | null;
+  role: StaffPortalRole;
+  employeeId?: string | null;
+  teacherId?: string | null;
+  resend?: boolean;
+  source?: string;
+}): Promise<{ created: boolean; linked: boolean; invitesSent: number; skipped: boolean }> {
+  const email = normalizePortalEmail(params.email);
+  if (!email) {
+    return { created: false, linked: false, invitesSent: 0, skipped: true };
+  }
+
+  const employee = params.employeeId
+    ? await prisma.employee.findFirst({
+        where: { id: params.employeeId, schoolId: params.schoolId },
+        select: { id: true, userId: true },
+      })
+    : params.teacherId
+      ? await prisma.employee.findUnique({
+          where: { teacherId: params.teacherId },
+          select: { id: true, userId: true },
+        })
+      : null;
+
+  const teacher = params.teacherId
+    ? await prisma.teacher.findFirst({
+        where: { id: params.teacherId, schoolId: params.schoolId },
+        select: { id: true, userId: true },
+      })
+    : null;
+
+  const existingUserId = employee?.userId ?? teacher?.userId ?? null;
+  if (existingUserId) {
+    if (params.resend) {
+      const user = await prisma.user.findFirst({
+        where: { id: existingUserId, schoolId: params.schoolId, isActive: true },
+        select: { id: true, email: true, firstName: true, role: true },
+      });
+      if (user) {
+        await issuePasswordSetup({
+          userId: user.id,
+          schoolId: params.schoolId,
+          email: user.email,
+          firstName: user.firstName,
+          kind: "reset",
+        });
+        return { created: false, linked: true, invitesSent: 1, skipped: false };
+      }
+    }
+    return { created: false, linked: true, invitesSent: 0, skipped: false };
+  }
+
+  const result = await findOrCreatePortalUser({
+    schoolId: params.schoolId,
+    email,
+    firstName: params.firstName,
+    lastName: params.lastName,
+    phone: params.phone,
+    role: params.role,
+    actorId: params.actorId,
+    source: params.source ?? "employee",
+  });
+  if ("skipped" in result) {
+    return { created: false, linked: false, invitesSent: 0, skipped: true };
+  }
+
+  if (employee && !employee.userId) {
+    await prisma.employee.update({
+      where: { id: employee.id },
+      data: { userId: result.userId },
+    });
+  }
+  if (teacher && !teacher.userId) {
+    await prisma.teacher.update({
+      where: { id: teacher.id },
+      data: { userId: result.userId },
+    });
+  }
+
+  return {
+    created: result.created,
+    linked: true,
+    invitesSent: result.created ? 1 : 0,
+    skipped: false,
+  };
 }

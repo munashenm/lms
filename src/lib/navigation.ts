@@ -122,6 +122,8 @@ export const financeNav: NavItem[] = [
   { label: "Ledger", href: "/finance/ledger", icon: "Wallet" },
   { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
   { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
+  { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },
+  { label: "My Timesheets", href: "/staff/timesheets", icon: "ClipboardCheck" },
 ];
 
 export const hrNav: NavItem[] = [
@@ -144,5 +146,7 @@ export const parentNav: NavItem[] = [
   { label: "Fees", href: "/parent/fees", icon: "CreditCard" },
   { label: "Attendance", href: "/parent/attendance", icon: "ClipboardCheck" },
   { label: "Results", href: "/parent/results", icon: "Award" },
+  { label: "Report Cards", href: "/parent/report-cards", icon: "Award" },
+  { label: "Timetable", href: "/parent/timetable", icon: "Calendar" },
   { label: "Announcements", href: "/parent/announcements", icon: "Megaphone" },
 ];

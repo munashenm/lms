@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { ensureStudentEnrolment } from "@/lib/enrolment";
 import { generateStudentNumber } from "@/lib/students";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
+import { provisionPortalAccounts } from "@/lib/portal-provision";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -149,7 +150,29 @@ export async function POST(request: NextRequest) {
       ipAddress: request.headers.get("x-forwarded-for") ?? undefined,
     });
 
-    return NextResponse.json({ student }, { status: 201 });
+    let provision: { studentLoginCreated: boolean; guardianLinked: boolean; invitesSent: number } | null = null;
+    try {
+      provision = await provisionPortalAccounts({
+        studentId: student.id,
+        schoolId,
+        actorId: session.userId,
+        application: {
+          firstName: student.firstName,
+          lastName: student.lastName,
+          email: student.email,
+          phone: student.phone,
+          guardianFirstName: null,
+          guardianLastName: null,
+          guardianEmail: null,
+          guardianPhone: null,
+          guardianRelationship: null,
+        },
+      });
+    } catch {
+      provision = { studentLoginCreated: false, guardianLinked: false, invitesSent: 0 };
+    }
+
+    return NextResponse.json({ student, provision }, { status: 201 });
   } catch (error) {
     console.error("Create student error:", error);
     return NextResponse.json({ message: "Failed to create student" }, { status: 500 });
