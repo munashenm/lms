@@ -22,7 +22,7 @@ export function validateUpload(filename: string, mimeType: string | null, size: 
   if (size > MAX_IMPORT_BYTES) return `File exceeds the maximum size of ${Math.round(MAX_IMPORT_BYTES / 1024 / 1024)} MB.`;
   const ext = path.extname(filename).toLowerCase();
   if (!ALLOWED_IMPORT_EXT.includes(ext)) {
-    return `File type ${ext || "(none)"} is not allowed. Use CSV, TSV, JSON, or XLSX.`;
+    return `File type ${ext || "(none)"} is not allowed. Use CSV, TSV, JSON, XLSX, or a native SA-SAMS database file (.mdb, .accdb, .bak).`;
   }
   if (mimeType && !ALLOWED_IMPORT_MIME.includes(mimeType) && mimeType !== "application/octet-stream") {
     return "This MIME type is not accepted for SA-SAMS imports.";

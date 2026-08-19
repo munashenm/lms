@@ -17,6 +17,7 @@ import {
 } from "@/lib/integrations/sasams/engine";
 import { autoMapHeaders, guessEntityFromSheet } from "@/lib/integrations/sasams/mapping";
 import { UnsupportedOfficialApiProvider } from "@/lib/integrations/sasams/provider";
+import { nativeDatabasePlaceholderStatus } from "@/lib/integrations/sasams/native-database";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -85,6 +86,14 @@ export async function POST(request: NextRequest) {
     actions?: { id: string; action: string }[];
   };
 
+  if (body.action === "test-api") {
+    const provider = new UnsupportedOfficialApiProvider();
+    return NextResponse.json(await provider.testConnection());
+  }
+  if (body.action === "test-native-db") {
+    return NextResponse.json(nativeDatabasePlaceholderStatus());
+  }
+
   if (!body.jobId) return NextResponse.json({ message: "jobId required" }, { status: 400 });
 
   const job = await prisma.importJob.findFirst({ where: { id: body.jobId, schoolId } });
@@ -125,10 +134,6 @@ export async function POST(request: NextRequest) {
       if (!requirePermission(session, "sasams.rollback")) return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
       await rollbackImport(body.jobId, schoolId, session!.userId);
       return NextResponse.json({ ok: true });
-    }
-    if (body.action === "test-api") {
-      const provider = new UnsupportedOfficialApiProvider();
-      return NextResponse.json(await provider.testConnection());
     }
     return NextResponse.json({ message: "Unknown action" }, { status: 400 });
   } catch (error) {

@@ -42,6 +42,7 @@ export function SaSamsWizard({ schoolId }: { schoolId?: string }) {
   const [history, setHistory] = useState<Array<Record<string, unknown>>>([]);
   const [loading, setLoading] = useState(false);
   const [apiStatus, setApiStatus] = useState<string>("");
+  const [nativeDbStatus, setNativeDbStatus] = useState<string>("");
 
   async function loadHistory() {
     const qs = schoolId ? `?schoolId=${schoolId}` : "";
@@ -189,6 +190,11 @@ export function SaSamsWizard({ schoolId }: { schoolId?: string }) {
     setApiStatus(json.message);
   }
 
+  async function testNativeDb() {
+    const json = await postAction("test-native-db");
+    setNativeDbStatus(json.message);
+  }
+
   const counts = (analysis?.counts ?? {}) as Record<string, number>;
 
   return (
@@ -208,11 +214,15 @@ export function SaSamsWizard({ schoolId }: { schoolId?: string }) {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
-              Upload a school-authorised SA-SAMS export. CSV, TSV, JSON and Excel (.xlsx) are supported.
-              Native SA-SAMS database files will be added after we inspect a sample — this wizard will not
-              guess unpublished table structures.
+              Upload a school-authorised SA-SAMS export. CSV, TSV, JSON and Excel (.xlsx) can be imported
+              now. Native database files (.mdb, .accdb, .bak) are recognised as a placeholder until the
+              authorised sample arrives — this wizard will not guess unpublished table structures.
             </p>
-            <input type="file" accept=".csv,.tsv,.txt,.json,.xlsx,.xls" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <input
+              type="file"
+              accept=".csv,.tsv,.txt,.json,.xlsx,.xls,.mdb,.accdb,.bak"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
             <Button onClick={upload} disabled={loading || !file}>Upload</Button>
             <div className="rounded-lg border border-border p-3">
               <p className="font-medium">Method B — future official API</p>
@@ -220,6 +230,17 @@ export function SaSamsWizard({ schoolId }: { schoolId?: string }) {
                 Test API connection
               </Button>
               {apiStatus && <p className="text-xs text-muted mt-2">{apiStatus}</p>}
+            </div>
+            <div className="rounded-lg border border-dashed border-border bg-background p-3">
+              <p className="font-medium">Method C — native SA-SAMS database (placeholder)</p>
+              <p className="text-xs text-muted mt-1">
+                Waiting for an authorised, anonymised sample (version, export type, dummy learners).
+                Access (.mdb / .accdb) and backup (.bak) files are detected but not parsed.
+              </p>
+              <Button variant="outline" size="sm" className="mt-2" onClick={testNativeDb}>
+                Check native database adapter
+              </Button>
+              {nativeDbStatus && <p className="text-xs text-muted mt-2">{nativeDbStatus}</p>}
             </div>
           </CardContent>
         </Card>

@@ -19,6 +19,7 @@ export default async function SaSamsPage({ searchParams }: PageProps) {
         <h1 className="text-2xl font-bold">SA-SAMS Migration Centre</h1>
         <p className="text-muted text-sm mt-1">
           Import authorised SA-SAMS exports into staging tables, map fields, detect duplicates, then import with full audit provenance.
+          Native database files are a placeholder until an authorised sample is received.
         </p>
       </div>
       <SaSamsWizard schoolId={schoolId} />

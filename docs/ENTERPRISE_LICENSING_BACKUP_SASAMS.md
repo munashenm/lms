@@ -114,19 +114,21 @@ Restricted / grace banners appear in every portal shell. Login, licence, backup 
 
 SA-SAMS duplicate detection lets an admin choose Skip, Update existing, Create new, or Review manually per row. Review-manually rows are not imported.
 
-## SA-SAMS sample data still needed
+## SA-SAMS native database (placeholder)
 
-The import **engine** is complete (CSV/TSV/JSON/XLSX adapters, staging, validation, mapping, duplicates, execute, rollback). Native SA-SAMS database parsing is **not** invented.
+The import **engine** is complete for CSV/TSV/JSON/XLSX. A native SA-SAMS database adapter is registered as a **placeholder** (`sa-sams-native-db-placeholder`).
 
-Please provide a school-authorised sample with dummy (non-live) learners:
+It recognises `.mdb`, `.accdb` and `.bak` files and Access Jet/ACE magic bytes, then stops. Files are **not parsed**. Table names are **not guessed**.
+
+When the authorised sample arrives, implement `parse()` in `src/lib/integrations/sasams/native-database.ts` against that sample only. Mapping, validation, duplicates, execute and rollback stay as they are.
+
+Please include dummy (non-live) data with:
 
 1. SA-SAMS version (Help → About, or installer version).
 2. Export type actually used by the school: CSV, Excel workbook, Access `.mdb`/`.accdb`, official backup, or other.
 3. One anonymised file per major area if possible: learners, parents/guardians, educators, classes/subjects.
 4. If it is a database backup: a schema dump or table list — **do not** send production ID numbers.
 5. Confirmation of the provincial system (if any) and whether an official API exists.
-
-With that we can add a version-accurate adapter without guessing table names.
 
 ## Testing
 

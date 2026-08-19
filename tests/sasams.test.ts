@@ -6,6 +6,11 @@ import { findDuplicateSourceRecords, validateMappedRecord } from "@/lib/integrat
 import { matchExistingLearner } from "@/lib/integrations/sasams/duplicates";
 import { shouldSkipStagingRecord } from "@/lib/integrations/sasams/duplicates";
 import { validateUpload } from "@/lib/integrations/sasams/security";
+import {
+  NATIVE_DATABASE_ADAPTER_ID,
+  NATIVE_DATABASE_PLACEHOLDER_MESSAGE,
+  nativeDatabaseImporter,
+} from "@/lib/integrations/sasams/native-database";
 
 const csv = `Learner Name,Learner Surname,Identity Number,Admission Number,Grade,Class,Date of Birth
 Thabo,Mokoena,8001015009087,ADM001,10,10A,2010-01-15
@@ -88,5 +93,14 @@ describe("SA-SAMS import framework", () => {
     const detected = detectImporter("school.exe", "application/octet-stream", Buffer.from("MZ"));
     expect(detected.importer).toBeNull();
     expect(validateUpload("payload.exe", "application/octet-stream", 100)).toBeTruthy();
+  });
+
+  it("registers a native database placeholder without parsing tables", async () => {
+    expect(validateUpload("school.mdb", "application/x-msaccess", 2048)).toBeNull();
+    const detected = detectImporter("school.mdb", "application/x-msaccess", Buffer.alloc(64));
+    expect(detected.importer?.id).toBe(NATIVE_DATABASE_ADAPTER_ID);
+    await expect(nativeDatabaseImporter.parse(Buffer.alloc(64), "school.mdb")).rejects.toThrow(
+      NATIVE_DATABASE_PLACEHOLDER_MESSAGE
+    );
   });
 });

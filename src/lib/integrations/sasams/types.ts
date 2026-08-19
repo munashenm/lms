@@ -103,5 +103,8 @@ export const ALLOWED_IMPORT_MIME = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/zip",
   "application/octet-stream",
+  "application/x-msaccess",
+  "application/msaccess",
+  "application/vnd.ms-access",
 ];
-export const ALLOWED_IMPORT_EXT = [".csv", ".tsv", ".txt", ".json", ".xlsx", ".xls"];
+export const ALLOWED_IMPORT_EXT = [".csv", ".tsv", ".txt", ".json", ".xlsx", ".xls", ".mdb", ".accdb", ".bak"];

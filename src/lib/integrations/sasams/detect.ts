@@ -1,9 +1,10 @@
 import { csvImporter } from "./csv";
 import { jsonImporter } from "./json";
 import { xlsxImporter } from "./xlsx";
+import { nativeDatabaseImporter } from "./native-database";
 import type { SASamsImporter } from "./types";
 
-export const IMPORTERS: SASamsImporter[] = [csvImporter, jsonImporter, xlsxImporter];
+export const IMPORTERS: SASamsImporter[] = [csvImporter, jsonImporter, xlsxImporter, nativeDatabaseImporter];
 
 export function detectImporter(
   filename: string,
@@ -24,7 +25,7 @@ export function detectImporter(
       importer: null,
       score,
       reason:
-        "Unsupported file format. Upload a CSV, TSV, JSON, or Excel (.xlsx) export authorised by the school. Native SA-SAMS database files will be added after we inspect a sample.",
+        "Unsupported file format. Upload a CSV, TSV, JSON, Excel (.xlsx), or a native SA-SAMS database file (.mdb, .accdb, .bak). Native database parsing is a placeholder until an authorised sample is received.",
     };
   }
   return { importer: best, score };

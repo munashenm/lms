@@ -11,6 +11,7 @@ import { SASAMS_SOURCE, type ImportEntityType, type ParsedSource } from "./types
 import { asInputJson } from "@/lib/json";
 import { generateStudentNumber } from "@/lib/students";
 import { licenseWriteGuard } from "@/lib/licensing/enforce";
+import { NATIVE_DATABASE_ADAPTER_ID, NATIVE_DATABASE_PLACEHOLDER_MESSAGE } from "./native-database";
 
 const FILE_TTL_HOURS = Number(process.env.IMPORT_FILE_TTL_HOURS ?? "24");
 
@@ -30,6 +31,9 @@ export async function createImportJob(opts: {
   }
 
   const detected = detectImporter(name, opts.mimeType, opts.bytes);
+  if (detected.importer?.id === NATIVE_DATABASE_ADAPTER_ID) {
+    throw Object.assign(new Error(NATIVE_DATABASE_PLACEHOLDER_MESSAGE), { status: 422 });
+  }
   const job = await prisma.importJob.create({
     data: {
       schoolId: opts.schoolId,
