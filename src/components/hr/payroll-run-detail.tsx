@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,8 @@ export function PayrollRunDetail(props: {
     }>;
   };
 }) {
+  const pathname = usePathname();
+  const backHref = pathname.startsWith("/admin") ? "/admin/payroll" : "/hr/payroll";
   const exceptions = props.run.items.filter((i) => i.exceptionNote);
   return (
     <div className="space-y-6">
@@ -80,7 +83,7 @@ export function PayrollRunDetail(props: {
         <Button variant="outline" asChild>
           <a href={`/api/payroll/runs/${props.run.id}/export`}>Payment listing CSV</a>
         </Button>
-        <Button variant="outline" asChild><Link href="/hr/payroll">Back to payroll</Link></Button>
+        <Button variant="outline" asChild><Link href={backHref}>Back to payroll</Link></Button>
       </div>
     </div>
   );

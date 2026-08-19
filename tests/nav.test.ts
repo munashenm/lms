@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   getAdminNav,
   getAdminFinanceNavItems,
+  getAdminHrNavItems,
   getParentNav,
   getStudentNav,
   getTeacherNav,
   financeNav,
+  hrNav,
   isNavHrefActive,
   navClusters,
   navPageTabs,
@@ -16,6 +18,7 @@ describe("admin nav groups", () => {
     const nav = getAdminNav();
     const settings = nav.filter((item) => item.section === "Settings");
     const hrefs = settings.map((item) => item.href);
+    expect(hrefs).toContain("/admin/users");
     expect(hrefs).toContain("/admin/settings");
     expect(hrefs).toContain("/admin/settings/licence");
     expect(hrefs).toContain("/admin/settings/backup");
@@ -24,6 +27,7 @@ describe("admin nav groups", () => {
     expect(settings.find((item) => item.href === "/admin/settings")?.label).toBe("School settings");
     expect(settings.every((item) => item.sectionIcon === "Settings")).toBe(true);
     expect(nav.some((item) => item.href === "/admin/settings/licence" && !item.section)).toBe(false);
+    expect(settings.find((item) => item.href === "/admin/users")?.group).toBe("School");
     expect(settings.find((item) => item.href === "/admin/settings")?.group).toBe("School");
     expect(settings.find((item) => item.href === "/admin/audit")?.group).toBe("Platform");
   });
@@ -37,14 +41,45 @@ describe("admin nav groups", () => {
     ).toBe(true);
   });
 
-  it("groups people, academics and organisation together", () => {
+  it("groups learners, academics and human resource together", () => {
     const nav = getAdminNav();
-    expect(nav.find((item) => item.href === "/admin/students")?.section).toBe("People");
+    expect(nav.find((item) => item.href === "/admin/students")?.label).toBe("Learners");
+    expect(nav.find((item) => item.href === "/admin/students")?.section).toBeUndefined();
     expect(nav.find((item) => item.href === "/admin/classes")?.section).toBe("Academics");
     expect(nav.find((item) => item.href === "/admin/classes")?.group).toBe("Setup");
     expect(nav.find((item) => item.href === "/admin/assessments")?.group).toBe("Classroom");
-    expect(nav.find((item) => item.href === "/admin/hr")?.section).toBe("Organisation");
+    expect(nav.find((item) => item.href === "/admin/hr")?.section).toBe("Human Resource");
     expect(nav.find((item) => item.href === "/admin/visitors")?.section).toBe("School");
+    expect(nav.some((item) => item.section === "Organisation")).toBe(false);
+    expect(nav.some((item) => item.section === "People")).toBe(false);
+  });
+
+  it("puts staff, attendance, leave and payroll under Human Resource", () => {
+    const nav = getAdminNav();
+    const hr = nav.filter((item) => item.section === "Human Resource");
+    expect(hr.map((item) => item.label)).toEqual([
+      "Staff",
+      "Employees",
+      "Staff Attendance",
+      "Staff Leave",
+      "Timesheets",
+      "Payroll",
+      "Leave policies",
+      "HR Reports",
+    ]);
+    expect(navClusters(hr).map((cluster) => cluster.group)).toEqual(["People", "Time", "Pay"]);
+    expect(nav.find((item) => item.href === "/admin/staff")?.section).toBe("Human Resource");
+    expect(nav.find((item) => item.href === "/admin/staff-attendance")?.group).toBe("Time");
+    expect(nav.find((item) => item.href === "/admin/leave")?.label).toBe("Staff Leave");
+    expect(nav.find((item) => item.href === "/admin/payroll")?.group).toBe("Pay");
+    expect(getAdminHrNavItems().every((item) => item.href.startsWith("/admin"))).toBe(true);
+  });
+
+  it("places Users under Settings, not People", () => {
+    const nav = getAdminNav();
+    expect(nav.find((item) => item.href === "/admin/users")?.section).toBe("Settings");
+    expect(nav.find((item) => item.href === "/admin/users")?.group).toBe("School");
+    expect(nav.find((item) => item.href === "/admin/staff")?.section).not.toBe("Settings");
   });
 
   it("lists finance tools in Fees, Collections and Books groups", () => {
@@ -105,6 +140,14 @@ describe("other portal groups", () => {
     expect(financeNav.map((item) => item.href)).toContain("/finance/invoices");
     expect(financeNav.map((item) => item.href)).toContain("/finance/payments");
   });
+
+  it("groups HR officer tools under Human Resource", () => {
+    expect(hrNav.find((item) => item.href === "/hr/staff")?.section).toBe("Human Resource");
+    expect(hrNav.find((item) => item.href === "/hr/staff-attendance")?.group).toBe("Time");
+    expect(hrNav.find((item) => item.href === "/hr/leave")?.label).toBe("Staff Leave");
+    expect(hrNav.find((item) => item.href === "/hr/payroll")?.group).toBe("Pay");
+    expect(hrNav.find((item) => item.href === "/hr/employees")?.group).toBe("People");
+  });
 });
 
 describe("nav active matching", () => {
@@ -153,11 +196,20 @@ describe("page tabs", () => {
     ]);
   });
 
-  it("shows collection screens as tabs", () => {
-    expect(navPageTabs("/admin/finance/collect", nav).map((tab) => tab.label)).toEqual([
-      "Collect fees",
-      "Debtors",
-      "Fee Reminders",
+  it("shows People / Time / Pay on a Human Resource screen", () => {
+    expect(navPageTabs("/admin/staff", nav).map((tab) => tab.label)).toEqual([
+      "Staff",
+      "Employees",
+    ]);
+    expect(navPageTabs("/admin/leave", nav).map((tab) => tab.label)).toEqual([
+      "Staff Attendance",
+      "Staff Leave",
+      "Timesheets",
+    ]);
+    expect(navPageTabs("/admin/payroll", nav).map((tab) => tab.label)).toEqual([
+      "Payroll",
+      "Leave policies",
+      "HR Reports",
     ]);
   });
 });

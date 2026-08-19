@@ -227,6 +227,12 @@ describe("portal feature flags", () => {
 
   it("treats staff self-service leave as an HR/Payroll feature", () => {
     expect(navHrefFeature("/staff/leave")).toBe("hr_payroll");
+    expect(navHrefFeature("/admin/leave")).toBe("hr_payroll");
+    expect(navHrefFeature("/admin/staff-attendance")).toBe("hr_payroll");
+    expect(navHrefFeature("/hr/staff-attendance")).toBe("hr_payroll");
+    expect(navHrefFeature("/admin/hr/timesheets")).toBe("hr_payroll");
+    expect(navHrefFeature("/admin/staff")).toBeNull();
+    expect(navHrefFeature("/admin/learner-leave")).toBe("student_leave");
     expect(navHrefFeature("/parent/leave")).toBe("student_leave");
     expect(navHrefFeature("/staff/payslips")).toBe("hr_payroll");
     expect(navHrefFeature("/staff/timesheets")).toBe("hr_payroll");

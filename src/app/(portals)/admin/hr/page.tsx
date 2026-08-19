@@ -16,7 +16,7 @@ export default async function AdminHrPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Human Resources</h1>
+        <h1 className="text-2xl font-bold">Employees</h1>
         <p className="text-muted text-sm mt-1">All institution employees — not teachers only.</p>
       </div>
       <EmployeeManager employees={employees} />

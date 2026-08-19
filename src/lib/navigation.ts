@@ -140,6 +140,26 @@ export function getAdminFinanceNavItems(): Array<Omit<NavItem, "section" | "sect
   ];
 }
 
+/** Admin Human Resource dropdown — staff, time and payroll. Stays on /admin paths. */
+export function getAdminHrNavItems(): Array<Omit<NavItem, "section" | "sectionIcon">> {
+  return [
+    ...cluster("People", [
+      { label: "Staff", href: "/admin/staff", icon: "UserCheck" },
+      { label: "Employees", href: "/admin/hr", icon: "Briefcase" },
+    ]),
+    ...cluster("Time", [
+      { label: "Staff Attendance", href: "/admin/staff-attendance", icon: "ClipboardCheck" },
+      { label: "Staff Leave", href: "/admin/leave", icon: "Palmtree" },
+      { label: "Timesheets", href: "/admin/hr/timesheets", icon: "ClipboardCheck" },
+    ]),
+    ...cluster("Pay", [
+      { label: "Payroll", href: "/admin/payroll", icon: "Banknote" },
+      { label: "Leave policies", href: "/admin/hr/leave-policies", icon: "FileText" },
+      { label: "HR Reports", href: "/admin/hr/reports", icon: "BarChart3" },
+    ]),
+  ];
+}
+
 export function getAdminNav(
   terms?: Terminology,
   opts?: { vendorTools?: boolean }
@@ -147,16 +167,8 @@ export function getAdminNav(
   const t = terms;
   return [
     { label: "Dashboard", href: "/admin/dashboard", icon: "LayoutDashboard" },
-    ...grouped("People", "Users", [
-      { label: t?.students ?? "Learners", href: "/admin/students", icon: "Users" },
-      { label: "Staff", href: "/admin/staff", icon: "UserCheck" },
-      { label: "Users", href: "/admin/users", icon: "Users" },
-    ]),
-    ...grouped("Staff", "UserCheck", [
-      { label: "Leave", href: "/admin/leave", icon: "Palmtree" },
-      { label: "Staff Attendance", href: "/admin/staff-attendance", icon: "ClipboardCheck" },
-      { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
-    ]),
+    { label: t?.students ?? "Learners", href: "/admin/students", icon: "Users" },
+    ...grouped("Human Resource", "Briefcase", getAdminHrNavItems()),
     ...grouped("Academics", "BookOpen", [
       ...cluster("Setup", [
         {
@@ -181,10 +193,6 @@ export function getAdminNav(
       { label: "Applications", href: "/admin/applications", icon: "ClipboardList" },
     ]),
     ...grouped("Finance", "CreditCard", getAdminFinanceNavItems()),
-    ...grouped("Organisation", "Briefcase", [
-      { label: "HR", href: "/admin/hr", icon: "Briefcase" },
-      { label: "Payroll", href: "/admin/payroll", icon: "Banknote" },
-    ]),
     ...grouped("Communication", "Megaphone", [
       { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
       { label: "Communications", href: "/admin/communications", icon: "Megaphone" },
@@ -199,6 +207,7 @@ export function getAdminNav(
     ]),
     ...grouped("Settings", "Settings", [
       ...cluster("School", [
+        { label: "Users", href: "/admin/users", icon: "Users" },
         { label: "School settings", href: "/admin/settings", icon: "Settings" },
         { label: "Licence", href: "/admin/settings/licence", icon: "Shield" },
         ...(opts?.vendorTools
@@ -330,17 +339,21 @@ export const financeNav: NavItem[] = [
 
 export const hrNav: NavItem[] = [
   { label: "Dashboard", href: "/hr/dashboard", icon: "LayoutDashboard" },
-  ...grouped("People", "Users", [
-    { label: "Employees", href: "/hr/employees", icon: "Users" },
-  ]),
-  ...grouped("Leave", "Palmtree", [
-    { label: "Leave", href: "/hr/leave", icon: "Palmtree" },
-    { label: "Leave policies", href: "/hr/leave-policies", icon: "FileText" },
-  ]),
-  ...grouped("Payroll", "Banknote", [
-    { label: "Timesheets", href: "/hr/timesheets", icon: "ClipboardCheck" },
-    { label: "Payroll", href: "/hr/payroll", icon: "Banknote" },
-    { label: "Reports", href: "/hr/reports", icon: "BarChart3" },
+  ...grouped("Human Resource", "Briefcase", [
+    ...cluster("People", [
+      { label: "Staff", href: "/hr/staff", icon: "UserCheck" },
+      { label: "Employees", href: "/hr/employees", icon: "Users" },
+    ]),
+    ...cluster("Time", [
+      { label: "Staff Attendance", href: "/hr/staff-attendance", icon: "ClipboardCheck" },
+      { label: "Staff Leave", href: "/hr/leave", icon: "Palmtree" },
+      { label: "Timesheets", href: "/hr/timesheets", icon: "ClipboardCheck" },
+    ]),
+    ...cluster("Pay", [
+      { label: "Payroll", href: "/hr/payroll", icon: "Banknote" },
+      { label: "Leave policies", href: "/hr/leave-policies", icon: "FileText" },
+      { label: "HR Reports", href: "/hr/reports", icon: "BarChart3" },
+    ]),
   ]),
   ...grouped("My work", "User", [
     { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },

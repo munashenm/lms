@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,8 @@ export function EmployeeManager(props: {
   }>;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const employeeBasePath = pathname.startsWith("/admin") ? "/admin/hr/employees" : "/hr/employees";
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -137,7 +139,7 @@ export function EmployeeManager(props: {
                 <tr key={e.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 font-mono text-xs">{e.employeeNumber}</td>
                   <td className="px-4 py-3 font-medium">
-                    <Link href={`/hr/employees/${e.id}`} className="text-primary hover:underline">
+                    <Link href={`${employeeBasePath}/${e.id}`} className="text-primary hover:underline">
                       {e.firstName} {e.lastName}
                     </Link>
                   </td>

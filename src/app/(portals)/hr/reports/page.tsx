@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter, requirePermission } from "@/lib/rbac";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { formatDate, formatZAR } from "@/lib/utils";
 import { getHrReport } from "@/lib/reports";
@@ -9,7 +9,7 @@ import { ReportPanel } from "@/components/reports/report-panel";
 
 export default async function HrReportsPage() {
   const session = await getSession();
-  if (!requirePermission(session, "hr.view")) redirect("/hr/dashboard");
+  if (!requirePermission(session, "hr.view")) notFound();
   const filter = getSchoolFilter(session);
   const now = new Date();
   const horizon = new Date(now.getTime() + 90 * 86400000);
