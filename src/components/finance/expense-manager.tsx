@@ -51,19 +51,19 @@ export function ExpenseManager(props: {
     }
   }
 
-  async function postExpense(id: string) {
+  async function runAction(id: string, action: "post" | "approve") {
     setLoading(true);
     try {
       const res = await fetch(`/api/expenses/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "post" }),
+        body: JSON.stringify({ action }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Expense posted to the ledger");
+      toast.success(action === "approve" ? "Expense approved" : "Expense posted to the ledger");
       router.refresh();
     } catch {
-      toast.error("Could not post expense");
+      toast.error(action === "approve" ? "Could not approve expense" : "Could not post expense");
     } finally {
       setLoading(false);
     }
@@ -157,8 +157,11 @@ export function ExpenseManager(props: {
                         <a href={row.attachmentUrl} target="_blank" rel="noreferrer">Slip</a>
                       </Button>
                     ) : null}
+                    {row.approvalStatus === "DRAFT" || row.approvalStatus === "PENDING" ? (
+                      <Button size="sm" variant="ghost" disabled={loading} onClick={() => runAction(row.id, "approve")}>Approve</Button>
+                    ) : null}
                     {row.approvalStatus !== "POSTED" ? (
-                      <Button size="sm" variant="outline" disabled={loading} onClick={() => postExpense(row.id)}>Post</Button>
+                      <Button size="sm" variant="outline" disabled={loading} onClick={() => runAction(row.id, "post")}>Post</Button>
                     ) : null}
                   </td>
                 </tr>

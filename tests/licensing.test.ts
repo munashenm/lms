@@ -7,7 +7,7 @@ import { canAccessSchool, hasPermission } from "@/lib/rbac";
 import { UserRole } from "@prisma/client";
 import type { SessionPayload } from "@/lib/auth";
 import { isRestrictedPathAllowed } from "@/lib/licensing/restricted-paths";
-import { filterNavByLicense, isFeatureEnabled, licenseBannerTone } from "@/lib/licensing/portal";
+import { filterNavByLicense, isFeatureEnabled, licenseBannerTone, navHrefFeature } from "@/lib/licensing/portal";
 import { getAdminNav, studentNav } from "@/lib/navigation";
 
 function claims(overrides: Partial<LicenseClaims> = {}): LicenseClaims {
@@ -223,6 +223,13 @@ describe("portal feature flags", () => {
     const nav = filterNavByLicense(studentNav, evaluation);
     expect(nav.some((item) => item.href === "/student/fees")).toBe(false);
     expect(nav.some((item) => item.href === "/student/dashboard")).toBe(true);
+  });
+
+  it("treats staff self-service leave as an HR/Payroll feature", () => {
+    expect(navHrefFeature("/staff/leave")).toBe("hr_payroll");
+    expect(navHrefFeature("/staff/payslips")).toBe("hr_payroll");
+    expect(navHrefFeature("/staff/timesheets")).toBe("hr_payroll");
+    expect(navHrefFeature("/staff/attendance")).toBe("attendance");
   });
 
   it("uses a restricted banner after expiry", () => {

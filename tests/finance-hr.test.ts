@@ -22,6 +22,7 @@ import { reversingLedgerAmount } from "@/lib/payroll-reversal";
 import { payrollListingCsv, payrollListingRows, PAYROLL_LISTING_HEADERS } from "@/lib/payroll-listing";
 import { matchCourseId, matchGradeId, shouldCreateStudentOnAccept } from "@/lib/application-enrolment";
 import { FINANCE_SLIP_TYPES, saveFinanceSlip } from "@/lib/finance-uploads";
+import { financeOpsSectionCsv, type FinanceOpsReport } from "@/lib/finance-ops-report";
 
 const ctx: EnrolmentFeeContext = {
   schoolId: "sch-1",
@@ -398,5 +399,48 @@ describe("finance slips", () => {
     expect(FINANCE_SLIP_TYPES).toEqual(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
     const file = new File(["not-a-slip"], "virus.exe", { type: "application/x-msdownload" });
     await expect(saveFinanceSlip("sch-1", "income", file)).rejects.toThrow(/PDF or image/);
+  });
+});
+
+describe("finance ops exports", () => {
+  const report: FinanceOpsReport = {
+    cards: {
+      feesRaised: 1000,
+      collected: 400,
+      outstanding: 600,
+      overdue: 0,
+      totalIncome: 400,
+      totalExpenses: 50,
+      netPosition: 350,
+      collectionRate: 0.4,
+    },
+    byMethod: { EFT: 250, CASH: 150 },
+    revenueByGrade: {},
+    revenueByCourse: {},
+    revenueByModule: {},
+    expensesByCategory: { Utilities: 50 },
+    monthly: { "2026-08": { income: 0, expenses: 50, collections: 400 } },
+    debtors: [
+      {
+        invoiceId: "inv-1",
+        invoiceNumber: "INV-1",
+        student: "Ada Molefe",
+        studentNumber: "STD20260001",
+        outstanding: 600,
+        status: "SENT",
+        dueDate: new Date("2026-08-31T00:00:00Z"),
+      },
+    ],
+  };
+
+  it("exports debtors and collections without inventing extra columns", () => {
+    const debtors = financeOpsSectionCsv("debtors", report)!;
+    expect(debtors).toContain("STD20260001");
+    expect(debtors).toContain("600.00");
+    expect(debtors.split("\n")[0]).toBe("Student number,Student,Invoice,Outstanding,Status,Due date");
+    const methods = financeOpsSectionCsv("methods", report)!;
+    expect(methods).toContain("CASH");
+    expect(methods).toContain("150.00");
+    expect(financeOpsSectionCsv("unknown", report)).toBeNull();
   });
 });

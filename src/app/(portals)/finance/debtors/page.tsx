@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth";
 import { getSchoolFilter } from "@/lib/rbac";
 import { DebtorTable } from "@/components/finance/debtor-table";
 import { getOutstandingBalance } from "@/lib/finance";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
 export default async function FinanceDebtorsPage() {
   const session = await getSession();
@@ -64,9 +66,17 @@ export default async function FinanceDebtorsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Debtors</h1>
-        <p className="text-muted text-sm mt-1">Students with outstanding fee balances</p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Debtors</h1>
+          <p className="text-muted text-sm mt-1">Students with outstanding fee balances</p>
+        </div>
+        <Button variant="outline" size="sm" asChild>
+          <a href="/api/finance/reports?format=csv&section=debtors" download>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </a>
+        </Button>
       </div>
       <DebtorTable
         debtors={debtors}

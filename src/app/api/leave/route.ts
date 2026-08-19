@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "School context required" }, { status: 400 });
   }
 
-  const denied = await requireLicenseWrite(applicant.schoolId);
+  const denied = await requireLicenseWrite(applicant.schoolId, { feature: "hr_payroll" });
   if (denied) return denied;
 
   const formData = await request.formData();

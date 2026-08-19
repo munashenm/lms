@@ -3,8 +3,11 @@ import { prisma } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatZAR, formatDate } from "@/lib/utils";
+import { hrPayrollGate } from "@/components/hr/hr-payroll-gate";
 
 export default async function StaffPayslipsPage() {
+  const blocked = await hrPayrollGate();
+  if (blocked) return blocked;
   const session = await getSession();
   const employee = await prisma.employee.findUnique({
     where: { userId: session!.userId },

@@ -4,8 +4,11 @@ import { LeaveRequestForm } from "@/components/hr/leave-request-form";
 import { LeaveReview } from "@/components/hr/leave-review";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { remainingLeaveDays } from "@/lib/leave-entitlement";
+import { hrPayrollGate } from "@/components/hr/hr-payroll-gate";
 
 export default async function StaffLeavePage() {
+  const blocked = await hrPayrollGate();
+  if (blocked) return blocked;
   const session = await getSession();
 
   const [leaveRequests, employee] = await Promise.all([

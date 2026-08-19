@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { RecurringInterval, ApprovalStatus } from "@prisma/client";
+import { RecurringInterval } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
-import { advanceRecurringDate, generateDueRecurringExpenses } from "@/lib/recurring-expenses";
+import { generateDueRecurringExpenses, generateOneRecurringExpense } from "@/lib/recurring-expenses";
 import { z } from "zod";
 
 const schema = z.object({
@@ -42,33 +42,17 @@ export async function POST(request: NextRequest) {
   if (denied) return denied;
   const body = await request.json();
   if (body.generateDue) {
-    const summary = await generateDueRecurringExpenses({ schoolId, actorId: session.userId });
+    const summary = await generateDueRecurringExpenses({ schoolId, actorId: session!.userId });
     return NextResponse.json({ summary }, { status: 201 });
   }
   if (body.generateId) {
-    const rec = await prisma.recurringExpense.findFirst({
-      where: { id: body.generateId, schoolId },
+    const result = await generateOneRecurringExpense({
+      recurringExpenseId: body.generateId,
+      schoolId,
+      actorId: session!.userId,
     });
-    if (!rec) return NextResponse.json({ message: "Not found" }, { status: 404 });
-    const expense = await prisma.expense.create({
-      data: {
-        schoolId,
-        supplierId: rec.supplierId,
-        categoryId: rec.categoryId,
-        financialAccountId: rec.financialAccountId,
-        recurringExpenseId: rec.id,
-        description: rec.description,
-        amount: rec.amount,
-        transactionDate: rec.nextDueDate,
-        approvalStatus: rec.requireConfirm ? ApprovalStatus.DRAFT : ApprovalStatus.PENDING,
-        createdById: session.userId,
-      },
-    });
-    await prisma.recurringExpense.update({
-      where: { id: rec.id },
-      data: { nextDueDate: advanceRecurringDate(rec.nextDueDate, rec.interval) },
-    });
-    return NextResponse.json({ expense }, { status: 201 });
+    if (!result.ok) return NextResponse.json({ message: "Not found" }, { status: 404 });
+    return NextResponse.json({ expenseId: result.expenseId, skipped: result.skipped }, { status: 201 });
   }
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ message: "Invalid data" }, { status: 400 });
