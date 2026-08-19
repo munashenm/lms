@@ -21,9 +21,6 @@ export function navHrefFeature(href: string): LicenseFeatureKey | null {
     href.includes("/payslips") ||
     href.includes("/leave-policies") ||
     href.includes("/timesheets") ||
-    href.includes("/staff-attendance") ||
-    href === "/admin/leave" ||
-    href.startsWith("/admin/leave/") ||
     href.includes("/staff/leave")
   ) {
     return "hr_payroll";

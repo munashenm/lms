@@ -227,8 +227,8 @@ describe("portal feature flags", () => {
 
   it("treats staff self-service leave as an HR/Payroll feature", () => {
     expect(navHrefFeature("/staff/leave")).toBe("hr_payroll");
-    expect(navHrefFeature("/admin/leave")).toBe("hr_payroll");
-    expect(navHrefFeature("/admin/staff-attendance")).toBe("hr_payroll");
+    expect(navHrefFeature("/admin/leave")).toBeNull();
+    expect(navHrefFeature("/admin/staff-attendance")).toBeNull();
     expect(navHrefFeature("/hr/staff-attendance")).toBe("hr_payroll");
     expect(navHrefFeature("/admin/hr/timesheets")).toBe("hr_payroll");
     expect(navHrefFeature("/admin/staff")).toBeNull();
@@ -243,6 +243,14 @@ describe("portal feature flags", () => {
     expect(navHrefFeature("/admin/finance/collect")).toBe("finance");
     expect(navHrefFeature("/admin/finance/structures")).toBe("finance");
     expect(navHrefFeature("/admin/finance/reports")).toBe("finance");
+  });
+
+  it("keeps the Human Resource menu when HR & Payroll is not licensed", () => {
+    const nav = filterNavByLicense(getAdminNav(), evaluation);
+    const hr = nav.filter((item) => item.section === "Human Resource");
+    expect(hr.map((item) => item.label)).toEqual(["Staff", "Staff Attendance", "Staff Leave"]);
+    expect(nav.some((item) => item.href === "/admin/payroll")).toBe(false);
+    expect(nav.some((item) => item.href === "/admin/hr")).toBe(false);
   });
 
   it("reserves online examinations as a future module without hiding exam listings", () => {
