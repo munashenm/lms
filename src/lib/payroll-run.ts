@@ -11,6 +11,7 @@ import { logAudit } from "./audit";
 import { addMoney } from "./money";
 import { asInputJson } from "./json";
 import { sumTimesheetHours } from "./timesheet-hours";
+import { reversingLedgerAmount } from "./payroll-reversal";
 
 function asAllowances(json: unknown): Array<{ name: string; amount: number }> {
   if (!Array.isArray(json)) return [];
@@ -241,6 +242,56 @@ export async function finalisePayrollRun(params: {
     entity: "PayrollRun",
     entityId: run.id,
     metadata: { totalGross: Number(run.totalGross), totalEmployer: Number(run.totalEmployer) },
+  });
+
+  return updated;
+}
+
+export async function reversePayrollRun(params: {
+  runId: string;
+  schoolId: string;
+  actorId: string;
+}) {
+  const run = await prisma.payrollRun.findFirst({
+    where: { id: params.runId, schoolId: params.schoolId },
+    include: { ledgerEntries: true },
+  });
+  if (!run) throw new Error("Payroll run not found");
+  if (run.status === PayrollRunStatus.REVERSED) throw new Error("Payroll already reversed");
+  if (run.status !== PayrollRunStatus.FINALISED || !run.postedAt) {
+    throw new Error("Only finalised payroll can be reversed");
+  }
+
+  const posted = run.ledgerEntries.filter((row) => Number(row.amount) > 0);
+  for (const row of posted) {
+    await prisma.ledgerEntry.create({
+      data: {
+        schoolId: params.schoolId,
+        type: LedgerEntryType.EXPENSE,
+        category: row.category,
+        description: `Reversal of ${row.description}`,
+        amount: reversingLedgerAmount(Number(row.amount)),
+        vatAmount: reversingLedgerAmount(Number(row.vatAmount)),
+        reference: row.reference,
+        entryDate: new Date(),
+        recordedById: params.actorId,
+        payrollRunId: run.id,
+      },
+    });
+  }
+
+  const updated = await prisma.payrollRun.update({
+    where: { id: run.id },
+    data: { status: PayrollRunStatus.REVERSED },
+  });
+
+  await logAudit({
+    schoolId: params.schoolId,
+    userId: params.actorId,
+    action: "PAYROLL_REVERSED",
+    entity: "PayrollRun",
+    entityId: run.id,
+    metadata: { payrollRunId: run.id },
   });
 
   return updated;

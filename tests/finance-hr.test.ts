@@ -17,6 +17,8 @@ import { DEFAULT_LICENSE_FEATURES } from "@/lib/licensing/features";
 import { advanceRecurringDate } from "@/lib/recurring-schedule";
 import { sumTimesheetHours, visibleEmployeeDocuments } from "@/lib/timesheet-hours";
 import { chargeOutstanding, selectedAllocations, unpaidInstalmentIds } from "@/lib/charge-reversal";
+import { isCollectedPayment } from "@/lib/finance";
+import { reversingLedgerAmount } from "@/lib/payroll-reversal";
 
 const ctx: EnrolmentFeeContext = {
   schoolId: "sch-1",
@@ -285,5 +287,18 @@ describe("charge reversal and allocations", () => {
       ok: true,
       allocations: [],
     });
+  });
+});
+
+describe("collections and payroll reversal", () => {
+  it("does not treat reversed receipts or audit reversals as collections", () => {
+    expect(isCollectedPayment({ reversedAt: null, reversalOfId: null })).toBe(true);
+    expect(isCollectedPayment({ reversedAt: new Date(), reversalOfId: null })).toBe(false);
+    expect(isCollectedPayment({ reversedAt: null, reversalOfId: "pay-1" })).toBe(false);
+  });
+
+  it("posts payroll reversal as a negative expense so reports net down", () => {
+    expect(reversingLedgerAmount(18500)).toBe(-18500);
+    expect(reversingLedgerAmount(-250)).toBe(-250);
   });
 });

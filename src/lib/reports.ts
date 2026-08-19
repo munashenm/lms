@@ -1,5 +1,5 @@
 import { prisma } from "./db";
-import { getOutstandingBalance } from "./finance";
+import { COLLECTED_PAYMENT_WHERE, getOutstandingBalance } from "./finance";
 
 type SchoolFilter = { schoolId?: string };
 
@@ -168,7 +168,7 @@ export async function getMonthlyEnrollment(filter: SchoolFilter) {
 
 export async function getMonthlyFeeCollection(filter: SchoolFilter) {
   const payments = await prisma.payment.findMany({
-    where: { invoice: filter },
+    where: { invoice: filter, ...COLLECTED_PAYMENT_WHERE },
     select: { amount: true, paidAt: true },
     orderBy: { paidAt: "asc" },
   });

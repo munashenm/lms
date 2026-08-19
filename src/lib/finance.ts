@@ -26,6 +26,19 @@ export function getOutstandingBalance(total: number, amountPaid: number): number
   return Math.max(0, total - amountPaid);
 }
 
+/** Original receipts that still count as collections. Reversed rows and audit reversals are excluded. */
+export const COLLECTED_PAYMENT_WHERE = {
+  reversedAt: null,
+  reversalOfId: null,
+} as const;
+
+export function isCollectedPayment(payment: {
+  reversedAt?: Date | string | null;
+  reversalOfId?: string | null;
+}): boolean {
+  return !payment.reversedAt && !payment.reversalOfId;
+}
+
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: "Cash",
   EFT: "EFT / Bank Transfer",

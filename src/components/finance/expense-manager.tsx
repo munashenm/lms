@@ -17,6 +17,7 @@ interface Row {
   vatAmount: number;
   approvalStatus: string;
   transactionDate: string | Date;
+  attachmentUrl?: string | null;
   category?: { name: string } | null;
   supplier?: { name: string } | null;
 }
@@ -37,18 +38,7 @@ export function ExpenseManager(props: {
     try {
       const res = await fetch("/api/expenses", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: form.get("description"),
-          amount: Number(form.get("amount")),
-          vatAmount: Number(form.get("vatAmount") || 0),
-          transactionDate: form.get("transactionDate"),
-          categoryId: form.get("categoryId") || null,
-          supplierId: form.get("supplierId") || null,
-          financialAccountId: form.get("financialAccountId") || null,
-          invoiceRef: form.get("invoiceRef") || null,
-          post: form.get("post") === "on",
-        }),
+        body: form,
       });
       if (!res.ok) throw new Error();
       toast.success("Expense captured");
@@ -105,6 +95,10 @@ export function ExpenseManager(props: {
               <Label htmlFor="invoiceRef">Invoice / reference</Label>
               <Input id="invoiceRef" name="invoiceRef" />
             </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="file">Slip / invoice (PDF or image)</Label>
+              <Input id="file" name="file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" />
+            </div>
             <div>
               <Label htmlFor="categoryId">Category</Label>
               <select id="categoryId" name="categoryId" className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm">
@@ -157,7 +151,12 @@ export function ExpenseManager(props: {
                   <td className="px-4 py-3 text-muted">{row.category?.name ?? "—"}</td>
                   <td className="px-4 py-3 text-right">{formatZAR(row.amount)}</td>
                   <td className="px-4 py-3"><Badge>{row.approvalStatus}</Badge></td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right space-x-2">
+                    {row.attachmentUrl ? (
+                      <Button size="sm" variant="ghost" asChild>
+                        <a href={row.attachmentUrl} target="_blank" rel="noreferrer">Slip</a>
+                      </Button>
+                    ) : null}
                     {row.approvalStatus !== "POSTED" ? (
                       <Button size="sm" variant="outline" disabled={loading} onClick={() => postExpense(row.id)}>Post</Button>
                     ) : null}

@@ -3,14 +3,14 @@ import { getSession } from "@/lib/auth";
 import { getSchoolFilter } from "@/lib/rbac";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatZAR } from "@/lib/utils";
-import { getOutstandingBalance } from "@/lib/finance";
+import { COLLECTED_PAYMENT_WHERE, getOutstandingBalance } from "@/lib/finance";
 
 export default async function FinanceReportsPage() {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
   const [invoices, payments, ledger] = await Promise.all([
     prisma.invoice.findMany({ where: { ...filter, status: { not: "CANCELLED" } } }),
-    prisma.payment.findMany({ where: { ...("schoolId" in filter ? { schoolId: filter.schoolId } : {}), reversedAt: null } }),
+    prisma.payment.findMany({ where: { ...("schoolId" in filter ? { schoolId: filter.schoolId } : {}), ...COLLECTED_PAYMENT_WHERE } }),
     prisma.ledgerEntry.findMany({ where: filter }),
   ]);
   const feesRaised = invoices.reduce((s, i) => s + Number(i.total), 0);

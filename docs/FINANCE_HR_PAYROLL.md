@@ -73,3 +73,7 @@ Hostel and transport flags live on the enrolment (student create form and the st
 Student and parent fee portals show the instalment schedule. Recording a payment can allocate to specific instalments; otherwise the oldest outstanding instalment is used.
 
 The HR dashboard lists pending leave, open timesheets and documents expiring in 90 days.
+
+Receipts can be reversed from the invoice or payments screen. The original receipt stays; an audit reversal is posted and collections reports ignore both reversed receipts and reversal rows.
+
+Expense slips upload as PDF/images on `/finance/expenses`. Monthly leave accrual can run from HR or `POST /api/cron/leave-accrual` with `CRON_SECRET`. Finalised payroll can be reversed: payslips are kept and offsetting expense ledger rows are posted.

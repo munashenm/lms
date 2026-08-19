@@ -49,7 +49,7 @@ export function PayrollManager(props: {
     }
   }
 
-  async function act(id: string, action: "calculate" | "approve" | "finalise") {
+  async function act(id: string, action: "calculate" | "approve" | "finalise" | "reverse") {
     setLoading(id + action);
     try {
       const res = await fetch(`/api/payroll/runs/${id}`, {
@@ -61,7 +61,7 @@ export function PayrollManager(props: {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.message || "Failed");
       }
-      toast.success(`Payroll ${action}d`);
+      toast.success(`Payroll ${action === "reverse" ? "reversed" : `${action}d`}`);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Action failed");
@@ -115,6 +115,13 @@ export function PayrollManager(props: {
                     ) : null}
                     {run.status === "APPROVED" ? (
                       <Button size="sm" disabled={Boolean(loading)} onClick={() => act(run.id, "finalise")}>Finalise & post</Button>
+                    ) : null}
+                    {run.status === "FINALISED" ? (
+                      <Button size="sm" variant="outline" disabled={Boolean(loading)} onClick={() => {
+                        if (confirm("Reverse this payroll? Payslips are kept and offsetting ledger rows are posted.")) {
+                          act(run.id, "reverse");
+                        }
+                      }}>Reverse</Button>
                     ) : null}
                   </td>
                 </tr>

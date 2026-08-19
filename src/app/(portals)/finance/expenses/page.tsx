@@ -41,6 +41,7 @@ export default async function ExpensesPage() {
           vatAmount: Number(e.vatAmount),
           approvalStatus: e.approvalStatus,
           transactionDate: e.transactionDate,
+          attachmentUrl: e.attachmentUrl,
           category: e.category,
           supplier: e.supplier,
         }))}

@@ -29,6 +29,9 @@ export async function POST(_request: NextRequest, { params }: Params) {
   if (payment.reversedAt) {
     return NextResponse.json({ message: "Payment already reversed" }, { status: 400 });
   }
+  if (payment.reversalOfId) {
+    return NextResponse.json({ message: "Cannot reverse an audit reversal receipt" }, { status: 400 });
+  }
   const denied = await requireLicenseWrite(payment.schoolId, { feature: "finance" });
   if (denied) return denied;
 

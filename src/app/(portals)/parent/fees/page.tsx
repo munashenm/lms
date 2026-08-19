@@ -3,6 +3,7 @@ import { getGuardianForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { InvoiceList } from "@/components/finance/invoice-list";
 import { InstalmentSchedule } from "@/components/finance/instalment-schedule";
+import { FeeStatementButton } from "@/components/finance/fee-statement-button";
 import { ChildFilter } from "@/components/finance/child-filter";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { getOutstandingBalance } from "@/lib/finance";
@@ -58,9 +59,12 @@ export default async function ParentFeesPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Fees & Invoices</h1>
-        <p className="text-muted text-sm mt-1">View fee statements for your children</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Fees & Invoices</h1>
+          <p className="text-muted text-sm mt-1">View fee statements for your children</p>
+        </div>
+        {filterIds.length === 1 ? <FeeStatementButton studentId={filterIds[0]} /> : null}
       </div>
 
       <ChildFilter

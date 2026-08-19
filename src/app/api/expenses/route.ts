@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
 import { ApprovalStatus, LedgerEntryType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -23,6 +25,54 @@ const schema = z.object({
   post: z.boolean().optional(),
 });
 
+const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+const MAX_BYTES = 10 * 1024 * 1024;
+
+function emptyToNull(value: FormDataEntryValue | null): string | null {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text ? text : null;
+}
+
+async function saveExpenseSlip(schoolId: string, file: File): Promise<string> {
+  if (file.size > MAX_BYTES) throw new Error("File must be under 10 MB");
+  if (file.type && !ALLOWED_TYPES.includes(file.type)) {
+    throw new Error("Upload a PDF or image (JPG, PNG, WebP)");
+  }
+  const bytes = await file.arrayBuffer();
+  const uploadsDir = path.join(process.cwd(), "public", "uploads", schoolId, "expenses");
+  await mkdir(uploadsDir, { recursive: true });
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const filename = `${Date.now()}-${safeName}`;
+  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
+  return `/uploads/${schoolId}/expenses/${filename}`;
+}
+
+async function readExpenseBody(request: NextRequest, schoolId: string) {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.includes("multipart/form-data")) {
+    return request.json();
+  }
+  const form = await request.formData();
+  const file = form.get("file");
+  let attachmentUrl = emptyToNull(form.get("attachmentUrl"));
+  if (file instanceof File && file.size > 0) {
+    attachmentUrl = await saveExpenseSlip(schoolId, file);
+  }
+  return {
+    supplierId: emptyToNull(form.get("supplierId")),
+    categoryId: emptyToNull(form.get("categoryId")),
+    financialAccountId: emptyToNull(form.get("financialAccountId")),
+    description: form.get("description"),
+    invoiceRef: emptyToNull(form.get("invoiceRef")),
+    amount: form.get("amount"),
+    vatAmount: form.get("vatAmount") || 0,
+    transactionDate: form.get("transactionDate"),
+    paymentDate: emptyToNull(form.get("paymentDate")),
+    attachmentUrl,
+    post: form.get("post") === "on" || form.get("post") === "true",
+  };
+}
+
 export async function GET() {
   const session = await getSession();
   if (!requirePermission(session, "finance.view") && !requirePermission(session, "finance:read")) {
@@ -46,7 +96,16 @@ export async function POST(request: NextRequest) {
   const denied = await requireLicenseWrite(schoolId, { feature: "finance" });
   if (denied) return denied;
   await ensureFinanceCatalog(schoolId);
-  const parsed = schema.safeParse(await request.json());
+  let raw: unknown;
+  try {
+    raw = await readExpenseBody(request, schoolId);
+  } catch (error) {
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : "Could not read expense" },
+      { status: 400 }
+    );
+  }
+  const parsed = schema.safeParse(raw);
   if (!parsed.success) return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   const post = Boolean(parsed.data.post);
   const expense = await prisma.expense.create({
@@ -97,7 +156,7 @@ export async function POST(request: NextRequest) {
     action: "EXPENSE_CREATED",
     entity: "Expense",
     entityId: expense.id,
-    metadata: { amount: parsed.data.amount, posted: post },
+    metadata: { posted: post },
   });
   return NextResponse.json({ expense }, { status: 201 });
 }

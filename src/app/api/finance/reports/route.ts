@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter, requirePermission } from "@/lib/rbac";
-import { getOutstandingBalance } from "@/lib/finance";
+import { COLLECTED_PAYMENT_WHERE, getOutstandingBalance } from "@/lib/finance";
 import { roundMoney } from "@/lib/money";
 
 export async function GET(request: NextRequest) {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       },
     }),
     prisma.payment.findMany({
-      where: { ...("schoolId" in filter ? { schoolId: filter.schoolId } : {}), reversedAt: null },
+      where: { ...("schoolId" in filter ? { schoolId: filter.schoolId } : {}), ...COLLECTED_PAYMENT_WHERE },
     }),
     prisma.ledgerEntry.findMany({ where: { ...filter, ...dateWhere } }),
     prisma.studentCharge.findMany({

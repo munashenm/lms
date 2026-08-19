@@ -3,6 +3,7 @@ import { getStudentForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { InvoiceList } from "@/components/finance/invoice-list";
 import { InstalmentSchedule } from "@/components/finance/instalment-schedule";
+import { FeeStatementButton } from "@/components/finance/fee-statement-button";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { getOutstandingBalance } from "@/lib/finance";
 import { formatZAR } from "@/lib/utils";
@@ -48,9 +49,12 @@ export default async function StudentFeesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">My Fees</h1>
-        <p className="text-muted text-sm mt-1">Your fee statements and payment history</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">My Fees</h1>
+          <p className="text-muted text-sm mt-1">Your fee statements and payment history</p>
+        </div>
+        {student ? <FeeStatementButton /> : null}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

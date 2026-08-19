@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canAccessSchool, requirePermission } from "@/lib/rbac";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
-import { approvePayrollRun, calculatePayrollRun, finalisePayrollRun } from "@/lib/payroll-run";
+import { approvePayrollRun, calculatePayrollRun, finalisePayrollRun, reversePayrollRun } from "@/lib/payroll-run";
 import { z } from "zod";
 
 interface Params {
@@ -11,7 +11,7 @@ interface Params {
 }
 
 const actionSchema = z.object({
-  action: z.enum(["calculate", "approve", "finalise"]),
+  action: z.enum(["calculate", "approve", "finalise", "reverse"]),
 });
 
 export async function GET(_request: NextRequest, { params }: Params) {
@@ -66,6 +66,13 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (parsed.data.action === "approve") {
       if (!requirePermission(session, "payroll.approve")) return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
       const updated = await approvePayrollRun({ runId: id, schoolId: run.schoolId, actorId: session.userId });
+      return NextResponse.json({ run: updated });
+    }
+    if (parsed.data.action === "reverse") {
+      if (!requirePermission(session, "payroll.finalise")) {
+        return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+      }
+      const updated = await reversePayrollRun({ runId: id, schoolId: run.schoolId, actorId: session.userId });
       return NextResponse.json({ run: updated });
     }
     if (!requirePermission(session, "payroll.finalise")) {

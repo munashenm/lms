@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentForm } from "./payment-form";
 import { PaymentReceiptButton } from "./payment-receipt-button";
+import { PaymentReverseButton } from "./payment-reverse-button";
 import { InvoicePdfButton } from "./invoice-pdf-button";
 import { InstalmentSchedule, type InstalmentView } from "./instalment-schedule";
 import {
@@ -28,6 +29,8 @@ interface Payment {
   reference: string | null;
   notes: string | null;
   paidAt: Date | string;
+  reversedAt?: Date | string | null;
+  reversalOfId?: string | null;
 }
 
 interface InvoiceDetailProps {
@@ -160,15 +163,24 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
               {invoice.payments.map((p) => (
                 <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                   <div>
-                    <p className="font-medium">{formatZAR(p.amount)}</p>
+                    <p className={`font-medium ${p.reversedAt || p.reversalOfId ? "line-through text-muted" : ""}`}>
+                      {formatZAR(p.amount)}
+                    </p>
                     <p className="text-xs text-muted">
                       {PAYMENT_METHOD_LABELS[p.method]}
                       {p.reference && ` · Ref: ${p.reference}`}
                       {" · "}
                       {formatDate(p.paidAt)}
+                      {p.reversedAt ? " · Reversed" : ""}
+                      {p.reversalOfId ? " · Reversal" : ""}
                     </p>
                   </div>
-                  <PaymentReceiptButton paymentId={p.id} />
+                  <div className="flex items-center gap-2">
+                    <PaymentReceiptButton paymentId={p.id} />
+                    {showPaymentForm && !p.reversedAt && !p.reversalOfId ? (
+                      <PaymentReverseButton paymentId={p.id} />
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>
