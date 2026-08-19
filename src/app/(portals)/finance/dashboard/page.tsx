@@ -6,7 +6,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { InvoiceList } from "@/components/finance/invoice-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getOutstandingBalance } from "@/lib/finance";
+import { COLLECTED_PAYMENT_WHERE, getOutstandingBalance } from "@/lib/finance";
 import { formatZAR } from "@/lib/utils";
 import { CreditCard, FileText, TrendingDown, Wallet } from "lucide-react";
 import { FinancePositionChart } from "@/components/finance/finance-position-chart";
@@ -24,7 +24,7 @@ export default async function FinanceDashboardPage() {
       orderBy: { issuedAt: "desc" },
     }),
     prisma.payment.findMany({
-      where: { invoice: filter },
+      where: { invoice: filter, ...COLLECTED_PAYMENT_WHERE },
       orderBy: { paidAt: "desc" },
       take: 5,
       include: {
@@ -144,11 +144,25 @@ export default async function FinanceDashboardPage() {
       </div>
 
       <Card>
-        <CardContent className="p-4">
-          <p className="text-sm text-muted">
-            Payment gateways (PayFast, Ozow, Yoco) are gateway-ready in the schema.
-            Live integration is planned for Phase 5.
-          </p>
+        <CardHeader>
+          <CardTitle className="text-base">Finance operations</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/finance/charges">Charges</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/finance/payments">Payments</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/finance/expenses">Expenses</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/finance/adjustments">Adjustments</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/finance/reports">Reports</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

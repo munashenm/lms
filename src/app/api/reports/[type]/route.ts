@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requirePermission, getSchoolFilter, hasPermission } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import {
   getAttendanceReport,
   getAcademicReport,
   getFinanceReport,
   getAdmissionsReport,
+  getHrReport,
 } from "@/lib/reports";
 import { toCsv, csvDownloadHeaders } from "@/lib/csv";
 import { formatDate } from "@/lib/utils";
@@ -18,7 +19,7 @@ interface RouteParams {
   params: Promise<{ type: string }>;
 }
 
-const REPORT_TYPES = ["attendance", "academic", "finance", "admissions"] as const;
+const REPORT_TYPES = ["attendance", "academic", "finance", "admissions", "hr"] as const;
 
 function pdfDownloadHeaders(filename: string) {
   return {
@@ -43,16 +44,24 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
-  const filter = getSchoolFilter(session!);
-  if ("schoolId" in filter) {
-    const feature = request.nextUrl.searchParams.get("advanced") === "1" ? "advanced_analytics" : "reporting";
-    const guard = await licenseWriteGuard({ schoolId: filter.schoolId, feature });
-    if (!guard.ok) return licenseDeniedResponse(guard);
-  }
-
   const { type } = await params;
   if (!REPORT_TYPES.includes(type as (typeof REPORT_TYPES)[number])) {
     return NextResponse.json({ message: "Invalid report type" }, { status: 400 });
+  }
+  if (type === "hr" && !hasPermission(session.role, "hr.view")) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+  }
+
+  const filter = getSchoolFilter(session);
+  if ("schoolId" in filter) {
+    const feature =
+      request.nextUrl.searchParams.get("advanced") === "1"
+        ? "advanced_analytics"
+        : type === "hr"
+          ? "hr_payroll"
+          : "reporting";
+    const guard = await licenseWriteGuard({ schoolId: filter.schoolId, feature });
+    if (!guard.ok) return licenseDeniedResponse(guard);
   }
 
   const format = new URL(request.url).searchParams.get("format");
@@ -177,6 +186,40 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       });
       return new NextResponse(Buffer.from(pdf), {
         headers: pdfDownloadHeaders("finance-report.pdf"),
+      });
+    }
+    return NextResponse.json({ report: data });
+  }
+
+  if (type === "hr") {
+    const data = await getHrReport(filter);
+    const departmentRows = Object.entries(data.byDepartment).sort(([a], [b]) => a.localeCompare(b));
+    if (format === "csv") {
+      const csv = toCsv(
+        ["Department", "Employees"],
+        departmentRows.map(([department, count]) => [department, count])
+      );
+      return new NextResponse(csv, { headers: csvDownloadHeaders("hr-report.csv") });
+    }
+    if (format === "pdf") {
+      const pdf = await generateTableReportPdf({
+        brand,
+        title: "HR Report",
+        subtitle: "Headcount by department",
+        generatedAt,
+        summary: [
+          { label: "Headcount", value: String(data.headcount) },
+          { label: "On leave", value: String(data.onLeave) },
+          { label: "Contracts expiring", value: String(data.contractExpiry) },
+        ],
+        columns: [
+          { label: "Department" },
+          { label: "Employees", align: "right" },
+        ],
+        rows: departmentRows.map(([department, count]) => [department, String(count)]),
+      });
+      return new NextResponse(Buffer.from(pdf), {
+        headers: pdfDownloadHeaders("hr-report.pdf"),
       });
     }
     return NextResponse.json({ report: data });

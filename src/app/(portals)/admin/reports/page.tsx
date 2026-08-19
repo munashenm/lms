@@ -1,10 +1,11 @@
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter } from "@/lib/rbac";
+import { getSchoolFilter, hasPermission } from "@/lib/rbac";
 import {
   getAttendanceReport,
   getAcademicReport,
   getFinanceReport,
   getAdmissionsReport,
+  getHrReport,
 } from "@/lib/reports";
 import { ReportPanel } from "@/components/reports/report-panel";
 import { formatZAR } from "@/lib/utils";
@@ -17,12 +18,14 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
   const { tab = "attendance" } = await searchParams;
+  const canViewHr = hasPermission(session!.role, "hr.view");
 
-  const [attendance, academic, finance, admissions] = await Promise.all([
+  const [attendance, academic, finance, admissions, hr] = await Promise.all([
     tab === "attendance" ? getAttendanceReport(filter) : Promise.resolve([]),
     tab === "academic" ? getAcademicReport(filter) : Promise.resolve([]),
     tab === "finance" ? getFinanceReport(filter) : Promise.resolve(null),
     tab === "admissions" ? getAdmissionsReport(filter) : Promise.resolve(null),
+    tab === "hr" && canViewHr ? getHrReport(filter) : Promise.resolve(null),
   ]);
 
   const tabs = [
@@ -30,6 +33,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
     { id: "academic", label: "Academic" },
     { id: "finance", label: "Finance" },
     { id: "admissions", label: "Admissions" },
+    ...(canViewHr ? [{ id: "hr", label: "HR" }] : []),
   ];
 
   return (
@@ -146,6 +150,30 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             status: r.status,
             gradeApplied: r.gradeApplied ?? "—",
           }))}
+        />
+      )}
+
+      {tab === "hr" && hr && (
+        <ReportPanel
+          title="HR Headcount"
+          description="Active staff by department. Terminated employees are excluded from headcount."
+          exportType="hr"
+          summary={[
+            { label: "Headcount", value: String(hr.headcount) },
+            { label: "On leave", value: String(hr.onLeave) },
+            { label: "Contracts expiring", value: String(hr.contractExpiry) },
+            {
+              label: "Latest payroll net",
+              value: hr.payrollTotals[0] ? formatZAR(hr.payrollTotals[0].totalNet) : "—",
+            },
+          ]}
+          columns={[
+            { key: "department", label: "Department" },
+            { key: "employees", label: "Employees", align: "right" },
+          ]}
+          rows={Object.entries(hr.byDepartment)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([department, employees]) => ({ department, employees }))}
         />
       )}
     </div>

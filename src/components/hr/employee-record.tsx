@@ -66,6 +66,7 @@ export function EmployeeRecord(props: {
     endDate: Date | string | null;
     notes: string | null;
   }>;
+  canChangeStatus?: boolean;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
@@ -116,6 +117,29 @@ export function EmployeeRecord(props: {
     }
   }
 
+  async function changeStatus(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading("status");
+    const form = new FormData(e.currentTarget);
+    try {
+      const res = await fetch(`/api/employees/${props.employee.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: form.get("status"),
+          ...(form.get("endDate") ? { endDate: form.get("endDate") } : {}),
+        }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Employee status updated");
+      router.refresh();
+    } catch {
+      toast.error("Could not update employee status");
+    } finally {
+      setLoading(null);
+    }
+  }
+
   async function addContract(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading("contract");
@@ -160,6 +184,39 @@ export function EmployeeRecord(props: {
           <p><span className="text-muted">Bank:</span> {props.employee.bankName ?? "—"} {props.employee.bankAccountLast4 ? `••••${props.employee.bankAccountLast4}` : ""}</p>
         </CardContent>
       </Card>
+
+      {props.canChangeStatus ? (
+        <Card>
+          <CardHeader><CardTitle>Employment status</CardTitle></CardHeader>
+          <CardContent>
+            <form onSubmit={changeStatus} className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <select
+                  id="status"
+                  name="status"
+                  defaultValue={props.employee.status}
+                  className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm"
+                >
+                  <option value="ACTIVE">Active</option>
+                  <option value="ON_LEAVE">On leave</option>
+                  <option value="TERMINATED">Terminated</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="endDate">End date</Label>
+                <Input id="endDate" name="endDate" type="date" />
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-xs text-muted mb-3">
+                  Terminated staff are excluded from later payroll runs. Existing payslips and ledger rows are kept.
+                </p>
+                <Button type="submit" disabled={loading === "status"}>Update status</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader><CardTitle>Salary change</CardTitle></CardHeader>

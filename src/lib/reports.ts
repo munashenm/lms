@@ -1,3 +1,4 @@
+import { LeaveStatus } from "@prisma/client";
 import { prisma } from "./db";
 import { COLLECTED_PAYMENT_WHERE, getOutstandingBalance } from "./finance";
 
@@ -112,6 +113,74 @@ export async function getFinanceReport(filter: SchoolFilter) {
     monthly: Array.from(monthly.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, data]) => ({ month, ...data })),
+  };
+}
+
+export async function getHrReport(filter: SchoolFilter, asOf = new Date()) {
+  const [employees, runs, leave, entitlements] = await Promise.all([
+    prisma.employee.findMany({
+      where: filter,
+      select: {
+        status: true,
+        campusId: true,
+        department: true,
+        employmentType: true,
+        endDate: true,
+        startDate: true,
+      },
+    }),
+    prisma.payrollRun.findMany({ where: filter, orderBy: { periodStart: "desc" }, take: 12 }),
+    prisma.leaveRequest.findMany({
+      where: { ...filter, status: LeaveStatus.APPROVED, startDate: { lte: asOf }, endDate: { gte: asOf } },
+    }),
+    prisma.leaveEntitlement.findMany({
+      where: { employee: filter },
+      include: {
+        leavePolicy: true,
+        employee: { select: { firstName: true, lastName: true, employeeNumber: true } },
+      },
+    }),
+  ]);
+
+  const byDepartment: Record<string, number> = {};
+  const byCampus: Record<string, number> = {};
+  const byType: Record<string, number> = {};
+  for (const employee of employees) {
+    const dept = employee.department || "Unassigned";
+    byDepartment[dept] = (byDepartment[dept] ?? 0) + 1;
+    const campus = employee.campusId || "Unassigned";
+    byCampus[campus] = (byCampus[campus] ?? 0) + 1;
+    byType[employee.employmentType] = (byType[employee.employmentType] ?? 0) + 1;
+  }
+
+  const ninetyDays = 90 * 86400000;
+  const expiringContracts = employees.filter(
+    (employee) =>
+      employee.endDate &&
+      employee.endDate > asOf &&
+      employee.endDate.getTime() - asOf.getTime() < ninetyDays
+  );
+
+  return {
+    headcount: employees.filter((employee) => employee.status !== "TERMINATED").length,
+    byDepartment,
+    byCampus,
+    byType,
+    onLeave: leave.length,
+    contractExpiry: expiringContracts.length,
+    payrollTotals: runs.map((run) => ({
+      id: run.id,
+      periodStart: run.periodStart,
+      status: run.status,
+      totalNet: Number(run.totalNet),
+      totalGross: Number(run.totalGross),
+    })),
+    leaveBalances: entitlements.map((row) => ({
+      employee: `${row.employee.firstName} ${row.employee.lastName}`,
+      employeeNumber: row.employee.employeeNumber,
+      policy: row.leavePolicy.name,
+      remaining: Number(row.openingBalance) + Number(row.accrued) - Number(row.taken),
+    })),
   };
 }
 

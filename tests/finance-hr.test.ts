@@ -19,6 +19,7 @@ import { sumTimesheetHours, visibleEmployeeDocuments } from "@/lib/timesheet-hou
 import { chargeOutstanding, selectedAllocations, unpaidInstalmentIds } from "@/lib/charge-reversal";
 import { isCollectedPayment } from "@/lib/finance";
 import { reversingLedgerAmount } from "@/lib/payroll-reversal";
+import { payrollListingCsv, payrollListingRows, PAYROLL_LISTING_HEADERS } from "@/lib/payroll-listing";
 
 const ctx: EnrolmentFeeContext = {
   schoolId: "sch-1",
@@ -154,6 +155,8 @@ describe("RBAC isolation", () => {
   it("keeps finance officers off payroll and HR officers off student billing writes", () => {
     expect(hasPermission(UserRole.FINANCE_OFFICER, "payroll.finalise")).toBe(false);
     expect(hasPermission(UserRole.FINANCE_OFFICER, "hr.employees.manage")).toBe(false);
+    expect(hasPermission(UserRole.FINANCE_OFFICER, "hr.view")).toBe(false);
+    expect(hasPermission(UserRole.FINANCE_OFFICER, "reports:read")).toBe(true);
     expect(hasPermission(UserRole.HR_OFFICER, "finance:write")).toBe(false);
     expect(hasPermission(UserRole.HR_OFFICER, "payroll.finalise")).toBe(true);
     expect(hasPermission(UserRole.SCHOOL_ADMIN, "finance.fees.manage")).toBe(true);
@@ -300,5 +303,62 @@ describe("collections and payroll reversal", () => {
   it("posts payroll reversal as a negative expense so reports net down", () => {
     expect(reversingLedgerAmount(18500)).toBe(-18500);
     expect(reversingLedgerAmount(-250)).toBe(-250);
+  });
+});
+
+describe("payroll payment listing", () => {
+  it("exports net pay with bank last4 only, never a full account number", () => {
+    const csv = payrollListingCsv([
+      {
+        netPay: 18500.5,
+        employee: {
+          employeeNumber: "E-1",
+          firstName: "Ada",
+          lastName: "Molefe",
+          department: "Science",
+          bankName: "FNB",
+          bankAccountLast4: "1234",
+          bankAccountEnc: "FULL-ACCOUNT-CIPHER",
+        } as Parameters<typeof payrollListingCsv>[0][number]["employee"] & { bankAccountEnc: string },
+      },
+    ]);
+    expect([...PAYROLL_LISTING_HEADERS]).toEqual([
+      "Employee number",
+      "Name",
+      "Department",
+      "Net pay",
+      "Bank",
+      "Account last 4",
+    ]);
+    expect(csv).toContain("E-1");
+    expect(csv).toContain("Ada Molefe");
+    expect(csv).toContain("18500.50");
+    expect(csv).toContain("1234");
+    expect(csv).not.toContain("FULL-ACCOUNT-CIPHER");
+    expect(csv.toLowerCase()).not.toContain("account number");
+    expect(csv).not.toContain("bankAccountEnc");
+
+    const rows = payrollListingRows([
+      {
+        netPay: 100,
+        employee: {
+          employeeNumber: "E-2",
+          firstName: "Thabo",
+          lastName: "Dlamini",
+          department: null,
+          bankName: null,
+          bankAccountLast4: null,
+        },
+      },
+    ]);
+    expect(Object.keys(rows[0])).toEqual([
+      "employeeNumber",
+      "name",
+      "department",
+      "netPay",
+      "bankName",
+      "bankAccountLast4",
+    ]);
+    expect(rows[0]).not.toHaveProperty("bankAccountEnc");
   });
 });

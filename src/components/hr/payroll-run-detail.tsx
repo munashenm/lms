@@ -76,7 +76,12 @@ export function PayrollRunDetail(props: {
           </table>
         </CardContent>
       </Card>
-      <Button variant="outline" asChild><Link href="/hr/payroll">Back to payroll</Link></Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" asChild>
+          <a href={`/api/payroll/runs/${props.run.id}/export`}>Payment listing CSV</a>
+        </Button>
+        <Button variant="outline" asChild><Link href="/hr/payroll">Back to payroll</Link></Button>
+      </div>
     </div>
   );
 }

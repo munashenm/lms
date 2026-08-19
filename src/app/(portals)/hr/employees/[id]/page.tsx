@@ -44,6 +44,7 @@ export default async function EmployeeDetailPage({ params }: Params) {
         })}
         entitlements={employee.leaveEntitlements}
         contracts={employee.contracts}
+        canChangeStatus={requirePermission(session, "hr.employees.manage")}
       />
     </div>
   );
