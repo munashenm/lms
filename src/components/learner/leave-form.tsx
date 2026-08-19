@@ -38,18 +38,11 @@ export function LearnerLeaveForm({
     e.preventDefault();
     setLoading(true);
     const form = new FormData(e.currentTarget);
+    if (studentId) form.set("studentId", studentId);
     try {
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentId,
-          type: form.get("type"),
-          fromDate: form.get("fromDate"),
-          toDate: form.get("toDate"),
-          reason: form.get("reason"),
-          documentUrl: form.get("documentUrl") || null,
-        }),
+        body: form,
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.message ?? "Could not submit");
@@ -101,8 +94,15 @@ export function LearnerLeaveForm({
             />
           </div>
           <div className="space-y-2">
-            <Label>Supporting document URL (optional)</Label>
-            <Input name="documentUrl" placeholder="https://..." />
+            <Label htmlFor="leave-file">Supporting document (optional)</Label>
+            <input
+              id="leave-file"
+              name="file"
+              type="file"
+              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+              className="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-surface file:px-3 file:py-1.5 file:text-sm"
+            />
+            <p className="text-xs text-muted">Doctor’s note, letter or image. PDF, Word or image. Max 10 MB.</p>
           </div>
           <Button type="submit" disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

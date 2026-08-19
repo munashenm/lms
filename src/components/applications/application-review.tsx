@@ -161,7 +161,7 @@ export function ApplicationReview({ applications }: { applications: Application[
                       <Link href={`/admin/students/${app.student.id}`} className="text-primary hover:underline font-mono">
                         {app.student.studentNumber}
                       </Link>
-                      {app.student.userId ? " · student portal linked" : ""}
+                      {app.student.userId ? " · learner portal linked" : ""}
                     </p>
                   ) : null}
                 </div>

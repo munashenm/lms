@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 
 export const HOMEWORK_MAX_BYTES = 10 * 1024 * 1024;
+export const PORTAL_UPLOAD_MAX_BYTES = HOMEWORK_MAX_BYTES;
 
 const ALLOWED_EXT = new Set([".pdf", ".doc", ".docx", ".txt", ".zip", ".png", ".jpg", ".jpeg"]);
 
@@ -16,6 +17,8 @@ const ALLOWED_MIME = new Set([
   "image/jpeg",
 ]);
 
+export type PortalUploadFolder = "submissions" | "leave";
+
 export function homeworkFileExtension(name: string): string {
   const ext = path.extname(name).toLowerCase();
   return ext;
@@ -27,24 +30,38 @@ export function isAllowedHomeworkFile(file: File): boolean {
   return Boolean(file.type && ALLOWED_MIME.has(file.type));
 }
 
+export async function saveSchoolUpload(opts: {
+  schoolId: string;
+  folder: PortalUploadFolder;
+  file: File;
+  ownerId: string;
+}): Promise<string> {
+  if (opts.file.size > PORTAL_UPLOAD_MAX_BYTES) {
+    throw new Error("File must be under 10 MB");
+  }
+  if (!isAllowedHomeworkFile(opts.file)) {
+    throw new Error("Upload a PDF, Word, text, ZIP, or image file");
+  }
+
+  const bytes = await opts.file.arrayBuffer();
+  const uploadsDir = path.join(process.cwd(), "public", "uploads", opts.schoolId, opts.folder);
+  await mkdir(uploadsDir, { recursive: true });
+
+  const safeName = opts.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const filename = `${Date.now()}-${opts.ownerId.slice(0, 8)}-${safeName}`;
+  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
+  return `/uploads/${opts.schoolId}/${opts.folder}/${filename}`;
+}
+
 export async function saveHomeworkSubmissionFile(
   schoolId: string,
   studentId: string,
   file: File
 ): Promise<string> {
-  if (file.size > HOMEWORK_MAX_BYTES) {
-    throw new Error("File must be under 10 MB");
-  }
-  if (!isAllowedHomeworkFile(file)) {
-    throw new Error("Upload a PDF, Word, text, ZIP, or image file");
-  }
-
-  const bytes = await file.arrayBuffer();
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", schoolId, "submissions");
-  await mkdir(uploadsDir, { recursive: true });
-
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filename = `${Date.now()}-${studentId.slice(0, 8)}-${safeName}`;
-  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
-  return `/uploads/${schoolId}/submissions/${filename}`;
+  return saveSchoolUpload({
+    schoolId,
+    folder: "submissions",
+    file,
+    ownerId: studentId,
+  });
 }

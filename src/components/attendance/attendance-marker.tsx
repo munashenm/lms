@@ -56,7 +56,7 @@ export function AttendanceMarker({
   date,
   students,
   existingRecords = [],
-  studentLabel = "Student",
+  studentLabel = "Learner",
 }: AttendanceMarkerProps) {
   const initialStatus: Record<string, AttendanceStatus> = {};
   const initialNotes: Record<string, string> = {};

@@ -98,6 +98,16 @@ export default async function ParentLeavePage({ searchParams }: PageProps) {
                   {row.student.firstName} {row.student.lastName}
                 </p>
                 <p className="text-muted">{row.reason}</p>
+                {row.documentUrl ? (
+                  <a
+                    href={row.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Supporting document
+                  </a>
+                ) : null}
                 {row.reviewNote ? <p className="text-xs">Office note: {row.reviewNote}</p> : null}
               </div>
             ))

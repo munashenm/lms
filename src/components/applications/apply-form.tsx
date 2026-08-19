@@ -176,7 +176,7 @@ export function ApplyForm({
           </div>
           <p className="text-xs text-muted">
             By submitting, you consent to the processing of your personal information in
-            accordance with POPIA. A parent or student portal login is only created after the application
+            accordance with POPIA. A parent or learner portal login is only created after the application
             is accepted, and only if an email address is provided.
           </p>
           <Button type="submit" className="w-full" disabled={loading}>

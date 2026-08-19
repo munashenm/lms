@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { AttendanceMarker } from "@/components/attendance/attendance-marker";
 import { ClassFilter } from "@/components/academics/class-filter";
 import { Card, CardContent } from "@/components/ui/card";
-import { isCollegeLike } from "@/lib/terminology";
+import { isCollegeLike, getTerminology } from "@/lib/terminology";
 import { buildAttendanceSessionKey } from "@/lib/attendance";
 
 interface PageProps {
@@ -33,6 +33,7 @@ export default async function TeacherAttendancePage({ searchParams }: PageProps)
       })
     : null;
   const collegeMode = school ? isCollegeLike(school.institutionType) : false;
+  const terms = getTerminology(school?.institutionType);
 
   const assignedClasses =
     teacher?.classTeachers.map((ct) => ({
@@ -186,6 +187,7 @@ export default async function TeacherAttendancePage({ searchParams }: PageProps)
               classId={selectedClassId!}
               date={date}
               students={students}
+              studentLabel={terms.student}
               existingRecords={existingRecords.map((r) => ({
                 studentId: r.studentId,
                 status: r.status,
@@ -195,7 +197,7 @@ export default async function TeacherAttendancePage({ searchParams }: PageProps)
           ) : (
             <Card>
               <CardContent className="py-12 text-center text-muted">
-                No students in this class.
+                No {terms.students.toLowerCase()} in this class.
               </CardContent>
             </Card>
           )}
@@ -260,7 +262,7 @@ export default async function TeacherAttendancePage({ searchParams }: PageProps)
               sessionEnd={sessionEnd || null}
               date={date}
               students={students}
-              studentLabel="Student"
+              studentLabel={terms.student}
               existingRecords={existingRecords.map((r) => ({
                 studentId: r.studentId,
                 status: r.status,
@@ -270,7 +272,7 @@ export default async function TeacherAttendancePage({ searchParams }: PageProps)
           ) : (
             <Card>
               <CardContent className="py-12 text-center text-muted">
-                No enrolled students found for this module.
+                No enrolled {terms.students.toLowerCase()} found for this module.
               </CardContent>
             </Card>
           )}

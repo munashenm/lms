@@ -12,10 +12,10 @@ import { Loader2 } from "lucide-react";
 
 const DEFAULT_AUDIENCES = [
   { value: "ALL", label: "Everyone" },
-  { value: "STUDENTS", label: "Students" },
+  { value: "STUDENTS", label: "Learners" },
   { value: "PARENTS", label: "Parents" },
   { value: "STAFF", label: "Staff" },
-  { value: "TEACHERS", label: "Teachers" },
+  { value: "TEACHERS", label: "Educators" },
 ] as const;
 
 export function AnnouncementForm({

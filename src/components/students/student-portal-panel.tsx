@@ -29,6 +29,7 @@ export function StudentPortalPanel(props: {
   studentStatus: string;
   guardians: GuardianRow[];
   canWrite: boolean;
+  portalLabel?: string;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
@@ -113,7 +114,7 @@ export function StudentPortalPanel(props: {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted">
-          Student portal: {props.studentUserId ? "linked" : "not linked"}
+          {props.portalLabel ?? "Learner Portal"}: {props.studentUserId ? "linked" : "not linked"}
           {props.studentEmail ? ` · ${props.studentEmail}` : ""}
         </p>
 

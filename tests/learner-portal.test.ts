@@ -9,15 +9,16 @@ import {
   nextAbsenceStatus,
   absenceRangesOverlap,
   teacherTeachesLearner,
+  calendarAssessmentLabel,
 } from "@/lib/learner-portal";
 import { paymentBelongsToStudent } from "@/lib/refund-payment";
 import { filterNavByLicense, navHrefFeature } from "@/lib/licensing/portal";
-import { parentNav, studentNav, getStudentNav } from "@/lib/navigation";
+import { parentNav, studentNav, getStudentNav, getParentNav } from "@/lib/navigation";
 import { DEFAULT_LICENSE_FEATURES } from "@/lib/licensing/features";
 import { evaluateLicense } from "@/lib/licensing/evaluate";
 import { encodeCode39, sanitizeCode39 } from "@/lib/code39";
 import { linkedStudentIdsOrForbidden, resolveLinkedStudentId } from "@/lib/parent-scope";
-import { homeworkFileExtension } from "@/lib/homework-upload";
+import { homeworkFileExtension, isAllowedHomeworkFile } from "@/lib/homework-upload";
 import { getTerminology } from "@/lib/terminology";
 import { InstitutionType } from "@prisma/client";
 
@@ -156,6 +157,9 @@ describe("learner licence mapping", () => {
     expect(navHrefFeature("/student/downloads")).toBe("download_centre");
     expect(navHrefFeature("/student/leave")).toBe("student_leave");
     expect(navHrefFeature("/parent/leave")).toBe("student_leave");
+    expect(navHrefFeature("/parent/exams")).toBe("assessments");
+    expect(navHrefFeature("/parent/downloads")).toBe("download_centre");
+    expect(navHrefFeature("/parent/calendar")).toBeNull();
     expect(navHrefFeature("/staff/leave")).toBe("hr_payroll");
     expect(navHrefFeature("/student/dashboard")).toBeNull();
   });
@@ -234,6 +238,43 @@ describe("learner licence mapping", () => {
     expect(nav.some((item) => item.href === "/parent/leave")).toBe(false);
     expect(nav.some((item) => item.href === "/parent/dashboard")).toBe(true);
   });
+
+  it("hides parent examinations and downloads when those licences are off", () => {
+    const evaluation = evaluateLicense({
+      now: new Date("2026-06-15T00:00:00Z"),
+      claims: {
+        iss: "test",
+        sub: "sch",
+        product: "lms",
+        licenseKey: "k",
+        issuedAt: "2026-01-01T00:00:00Z",
+        expiresAt: "2027-01-01T00:00:00Z",
+        gracePeriodDays: 14,
+        status: "ACTIVE",
+        features: {
+          ...DEFAULT_LICENSE_FEATURES,
+          assessments: false,
+          download_centre: false,
+        },
+        limits: {
+          maxLearners: null,
+          maxEducators: null,
+          maxAdministrators: null,
+          maxCampuses: null,
+          storageLimitBytes: null,
+        },
+      },
+      signatureValid: true,
+      lastVerifiedAt: new Date(),
+      storedStatus: "ACTIVE",
+      offlineGraceDays: 14,
+    });
+    const nav = filterNavByLicense(parentNav, evaluation);
+    expect(nav.some((item) => item.href === "/parent/exams")).toBe(false);
+    expect(nav.some((item) => item.href === "/parent/downloads")).toBe(false);
+    expect(nav.some((item) => item.href === "/parent/calendar")).toBe(true);
+    expect(nav.some((item) => item.href === "/parent/dashboard")).toBe(true);
+  });
 });
 
 describe("parent child scope", () => {
@@ -290,6 +331,8 @@ describe("leave overlap and homework files", () => {
   it("accepts common homework file extensions", () => {
     expect(homeworkFileExtension("essay.PDF")).toBe(".pdf");
     expect(homeworkFileExtension("notes.docx")).toBe(".docx");
+    expect(isAllowedHomeworkFile(new File(["x"], "note.pdf", { type: "application/pdf" }))).toBe(true);
+    expect(isAllowedHomeworkFile(new File(["x"], "note.exe", { type: "application/octet-stream" }))).toBe(false);
   });
 });
 
@@ -321,5 +364,22 @@ describe("South African terminology", () => {
     expect(nav.some((item) => item.label === "Educator Reviews")).toBe(true);
     expect(nav.some((item) => item.label === "School Fees")).toBe(true);
     expect(nav.some((item) => item.section === "Learner Services")).toBe(true);
+  });
+
+  it("labels parent nav with examinations, downloads and notice board", () => {
+    const nav = getParentNav();
+    expect(nav.some((item) => item.href === "/parent/exams" && item.label === "Examinations")).toBe(true);
+    expect(nav.some((item) => item.href === "/parent/downloads" && item.label === "Download Centre")).toBe(true);
+    expect(nav.some((item) => item.href === "/parent/calendar" && item.label === "Academic Calendar")).toBe(true);
+    expect(nav.some((item) => item.href === "/parent/announcements" && item.label === "Notice Board")).toBe(true);
+  });
+
+  it("uses homework wording on calendar assessment labels", () => {
+    expect(calendarAssessmentLabel({ type: "EXAM", title: "Paper 1", homeworkLabel: "Homework" })).toBe(
+      "Exam: Paper 1"
+    );
+    expect(
+      calendarAssessmentLabel({ type: "ASSIGNMENT", title: "Essay", homeworkLabel: "Homework" })
+    ).toBe("Homework: Essay");
   });
 });

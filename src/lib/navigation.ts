@@ -181,13 +181,16 @@ export function getParentNav(terms?: Terminology): NavItem[] {
     { label: t.fees, href: "/parent/fees", icon: "CreditCard" },
     { label: "Attendance", href: "/parent/attendance", icon: "ClipboardCheck" },
     { label: "Apply Leave", href: "/parent/leave", icon: "Palmtree" },
+    { label: "Examinations", href: "/parent/exams", icon: "Award" },
     { label: "Results", href: "/parent/results", icon: "Award" },
     { label: t.reportCards, href: "/parent/report-cards", icon: "Award" },
     { label: t.homework, href: "/parent/assignments", icon: "FileText" },
     { label: "Materials", href: "/parent/materials", icon: "FolderOpen" },
+    { label: "Download Centre", href: "/parent/downloads", icon: "Download" },
     { label: "Timetable", href: "/parent/timetable", icon: "Calendar" },
+    { label: "Academic Calendar", href: "/parent/calendar", icon: "CalendarDays" },
     { label: "Certificates", href: "/parent/certificates", icon: "Award" },
-    { label: "Announcements", href: "/parent/announcements", icon: "Megaphone" },
+    { label: "Notice Board", href: "/parent/announcements", icon: "Megaphone" },
   ];
 }
 

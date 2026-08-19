@@ -27,12 +27,12 @@ export function StudentCardButton({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `student-card-${studentNumber}.pdf`;
+      a.download = `${label.toLowerCase().replace(/\s+/g, "-")}-${studentNumber}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Student card downloaded");
+      toast.success(`${label} downloaded`);
     } catch {
-      toast.error("Could not generate student card");
+      toast.error(`Could not generate ${label.toLowerCase()}`);
     } finally {
       setLoading(false);
     }

@@ -7,6 +7,7 @@ import { linkedStudentIdsOrForbidden } from "@/lib/parent-scope";
 import { parentStudentAbsenceSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { createLearnerAbsenceRequest } from "@/lib/student-absence";
+import { parseAbsenceFields, attachAbsenceDocument } from "@/lib/absence-input";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -40,7 +41,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
-  const parsed = parentStudentAbsenceSchema.safeParse(await request.json());
+  let fields: Record<string, unknown>;
+  let file: File | null = null;
+  try {
+    const parsedBody = await parseAbsenceFields(request);
+    fields = parsedBody.fields;
+    file = parsedBody.file;
+  } catch {
+    return NextResponse.json({ message: "Invalid data" }, { status: 400 });
+  }
+
+  const parsed = parentStudentAbsenceSchema.safeParse(fields);
   if (!parsed.success) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
@@ -68,6 +79,19 @@ export async function POST(request: NextRequest) {
   const denied = await requireLicenseWrite(student.schoolId, { feature: "student_leave" });
   if (denied) return denied;
 
+  let documentUrl: string | null | undefined;
+  try {
+    documentUrl = await attachAbsenceDocument({
+      schoolId: student.schoolId,
+      ownerId: student.id,
+      file,
+      documentUrl: parsed.data.documentUrl,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not save the supporting document";
+    return NextResponse.json({ message }, { status: 400 });
+  }
+
   const result = await createLearnerAbsenceRequest({
     schoolId: student.schoolId,
     student,
@@ -75,7 +99,7 @@ export async function POST(request: NextRequest) {
     fromDate: new Date(parsed.data.fromDate),
     toDate: new Date(parsed.data.toDate),
     reason: parsed.data.reason,
-    documentUrl: parsed.data.documentUrl,
+    documentUrl,
     source: "PARENT",
   });
 

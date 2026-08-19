@@ -19,8 +19,8 @@ const ROLE_LABELS: Record<string, string> = {
   PRINCIPAL: "Principal",
   SCHOOL_ADMIN: "School admin",
   SUPER_ADMIN: "Super admin",
-  TEACHER: "Teacher",
-  STUDENT: "Student",
+  TEACHER: "Educator",
+  STUDENT: "Learner",
   PARENT: "Parent",
 };
 

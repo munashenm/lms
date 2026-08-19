@@ -114,7 +114,7 @@ export function AssessmentForm({ subjects, terms, apiBase = "/api/assessments" }
               name="instructions"
               rows={3}
               className="flex w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-              placeholder="Assignment instructions for students..."
+              placeholder="Instructions for learners..."
             />
           </div>
           <div className="sm:col-span-2 flex gap-2">

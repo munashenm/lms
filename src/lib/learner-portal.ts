@@ -174,6 +174,16 @@ export function curriculumProgress(topics: Array<{ status: string }>) {
   return { completed, current, upcoming, total, percentage };
 }
 
+export function calendarAssessmentLabel(opts: {
+  type: string;
+  title: string;
+  homeworkLabel: string;
+}): string {
+  if (opts.type === "EXAM") return `Exam: ${opts.title}`;
+  if (opts.type === "ASSIGNMENT") return `${opts.homeworkLabel}: ${opts.title}`;
+  return `Assessment: ${opts.title}`;
+}
+
 export const DOWNLOAD_CATEGORY_LABELS: Record<string, string> = {
   LEARNING_MATERIAL: "Study Material",
   ASSIGNMENT: "Academic Documents",

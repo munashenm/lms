@@ -8,6 +8,7 @@ export const metadata = publicPageMetadata("Fees & Funding", "Fee schedule, paym
 import { formatZAR } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getTerminology } from "@/lib/terminology";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ const FALLBACK_FEE_ITEMS = [
 
 export default async function FeesPage() {
   const school = await getFeaturedSchool();
+  const terms = getTerminology(school?.institutionType);
   const [paymentOptions, feeItems] = await Promise.all([
     school?.id
       ? getPublicPaymentOptions(school.id)
@@ -85,7 +87,7 @@ export default async function FeesPage() {
               ))}
             </ul>
             <p className="text-xs text-muted pt-1">
-              Enrolled students can pay invoices online from the student portal when gateways are enabled.
+              Enrolled {terms.students.toLowerCase()} can pay invoices online from the {terms.portal.toLowerCase()} when gateways are enabled.
             </p>
           </CardContent>
         </Card>

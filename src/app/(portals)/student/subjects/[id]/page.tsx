@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { curriculumProgress } from "@/lib/learner-portal";
 import { formatDate } from "@/lib/utils";
+import { getTerminology } from "@/lib/terminology";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -17,6 +18,7 @@ export default async function StudentSubjectWorkspacePage({ params }: PageProps)
   const student = await getStudentForSession(session!);
   const { id } = await params;
   if (!student) notFound();
+  const terms = getTerminology(student.school.institutionType);
 
   const classSubject = student.classId
     ? await prisma.classSubject.findFirst({
@@ -98,7 +100,7 @@ export default async function StudentSubjectWorkspacePage({ params }: PageProps)
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card><CardContent className="p-4"><p className="text-xs text-muted">Progress</p><p className="text-2xl font-bold">{progress.percentage}%</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted">Assignments</p><p className="text-2xl font-bold">{assignments.length}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted">{terms.homework}</p><p className="text-2xl font-bold">{assignments.length}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted">Assessments</p><p className="text-2xl font-bold">{assessments.length}</p></CardContent></Card>
       </div>
 

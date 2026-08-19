@@ -45,6 +45,16 @@ export default async function StudentLeavePage() {
                   <Badge variant={variant[row.status] ?? "secondary"}>{row.status}</Badge>
                 </div>
                 <p className="text-muted">{row.reason}</p>
+                {row.documentUrl ? (
+                  <a
+                    href={row.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Supporting document
+                  </a>
+                ) : null}
                 {row.reviewNote ? <p className="text-xs">Office note: {row.reviewNote}</p> : null}
               </div>
             ))

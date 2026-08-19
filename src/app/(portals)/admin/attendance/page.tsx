@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { buildAttendanceSessionKey } from "@/lib/attendance";
+import { getTerminology } from "@/lib/terminology";
 
 interface PageProps {
   searchParams: Promise<{ classId?: string; date?: string }>;
@@ -19,6 +20,14 @@ export default async function AttendancePage({ searchParams }: PageProps) {
   const filter = getSchoolFilter(session!);
   const today = new Date().toISOString().split("T")[0];
   const date = params.date ?? today;
+  const schoolId = "schoolId" in filter ? filter.schoolId : session!.schoolId;
+  const school = schoolId
+    ? await prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { institutionType: true },
+      })
+    : null;
+  const terms = getTerminology(school?.institutionType);
 
   const classes = await prisma.class.findMany({
     where: { ...filter, isActive: true },
@@ -101,6 +110,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
           classId={selectedClassId}
           date={date}
           students={students}
+          studentLabel={terms.student}
           existingRecords={existingRecords.map((r) => ({
             studentId: r.studentId,
             status: r.status,
@@ -110,7 +120,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
       ) : (
         <Card>
           <CardContent className="py-12 text-center text-muted">
-            No students in this class.
+            No {terms.students.toLowerCase()} in this class.
           </CardContent>
         </Card>
       )}

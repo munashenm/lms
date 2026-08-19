@@ -6,10 +6,12 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, ClipboardCheck, Calendar, Users } from "lucide-react";
+import { getTerminology } from "@/lib/terminology";
 
 export default async function TeacherDashboardPage() {
   const session = await getSession();
   const teacher = await getTeacherForSession(session!);
+  const terms = getTerminology(teacher?.school.institutionType);
 
   const classIds = teacher?.classTeachers.map((ct) => ct.classId) ?? [];
   const studentCount = classIds.length
@@ -43,8 +45,8 @@ export default async function TeacherDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard title="My Classes" value={classIds.length} icon={GraduationCap} />
-        <StatCard title="Students" value={studentCount} icon={Users} />
+        <StatCard title={`My ${terms.classes}`} value={classIds.length} icon={GraduationCap} />
+        <StatCard title={terms.students} value={studentCount} icon={Users} />
         <StatCard title="Timetable Slots" value={slotCount} icon={Calendar} />
         <StatCard
           title="Present Today"
@@ -56,7 +58,7 @@ export default async function TeacherDashboardPage() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">My Classes</CardTitle>
+          <CardTitle className="text-base">My {terms.classes}</CardTitle>
           <Button variant="outline" size="sm" asChild>
             <Link href="/teacher/classes">View all</Link>
           </Button>
@@ -70,7 +72,7 @@ export default async function TeacherDashboardPage() {
                 <div key={ct.id} className="rounded-lg border border-border p-4">
                   <p className="font-medium">{ct.class.name}</p>
                   <p className="text-xs text-muted mt-1">
-                    {ct.class.grade?.name} · {ct.class._count.students} students
+                    {ct.class.grade?.name} · {ct.class._count.students} {terms.students.toLowerCase()}
                   </p>
                   <div className="flex gap-2 mt-3">
                     <Button size="sm" variant="outline" asChild>

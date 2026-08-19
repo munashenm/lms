@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { getFeaturedSchool } from "@/lib/public-site";
+import { getTerminology } from "@/lib/terminology";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -17,9 +18,10 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [session, school] = await Promise.all([getSession(), getFeaturedSchool()]);
+  const terms = getTerminology(school?.institutionType);
 
   const stats = [
-    { label: "Students", value: school?._count.students ?? 0 },
+    { label: terms.students, value: school?._count.students ?? 0 },
     { label: "Staff", value: school?._count.teachers ?? 0 },
     { label: "Programmes", value: school?._count.courses ?? 0 },
   ];

@@ -7,6 +7,7 @@ export async function getTeacherForSession(session: SessionPayload) {
     where: { userId: session.userId, ...(session.schoolId ? { schoolId: session.schoolId } : {}) },
     include: {
       campus: { select: { name: true } },
+      school: { select: { institutionType: true } },
       classTeachers: {
         include: {
           class: {

@@ -5,6 +5,7 @@ import { requireAuthenticatedLearner } from "@/lib/learner-scope";
 import { studentAbsenceSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { createLearnerAbsenceRequest } from "@/lib/student-absence";
+import { parseAbsenceFields, attachAbsenceDocument } from "@/lib/absence-input";
 
 export async function GET() {
   const session = await getSession();
@@ -37,9 +38,32 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const parsed = studentAbsenceSchema.safeParse(await request.json());
+  let fields: Record<string, unknown>;
+  let file: File | null = null;
+  try {
+    const parsedBody = await parseAbsenceFields(request);
+    fields = parsedBody.fields;
+    file = parsedBody.file;
+  } catch {
+    return NextResponse.json({ message: "Invalid data" }, { status: 400 });
+  }
+
+  const parsed = studentAbsenceSchema.safeParse(fields);
   if (!parsed.success) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
+  }
+
+  let documentUrl: string | null | undefined;
+  try {
+    documentUrl = await attachAbsenceDocument({
+      schoolId: student.schoolId,
+      ownerId: student.id,
+      file,
+      documentUrl: parsed.data.documentUrl,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not save the supporting document";
+    return NextResponse.json({ message }, { status: 400 });
   }
 
   const result = await createLearnerAbsenceRequest({
@@ -55,7 +79,7 @@ export async function POST(request: NextRequest) {
     fromDate: new Date(parsed.data.fromDate),
     toDate: new Date(parsed.data.toDate),
     reason: parsed.data.reason,
-    documentUrl: parsed.data.documentUrl,
+    documentUrl,
     source: "STUDENT",
   });
 

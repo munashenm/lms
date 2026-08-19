@@ -12,6 +12,7 @@ import { getMonthlyEnrollment, getMonthlyFeeCollection } from "@/lib/reports";
 import { SystemHealthCards } from "@/components/enterprise/system-health-cards";
 import { evaluateStoredLicense } from "@/lib/licensing/service";
 import { countLicenseUsage } from "@/lib/licensing/usage";
+import { getTerminology } from "@/lib/terminology";
 
 async function getDashboardData(schoolId: string | null) {
   const filter = schoolId ? { schoolId } : {};
@@ -77,6 +78,14 @@ export default async function AdminDashboardPage() {
   const { stats, enrollmentData, feeData, recentStudents, announcements } =
     await getDashboardData(schoolId);
 
+  const school = schoolId
+    ? await prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { institutionType: true },
+      })
+    : null;
+  const terms = getTerminology(school?.institutionType);
+
   let health = null;
   if (schoolId) {
     const [evaluation, usage, license, lastBackup, lastImport] = await Promise.all([
@@ -133,7 +142,7 @@ export default async function AdminDashboardPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
-          title="Total Students"
+          title={`Total ${terms.students}`}
           value={stats.totalStudents}
           subtitle={`${stats.activeStudents} active`}
           icon={Users}
@@ -142,7 +151,7 @@ export default async function AdminDashboardPage() {
         <StatCard
           title="Staff Members"
           value={stats.totalTeachers}
-          subtitle="Teachers & lecturers"
+          subtitle={terms.teachers}
           icon={UserCheck}
         />
         <StatCard
@@ -170,7 +179,7 @@ export default async function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             {recentStudents.length === 0 ? (
-              <p className="text-sm text-muted py-4 text-center">No students yet</p>
+              <p className="text-sm text-muted py-4 text-center">No {terms.students.toLowerCase()} yet</p>
             ) : (
               <div className="space-y-3">
                 {recentStudents.map((student) => (

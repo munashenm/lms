@@ -161,6 +161,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
           studentStatus={student.status}
           canWrite={canWriteStudents}
           guardians={student.guardians}
+          portalLabel={terms.portal}
         />
       </div>
 

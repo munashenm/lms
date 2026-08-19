@@ -7,10 +7,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { getTerminology } from "@/lib/terminology";
 
 export default async function ReportCardsPage() {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
+  const schoolId = "schoolId" in filter ? filter.schoolId : session!.schoolId;
+  const school = schoolId
+    ? await prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { institutionType: true },
+      })
+    : null;
+  const labels = getTerminology(school?.institutionType);
 
   const [reportCards, students, academicYears, terms] = await Promise.all([
     prisma.reportCard.findMany({
@@ -36,8 +45,8 @@ export default async function ReportCardsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Report Cards</h1>
-        <p className="text-muted text-sm mt-1">Generate CAPS/NSC report cards with PDF export</p>
+        <h1 className="text-2xl font-bold">{labels.reportCards}</h1>
+        <p className="text-muted text-sm mt-1">Generate CAPS/NSC reports with PDF export</p>
       </div>
 
       <ReportCardForm
