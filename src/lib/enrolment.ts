@@ -35,6 +35,9 @@ export async function ensureStudentEnrolment(params: {
   });
 
   let enrolmentId: string;
+  const hostel = params.hostel ?? existing?.hostel ?? false;
+  const transport = params.transport ?? existing?.transport ?? false;
+
   if (existing) {
     const updated = await prisma.enrolment.update({
       where: { id: existing.id },
@@ -43,6 +46,8 @@ export async function ensureStudentEnrolment(params: {
         classId: params.classId ?? existing.classId,
         courseId: params.courseId ?? existing.courseId,
         status: params.status ?? existing.status,
+        hostel,
+        transport,
       },
     });
     enrolmentId = updated.id;
@@ -55,6 +60,8 @@ export async function ensureStudentEnrolment(params: {
         gradeId: params.gradeId ?? null,
         classId: params.classId ?? null,
         status: params.status ?? EnrolmentStatus.ENROLLED,
+        hostel,
+        transport,
       },
     });
     enrolmentId = created.id;
@@ -83,8 +90,8 @@ export async function ensureStudentEnrolment(params: {
     classId: params.classId,
     campusId: student?.campusId,
     moduleIds: modules.map((m) => m.moduleId),
-    hostel: params.hostel,
-    transport: params.transport,
+    hostel,
+    transport,
     recordedById: params.recordedById,
   });
 }

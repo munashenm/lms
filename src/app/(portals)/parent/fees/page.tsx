@@ -2,11 +2,13 @@ import { getSession } from "@/lib/auth";
 import { getGuardianForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { InvoiceList } from "@/components/finance/invoice-list";
+import { InstalmentSchedule } from "@/components/finance/instalment-schedule";
 import { ChildFilter } from "@/components/finance/child-filter";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { getOutstandingBalance } from "@/lib/finance";
 import { formatZAR } from "@/lib/utils";
 import { CreditCard, TrendingDown } from "lucide-react";
+import { InstalmentStatus } from "@prisma/client";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
@@ -28,6 +30,17 @@ export default async function ParentFeesPage({ searchParams }: PageProps) {
           student: { select: { firstName: true, lastName: true, studentNumber: true } },
         },
         orderBy: { issuedAt: "desc" },
+      })
+    : [];
+  const instalments = filterIds.length
+    ? await prisma.chargeInstalment.findMany({
+        where: {
+          charge: { studentId: { in: filterIds }, reversedAt: null },
+          status: { in: [InstalmentStatus.PENDING, InstalmentStatus.PARTIAL] },
+        },
+        include: { charge: { select: { description: true } } },
+        orderBy: { dueDate: "asc" },
+        take: 12,
       })
     : [];
 
@@ -60,6 +73,19 @@ export default async function ParentFeesPage({ searchParams }: PageProps) {
         <StatCard title="Outstanding" value={formatZAR(totalOutstanding)} icon={TrendingDown} />
         <StatCard title="Paid to Date" value={formatZAR(totalPaid)} icon={CreditCard} />
       </div>
+
+      <InstalmentSchedule
+        title="Upcoming instalments"
+        instalments={instalments.map((row) => ({
+          id: row.id,
+          sequence: row.sequence,
+          dueDate: row.dueDate,
+          amount: Number(row.amount),
+          amountPaid: Number(row.amountPaid),
+          status: row.status,
+          description: row.charge.description,
+        }))}
+      />
 
       <InvoiceList
         invoices={mapped}

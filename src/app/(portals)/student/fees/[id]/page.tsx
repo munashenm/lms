@@ -7,6 +7,7 @@ import { InvoiceDetail } from "@/components/finance/invoice-detail";
 import { PayOnlineButton } from "@/components/finance/pay-online-button";
 import { getOutstandingBalance } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
+import { invoiceDetailInclude, mapInvoiceForDetail } from "@/lib/invoice-view";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -21,16 +22,7 @@ export default async function StudentInvoiceDetailPage({ params }: PageProps) {
 
   const invoice = await prisma.invoice.findUnique({
     where: { id },
-    include: {
-      student: {
-        include: {
-          grade: { select: { name: true } },
-          class: { select: { name: true } },
-        },
-      },
-      lineItems: true,
-      payments: { orderBy: { paidAt: "desc" } },
-    },
+    include: invoiceDetailInclude,
   });
 
   if (!invoice || invoice.studentId !== student.id) {
@@ -41,22 +33,7 @@ export default async function StudentInvoiceDetailPage({ params }: PageProps) {
     redirect("/student/fees");
   }
 
-  const mapped = {
-    ...invoice,
-    subtotal: Number(invoice.subtotal),
-    discount: Number(invoice.discount),
-    total: Number(invoice.total),
-    amountPaid: Number(invoice.amountPaid),
-    lineItems: invoice.lineItems.map((li) => ({
-      ...li,
-      unitPrice: Number(li.unitPrice),
-      amount: Number(li.amount),
-    })),
-    payments: invoice.payments.map((p) => ({
-      ...p,
-      amount: Number(p.amount),
-    })),
-  };
+  const mapped = mapInvoiceForDetail(invoice);
 
   return (
     <div className="space-y-4 max-w-4xl">

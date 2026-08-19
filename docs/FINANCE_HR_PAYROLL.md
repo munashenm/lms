@@ -67,3 +67,9 @@ Payroll statutory percents are versioned in `PayrollRuleSet` and edited in the p
 Manual, hostel and transport charges are created from `/finance/charges`. Instalment plans are created only when the instalment count is greater than 1. Draft expenses can be posted to the ledger later.
 
 Employment contracts sit on the employee record. Clock/attendance punches import into draft timesheets through a generic punch payload (`POST /api/timesheets/from-clock`). Vendor-native biometric schemas are not invented.
+
+Hostel and transport flags live on the enrolment (student create form and the student record). Matching fee structures auto-apply only when those flags are on. Finance can still apply an existing fee structure or reverse the unpaid remainder of a charge from `/finance/charges` without deleting receipts.
+
+Student and parent fee portals show the instalment schedule. Recording a payment can allocate to specific instalments; otherwise the oldest outstanding instalment is used.
+
+The HR dashboard lists pending leave, open timesheets and documents expiring in 90 days.

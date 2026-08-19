@@ -1,6 +1,7 @@
 import {
   BillingFrequency,
   FeeChargeSource,
+  InstalmentStatus,
   InvoiceStatus,
   StudentLedgerType,
   type Prisma,
@@ -15,6 +16,7 @@ import {
 } from "./fee-matching";
 import { createStudentLedgerEntry } from "./student-ledger";
 import { logAudit } from "./audit";
+import { chargeOutstanding, unpaidInstalmentIds } from "./charge-reversal";
 
 export async function applyEnrolmentFees(params: {
   studentId: string;
@@ -202,21 +204,25 @@ export async function createManualStudentCharge(params: {
   allowInstalments?: boolean;
   instalmentCount?: number | null;
   frequency?: BillingFrequency;
+  customSchedule?: Array<{ dueDate?: string; amount?: number; dueOffsetDays?: number }> | null;
+  dueDayOfMonth?: number | null;
   recordedById?: string | null;
 }) {
+  let key =
+    params.feeStructureId && params.academicYearId
+      ? chargeIdempotencyKey(params.studentId, params.feeStructureId, params.academicYearId)
+      : `manual:${params.studentId}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
   if (params.feeStructureId && params.academicYearId) {
-    const key = chargeIdempotencyKey(params.studentId, params.feeStructureId, params.academicYearId);
     const existing = await prisma.studentCharge.findUnique({
       where: { idempotencyKey: key },
       include: { invoice: true, instalments: true },
     });
-    if (existing) return { charge: existing, invoice: existing.invoice, skipped: true as const };
+    if (existing && !existing.reversedAt) {
+      return { charge: existing, invoice: existing.invoice, skipped: true as const };
+    }
+    if (existing?.reversedAt) key = `${key}:r${Date.now()}`;
   }
 
-  const key =
-    params.feeStructureId && params.academicYearId
-      ? chargeIdempotencyKey(params.studentId, params.feeStructureId, params.academicYearId)
-      : `manual:${params.studentId}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
   const invoiceNumber = await generateInvoiceNumber(params.schoolId, () =>
     prisma.invoice.count({ where: { schoolId: params.schoolId } })
   );
@@ -224,6 +230,17 @@ export async function createManualStudentCharge(params: {
     [{ quantity: 1, unitPrice: params.amount }],
     0
   );
+  const startDate = params.dueDate ?? new Date();
+  const planned = planInstalments({
+    amount: params.amount,
+    frequency: params.frequency ?? BillingFrequency.ONCE,
+    allowInstalments: Boolean(params.allowInstalments || (params.instalmentCount ?? 1) > 1),
+    instalmentCount: params.instalmentCount,
+    customSchedule: params.customSchedule,
+    startDate,
+    yearStart: startDate,
+    dueDayOfMonth: params.dueDayOfMonth,
+  });
   const invoice = await prisma.invoice.create({
     data: {
       schoolId: params.schoolId,
@@ -234,7 +251,7 @@ export async function createManualStudentCharge(params: {
       discount: 0,
       total,
       status: InvoiceStatus.SENT,
-      dueDate: params.dueDate ?? new Date(),
+      dueDate: planned[0]?.dueDate ?? startDate,
       lineItems: {
         create: [
           {
@@ -260,14 +277,7 @@ export async function createManualStudentCharge(params: {
       idempotencyKey: key,
       feeStructureId: params.feeStructureId ?? null,
       instalments: {
-        create: planInstalments({
-          amount: params.amount,
-          frequency: params.frequency ?? BillingFrequency.ONCE,
-          allowInstalments: Boolean(params.allowInstalments || (params.instalmentCount ?? 1) > 1),
-          instalmentCount: params.instalmentCount,
-          startDate: params.dueDate ?? new Date(),
-          yearStart: params.dueDate ?? new Date(),
-        }).map((row) => ({
+        create: planned.map((row) => ({
           sequence: row.sequence,
           dueDate: row.dueDate,
           amount: row.amount,
@@ -291,6 +301,75 @@ export async function createManualStudentCharge(params: {
   });
 
   return { charge, invoice, skipped: false as const };
+}
+
+export async function reverseStudentCharge(params: {
+  schoolId: string;
+  chargeId: string;
+  recordedById: string;
+  reason?: string | null;
+}): Promise<
+  | { ok: true; outstanding: number }
+  | { ok: false; error: "not_found" | "already_reversed" | "nothing_to_reverse" }
+> {
+  const charge = await prisma.studentCharge.findFirst({
+    where: { id: params.chargeId, schoolId: params.schoolId },
+    include: {
+      instalments: true,
+      invoice: true,
+      ledgerEntries: { where: { type: StudentLedgerType.CHARGE }, orderBy: { createdAt: "asc" } },
+    },
+  });
+  if (!charge) return { ok: false, error: "not_found" };
+  if (charge.reversedAt) return { ok: false, error: "already_reversed" };
+
+  const outstanding = chargeOutstanding(
+    Number(charge.amount),
+    charge.instalments.map((row) => ({ amountPaid: Number(row.amountPaid) }))
+  );
+  if (outstanding <= 0) return { ok: false, error: "nothing_to_reverse" };
+
+  await prisma.studentCharge.update({
+    where: { id: charge.id },
+    data: { reversedAt: new Date() },
+  });
+
+  const cancelIds = unpaidInstalmentIds(
+    charge.instalments.map((row) => ({ id: row.id, amountPaid: Number(row.amountPaid) }))
+  );
+  if (cancelIds.length) {
+    await prisma.chargeInstalment.updateMany({
+      where: { id: { in: cancelIds } },
+      data: { status: InstalmentStatus.CANCELLED },
+    });
+  }
+
+  const original = charge.ledgerEntries[0] ?? null;
+  await createStudentLedgerEntry({
+    schoolId: charge.schoolId,
+    studentId: charge.studentId,
+    academicYearId: charge.academicYearId,
+    type: StudentLedgerType.CREDIT,
+    description: params.reason
+      ? `Reversal of charge: ${charge.description} (${params.reason})`
+      : `Reversal of charge: ${charge.description}`,
+    amount: outstanding,
+    reference: charge.invoice?.invoiceNumber ?? null,
+    invoiceId: charge.invoiceId,
+    recordedById: params.recordedById,
+    chargeSource: charge.source,
+    studentChargeId: charge.id,
+    reversesEntryId: original?.id ?? null,
+  });
+
+  if (charge.invoice && Number(charge.invoice.amountPaid) <= 0) {
+    await prisma.invoice.update({
+      where: { id: charge.invoice.id },
+      data: { status: InvoiceStatus.CANCELLED },
+    });
+  }
+
+  return { ok: true, outstanding };
 }
 
 export type StudentChargeCreate = Prisma.StudentChargeGetPayload<{

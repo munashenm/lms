@@ -134,6 +134,8 @@ export async function POST(request: NextRequest) {
       schoolId,
       gradeId: student.gradeId,
       classId: student.classId,
+      hostel: data.hostel,
+      transport: data.transport,
       recordedById: session.userId,
     });
 

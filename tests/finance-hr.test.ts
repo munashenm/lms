@@ -16,6 +16,7 @@ import { remainingLeaveDays, accruedDaysFor, unpaidLeaveDoesNotConsume } from "@
 import { DEFAULT_LICENSE_FEATURES } from "@/lib/licensing/features";
 import { advanceRecurringDate } from "@/lib/recurring-schedule";
 import { sumTimesheetHours, visibleEmployeeDocuments } from "@/lib/timesheet-hours";
+import { chargeOutstanding, selectedAllocations, unpaidInstalmentIds } from "@/lib/charge-reversal";
 
 const ctx: EnrolmentFeeContext = {
   schoolId: "sch-1",
@@ -255,5 +256,34 @@ describe("amount in words", () => {
   it("describes rand amounts for receipts", () => {
     expect(amountInWordsZar(1500)).toContain("rand");
     expect(amountInWordsZar(0)).toBe("zero rand");
+  });
+});
+
+describe("charge reversal and allocations", () => {
+  it("credits only the unpaid remainder of a charge", () => {
+    expect(
+      chargeOutstanding(1200, [{ amountPaid: 400 }, { amountPaid: 0 }])
+    ).toBe(800);
+    expect(unpaidInstalmentIds([
+      { id: "a", amountPaid: 400 },
+      { id: "b", amountPaid: 0 },
+    ])).toEqual(["b"]);
+  });
+
+  it("rejects instalment allocations that exceed the payment", () => {
+    const tooMuch = selectedAllocations(
+      [
+        { instalmentId: "1", amount: 600 },
+        { instalmentId: "2", amount: 500 },
+      ],
+      1000
+    );
+    expect(tooMuch.ok).toBe(false);
+    const ok = selectedAllocations([{ instalmentId: "1", amount: 250 }], 500);
+    expect(ok).toEqual({ ok: true, allocations: [{ instalmentId: "1", amount: 250 }] });
+    expect(selectedAllocations([{ instalmentId: "1", amount: 0 }], 500)).toEqual({
+      ok: true,
+      allocations: [],
+    });
   });
 });

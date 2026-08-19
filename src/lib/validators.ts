@@ -58,6 +58,8 @@ export const studentSchema = z.object({
     .enum(["APPLICANT", "ACTIVE", "SUSPENDED", "GRADUATED", "WITHDRAWN"])
     .default("ACTIVE"),
   popiaConsent: z.boolean().optional(),
+  hostel: z.boolean().optional(),
+  transport: z.boolean().optional(),
 });
 
 export const teacherSchema = z.object({

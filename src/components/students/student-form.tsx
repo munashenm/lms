@@ -27,6 +27,8 @@ export function StudentForm({ grades, classes, campuses }: StudentFormProps) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [popiaConsent, setPopiaConsent] = useState(false);
+  const [hostel, setHostel] = useState(false);
+  const [transport, setTransport] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -40,7 +42,7 @@ export function StudentForm({ grades, classes, campuses }: StudentFormProps) {
       const res = await fetch("/api/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, popiaConsent }),
+        body: JSON.stringify({ ...data, popiaConsent, hostel, transport }),
       });
 
       const result = await res.json();
@@ -154,6 +156,35 @@ export function StudentForm({ grades, classes, campuses }: StudentFormProps) {
               <option value="APPLICANT">Applicant</option>
             </Select>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Hostel & transport</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted">
+            Hostel and transport fees do not auto-apply unless these flags are set on enrolment.
+          </p>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hostel}
+              onChange={(e) => setHostel(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-border"
+            />
+            <span className="text-sm">Hostel learner for the current academic year</span>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={transport}
+              onChange={(e) => setTransport(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-border"
+            />
+            <span className="text-sm">Uses school transport for the current academic year</span>
+          </label>
         </CardContent>
       </Card>
 

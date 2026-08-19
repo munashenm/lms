@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StudentExportButton } from "@/components/students/student-export-button";
 import { StudentCardButton } from "@/components/students/student-card-button";
 import { StudentLedgerPanel } from "@/components/finance/student-ledger-panel";
+import { EnrolmentServicesForm } from "@/components/students/enrolment-services-form";
 import { ArrowLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getStudentLedger } from "@/lib/student-ledger";
@@ -39,10 +40,16 @@ export default async function StudentDetailPage({ params }: PageProps) {
     requirePermission(session, "students:read") && requirePermission(session, "audit:read");
   const canFinance = requirePermission(session, "finance:read");
   const canFinanceWrite = requirePermission(session, "finance:write");
+  const canWriteStudents = requirePermission(session, "students:write");
 
   const ledger = canFinance
     ? await getStudentLedger({ studentId: student.id })
     : null;
+  const currentEnrolment = await prisma.enrolment.findFirst({
+    where: { studentId: student.id, academicYear: { isCurrent: true } },
+    include: { academicYear: { select: { id: true, name: true } } },
+    orderBy: { updatedAt: "desc" },
+  });
 
   const statusVariant: Record<string, "success" | "warning" | "danger" | "secondary"> = {
     ACTIVE: "success",
@@ -146,6 +153,18 @@ export default async function StudentDetailPage({ params }: PageProps) {
           </Card>
         )}
       </div>
+
+      {canWriteStudents && currentEnrolment ? (
+        <EnrolmentServicesForm
+          studentId={student.id}
+          academicYearId={currentEnrolment.academicYear.id}
+          academicYearName={currentEnrolment.academicYear.name}
+          gradeId={student.gradeId}
+          classId={student.classId}
+          hostel={currentEnrolment.hostel}
+          transport={currentEnrolment.transport}
+        />
+      ) : null}
 
       {ledger && (
         <div className="space-y-3">

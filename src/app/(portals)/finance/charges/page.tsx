@@ -6,7 +6,7 @@ import { PaymentPlanManager } from "@/components/finance/payment-plan-manager";
 export default async function FinanceChargesPage() {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
-  const [students, charges, years] = await Promise.all([
+  const [students, charges, years, feeStructures] = await Promise.all([
     prisma.student.findMany({
       where: { ...filter, status: "ACTIVE" },
       select: { id: true, firstName: true, lastName: true, studentNumber: true },
@@ -24,6 +24,11 @@ export default async function FinanceChargesPage() {
       take: 80,
     }),
     prisma.academicYear.findMany({ where: filter, orderBy: { startDate: "desc" }, take: 8 }),
+    prisma.feeStructure.findMany({
+      where: { ...filter, isActive: true },
+      select: { id: true, name: true, amount: true, chargeSource: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
   return (
     <div className="space-y-6">
@@ -33,7 +38,12 @@ export default async function FinanceChargesPage() {
           Manual, hostel and transport charges append ledger rows. Instalments are created only when you set a count greater than 1.
         </p>
       </div>
-      <PaymentPlanManager students={students} charges={charges} years={years} />
+      <PaymentPlanManager
+        students={students}
+        charges={charges}
+        years={years}
+        feeStructures={feeStructures.map((fee) => ({ ...fee, amount: Number(fee.amount) }))}
+      />
     </div>
   );
 }

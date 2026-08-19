@@ -9,18 +9,28 @@ import { createManualStudentCharge } from "@/lib/fee-engine";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 
-const schema = z.object({
-  studentId: z.string().min(1),
-  description: z.string().min(1),
-  amount: z.coerce.number().positive(),
-  source: z.nativeEnum(FeeChargeSource).default(FeeChargeSource.MANUAL_CHARGE),
-  feeStructureId: z.string().optional().nullable(),
-  academicYearId: z.string().optional().nullable(),
-  dueDate: z.string().optional().nullable(),
-  allowInstalments: z.boolean().optional(),
-  instalmentCount: z.coerce.number().int().positive().optional().nullable(),
-  frequency: z.nativeEnum(BillingFrequency).optional(),
-});
+const schema = z
+  .object({
+    studentId: z.string().min(1),
+    description: z.string().min(1).optional(),
+    amount: z.coerce.number().positive().optional(),
+    source: z.nativeEnum(FeeChargeSource).default(FeeChargeSource.MANUAL_CHARGE),
+    feeStructureId: z.string().optional().nullable(),
+    academicYearId: z.string().optional().nullable(),
+    dueDate: z.string().optional().nullable(),
+    allowInstalments: z.boolean().optional(),
+    instalmentCount: z.coerce.number().int().positive().optional().nullable(),
+    frequency: z.nativeEnum(BillingFrequency).optional(),
+  })
+  .refine((data) => Boolean(data.feeStructureId) || (data.description && data.amount), {
+    message: "Provide a fee structure or a description and amount",
+  });
+
+function customScheduleOf(value: unknown) {
+  return Array.isArray(value)
+    ? (value as Array<{ dueDate?: string; amount?: number; dueOffsetDays?: number }>)
+    : null;
+}
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -62,18 +72,58 @@ export async function POST(request: NextRequest) {
   const student = await prisma.student.findFirst({ where: { id: parsed.data.studentId, schoolId } });
   if (!student) return NextResponse.json({ message: "Student not found" }, { status: 404 });
 
+  let description = parsed.data.description;
+  let amount = parsed.data.amount;
+  let source = parsed.data.source;
+  let frequency = parsed.data.frequency;
+  let allowInstalments = parsed.data.allowInstalments;
+  let instalmentCount = parsed.data.instalmentCount;
+  let academicYearId = parsed.data.academicYearId;
+  let customSchedule: Array<{ dueDate?: string; amount?: number; dueOffsetDays?: number }> | null = null;
+  let dueDayOfMonth: number | null = null;
+
+  if (parsed.data.feeStructureId) {
+    const fee = await prisma.feeStructure.findFirst({
+      where: { id: parsed.data.feeStructureId, schoolId },
+    });
+    if (!fee) return NextResponse.json({ message: "Fee structure not found" }, { status: 404 });
+    description = description || fee.name;
+    amount = amount ?? Number(fee.amount);
+    source = fee.chargeSource;
+    frequency = frequency ?? fee.billingFrequency;
+    allowInstalments = allowInstalments ?? fee.allowInstalments;
+    instalmentCount = instalmentCount ?? fee.instalmentCount;
+    academicYearId = academicYearId || fee.academicYearId;
+    customSchedule = customScheduleOf(fee.customScheduleJson);
+    dueDayOfMonth = fee.dueDayOfMonth;
+  }
+
+  if (!academicYearId) {
+    const current = await prisma.academicYear.findFirst({
+      where: { schoolId, isCurrent: true },
+      select: { id: true },
+    });
+    academicYearId = current?.id ?? null;
+  }
+
+  if (!description || amount == null) {
+    return NextResponse.json({ message: "Description and amount are required" }, { status: 400 });
+  }
+
   const result = await createManualStudentCharge({
     schoolId,
     studentId: student.id,
-    academicYearId: parsed.data.academicYearId,
+    academicYearId,
     feeStructureId: parsed.data.feeStructureId,
-    source: parsed.data.source,
-    description: parsed.data.description,
-    amount: parsed.data.amount,
+    source,
+    description,
+    amount,
     dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
-    allowInstalments: parsed.data.allowInstalments,
-    instalmentCount: parsed.data.instalmentCount,
-    frequency: parsed.data.frequency,
+    allowInstalments,
+    instalmentCount,
+    frequency,
+    customSchedule,
+    dueDayOfMonth,
     recordedById: session!.userId,
   });
   await logAudit({
@@ -82,7 +132,7 @@ export async function POST(request: NextRequest) {
     action: "STUDENT_CHARGE_CREATED",
     entity: "StudentCharge",
     entityId: result.charge.id,
-    metadata: { amount: parsed.data.amount, source: parsed.data.source, skipped: result.skipped },
+    metadata: { amount, source, skipped: result.skipped, feeStructureId: parsed.data.feeStructureId },
   });
   return NextResponse.json(result, { status: result.skipped ? 200 : 201 });
 }

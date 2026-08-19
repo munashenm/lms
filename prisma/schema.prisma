@@ -874,6 +874,8 @@ model Enrolment {
   gradeId        String?
   classId        String?
   status         EnrolmentStatus @default(ENROLLED)
+  hostel         Boolean         @default(false)
+  transport      Boolean         @default(false)
   enrolledAt     DateTime        @default(now())
   completedAt    DateTime?
   notes          String?

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentForm } from "./payment-form";
 import { PaymentReceiptButton } from "./payment-receipt-button";
 import { InvoicePdfButton } from "./invoice-pdf-button";
+import { InstalmentSchedule, type InstalmentView } from "./instalment-schedule";
 import {
   INVOICE_STATUS_LABELS,
   INVOICE_STATUS_VARIANT,
@@ -50,6 +51,7 @@ interface InvoiceDetailProps {
     };
     lineItems: LineItem[];
     payments: Payment[];
+    instalments?: InstalmentView[];
   };
   showPaymentForm?: boolean;
 }
@@ -144,6 +146,10 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
         </CardContent>
       </Card>
 
+      {invoice.instalments && invoice.instalments.length > 0 ? (
+        <InstalmentSchedule instalments={invoice.instalments} />
+      ) : null}
+
       {invoice.payments.length > 0 && (
         <Card>
           <CardHeader>
@@ -175,6 +181,14 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
           invoiceId={invoice.id}
           invoiceNumber={invoice.invoiceNumber}
           outstanding={outstanding}
+          instalments={invoice.instalments?.map((row) => ({
+            id: row.id,
+            sequence: row.sequence,
+            dueDate: row.dueDate,
+            amount: Number(row.amount),
+            amountPaid: Number(row.amountPaid),
+            status: row.status,
+          }))}
         />
       )}
     </div>
