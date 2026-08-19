@@ -69,7 +69,7 @@ export const DEFAULT_LICENSE_FEATURES: Record<LicenseFeatureKey, boolean> = {
   biometrics: false,
   api_access: false,
   advanced_analytics: false,
-  hr_payroll: false,
+  hr_payroll: true,
   teacher_reviews: true,
   download_centre: true,
   student_leave: true,

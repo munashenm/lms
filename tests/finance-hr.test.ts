@@ -183,8 +183,8 @@ describe("RBAC isolation", () => {
 });
 
 describe("licensing", () => {
-  it("treats HR/Payroll as a separately licensable module", () => {
-    expect(DEFAULT_LICENSE_FEATURES.hr_payroll).toBe(false);
+  it("includes HR/Payroll in the standard licence", () => {
+    expect(DEFAULT_LICENSE_FEATURES.hr_payroll).toBe(true);
     expect(DEFAULT_LICENSE_FEATURES.finance).toBe(true);
   });
 });

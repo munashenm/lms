@@ -7,7 +7,7 @@ import type { LicenseAction, LicenseFeatureKey } from "./types";
 import { maybeHeartbeat, trustUnsignedLocal } from "./service";
 import { learnerLimitReached, staffLimitReached } from "./evaluate";
 import { countLicenseUsage } from "./usage";
-import { isKnownFeature } from "./features";
+import { isKnownFeature, normalizeFeatures } from "./features";
 import { LICENSE_ALLOWED_WHEN_RESTRICTED, isRestrictedPathAllowed } from "./restricted-paths";
 
 export { LICENSE_ALLOWED_WHEN_RESTRICTED, isRestrictedPathAllowed };
@@ -37,7 +37,7 @@ export async function licenseWriteGuard(opts: {
   }
 
   if (opts.feature && evaluation.claims) {
-    const enabled = evaluation.claims.features[opts.feature];
+    const enabled = normalizeFeatures(evaluation.claims.features)[opts.feature];
     if (enabled === false) {
       return {
         ok: false,

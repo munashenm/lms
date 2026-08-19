@@ -245,12 +245,39 @@ describe("portal feature flags", () => {
     expect(navHrefFeature("/admin/finance/reports")).toBe("finance");
   });
 
-  it("keeps the Human Resource menu when HR & Payroll is not licensed", () => {
+  it("includes payroll and employees in Human Resource by default", () => {
     const nav = filterNavByLicense(getAdminNav(), evaluation);
     const hr = nav.filter((item) => item.section === "Human Resource");
-    expect(hr.map((item) => item.label)).toEqual(["Staff", "Staff Attendance", "Staff Leave"]);
+    expect(hr.map((item) => item.label)).toEqual([
+      "Staff",
+      "Employees",
+      "Staff Attendance",
+      "Staff Leave",
+      "Timesheets",
+      "Payroll",
+      "Leave policies",
+      "HR Reports",
+    ]);
+    expect(nav.some((item) => item.href === "/admin/payroll")).toBe(true);
+    expect(nav.some((item) => item.href === "/admin/hr")).toBe(true);
+  });
+
+  it("hides payroll when HR & Payroll is explicitly turned off", () => {
+    const off = evaluateLicense({
+      now: new Date("2026-06-15T00:00:00Z"),
+      claims: claims({ features: { ...DEFAULT_LICENSE_FEATURES, hr_payroll: false } }),
+      signatureValid: true,
+      lastVerifiedAt: new Date(),
+      storedStatus: "ACTIVE",
+      offlineGraceDays: 14,
+    });
+    const nav = filterNavByLicense(getAdminNav(), off);
+    expect(nav.filter((item) => item.section === "Human Resource").map((item) => item.label)).toEqual([
+      "Staff",
+      "Staff Attendance",
+      "Staff Leave",
+    ]);
     expect(nav.some((item) => item.href === "/admin/payroll")).toBe(false);
-    expect(nav.some((item) => item.href === "/admin/hr")).toBe(false);
   });
 
   it("reserves online examinations as a future module without hiding exam listings", () => {

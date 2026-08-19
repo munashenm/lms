@@ -7,9 +7,16 @@ import { getLicensePublicKey, verifyLicenseToken } from "./crypto";
 import { evaluateLicense } from "./evaluate";
 import { claimsFromLicense, ensureInstallationId, syncLicenseFeatures } from "./usage";
 import type { EvaluatedLicense, LicenseClaims } from "./types";
-import { DEFAULT_LICENSE_FEATURES } from "./features";
+import { DEFAULT_LICENSE_FEATURES, normalizeFeatures } from "./features";
 
 const PRODUCT = "lms";
+
+function withHrPayrollEnabled(claims: LicenseClaims): LicenseClaims {
+  return {
+    ...claims,
+    features: { ...normalizeFeatures(claims.features), hr_payroll: true },
+  };
+}
 
 export function heartbeatIntervalMs(): number {
   const hours = Number(process.env.LICENSE_HEARTBEAT_HOURS ?? "24");
@@ -44,11 +51,11 @@ export async function evaluateStoredLicense(
   if (row?.signedPayload && publicKey) {
     const verified = await verifyLicenseToken(row.signedPayload, publicKey);
     if (verified.ok) {
-      claims = verified.claims;
+      claims = withHrPayrollEnabled(verified.claims);
       signatureValid = true;
     }
   } else if (row) {
-    claims = claimsFromLicense(row);
+    claims = withHrPayrollEnabled(claimsFromLicense(row));
     signatureValid = false;
   }
 

@@ -1,5 +1,5 @@
 import type { NavItem } from "@/lib/navigation";
-import type { LicenseFeatureKey } from "./features";
+import { normalizeFeatures, type LicenseFeatureKey } from "./features";
 import type { EvaluatedLicense } from "./types";
 
 export function isFeatureEnabled(
@@ -7,7 +7,7 @@ export function isFeatureEnabled(
   feature: LicenseFeatureKey
 ): boolean {
   if (!evaluation?.claims) return true;
-  return evaluation.claims.features[feature] !== false;
+  return normalizeFeatures(evaluation.claims.features)[feature] !== false;
 }
 
 export function navHrefFeature(href: string): LicenseFeatureKey | null {

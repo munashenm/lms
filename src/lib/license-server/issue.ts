@@ -46,7 +46,7 @@ export async function ensureDefaultCatalog() {
 
   await prisma.licensePlan.upsert({
     where: { productId_code: { productId: product.id, code: "trial" } },
-    update: {},
+    update: { defaultFeatures: DEFAULT_LICENSE_FEATURES },
     create: {
       productId: product.id,
       code: "trial",
@@ -64,7 +64,9 @@ export async function ensureDefaultCatalog() {
 
   await prisma.licensePlan.upsert({
     where: { productId_code: { productId: product.id, code: "standard" } },
-    update: {},
+    update: {
+      defaultFeatures: { ...DEFAULT_LICENSE_FEATURES, sms: true, advanced_analytics: true },
+    },
     create: {
       productId: product.id,
       code: "standard",
