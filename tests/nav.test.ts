@@ -59,8 +59,12 @@ describe("admin nav groups", () => {
       "New Invoice",
     ]);
     expect(finance.every((item) => item.sectionIcon === "CreditCard")).toBe(true);
+    expect(finance.every((item) => item.href.startsWith("/admin/finance"))).toBe(true);
     expect(getAdminFinanceNavItems().find((item) => item.label === "Collect fees")?.href).toBe(
       "/admin/finance/collect"
+    );
+    expect(getAdminFinanceNavItems().find((item) => item.label === "Fee Structures")?.href).toBe(
+      "/admin/finance/structures"
     );
   });
 });
@@ -117,5 +121,9 @@ describe("nav active matching", () => {
     expect(isNavHrefActive("/admin/finance/collect", "/admin/finance", financeHrefs)).toBe(false);
     expect(isNavHrefActive("/admin/finance/collect", "/admin/finance/collect", financeHrefs)).toBe(true);
     expect(isNavHrefActive("/admin/finance", "/admin/finance", financeHrefs)).toBe(true);
+    expect(isNavHrefActive("/admin/finance/structures", "/admin/finance", financeHrefs)).toBe(false);
+    expect(isNavHrefActive("/admin/finance/structures", "/admin/finance/structures", financeHrefs)).toBe(
+      true
+    );
   });
 });
