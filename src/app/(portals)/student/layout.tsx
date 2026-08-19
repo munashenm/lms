@@ -25,7 +25,7 @@ export default async function StudentLayout({
   const nav = filterNavByLicense(
     studentNav.map((item) => {
       if (!terms) return item;
-      if (item.href === "/student/subjects") return { ...item, label: terms.subjects };
+      if (item.href === "/student/subjects") return { ...item, label: `My ${terms.subjects}` };
       return item;
     }),
     ctx.license

@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { getStudentForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
-import { AssignmentSubmit } from "@/components/assessments/assignment-submit";
+import { AssignmentBoard } from "@/components/learner/assignment-board";
 
 export default async function StudentAssignmentsPage() {
   const session = await getSession();
@@ -20,7 +20,12 @@ export default async function StudentAssignmentsPage() {
           },
         },
         include: {
-          assessment: { include: { subject: true } },
+          assessment: {
+            include: {
+              subject: { select: { name: true } },
+              teacher: { select: { firstName: true, lastName: true } },
+            },
+          },
           submissions: { where: { studentId: student.id } },
         },
         orderBy: { assessment: { dueDate: "asc" } },
@@ -33,21 +38,30 @@ export default async function StudentAssignmentsPage() {
       assignmentId: a.id,
       title: a.assessment.title,
       subject: a.assessment.subject?.name ?? "General",
+      teacher: a.assessment.teacher
+        ? `${a.assessment.teacher.firstName} ${a.assessment.teacher.lastName}`
+        : null,
+      issuedAt: a.assessment.createdAt,
       dueDate: a.assessment.dueDate,
       instructions: a.instructions,
+      maxMarks: Number(a.assessment.maxMarks),
+      allowLate: a.allowLate,
       submitted: !!sub,
       submittedAt: sub?.submittedAt,
       grade: sub?.grade ? Number(sub.grade) : null,
+      feedback: sub?.feedback ?? null,
+      fileUrl: sub?.fileUrl ?? null,
+      content: sub?.content ?? null,
     };
   });
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Assignments</h1>
-        <p className="text-muted text-sm mt-1">View and submit your assignments</p>
+        <h1 className="text-2xl font-bold">Homework / Assignments</h1>
+        <p className="text-muted text-sm mt-1">Open, submit and review feedback on your assignments</p>
       </div>
-      <AssignmentSubmit assignments={items} />
+      <AssignmentBoard assignments={items} />
     </div>
   );
 }

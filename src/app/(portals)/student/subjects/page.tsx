@@ -3,6 +3,7 @@ import { getStudentForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 export default async function StudentSubjectsPage() {
   const session = await getSession();
@@ -37,7 +38,7 @@ export default async function StudentSubjectsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {classSubjects.map((cs) => (
-                <div key={cs.id} className="rounded-lg border border-border p-4">
+                <Link key={cs.id} href={`/student/subjects/${cs.subject.id}`} className="rounded-lg border border-border p-4 hover:border-primary">
                   <div className="flex items-center gap-2">
                     <Badge variant="default">{cs.subject.code}</Badge>
                     <p className="font-medium">{cs.subject.name}</p>
@@ -50,7 +51,7 @@ export default async function StudentSubjectsPage() {
                   {cs.subject.credits && (
                     <p className="text-xs text-muted">{cs.subject.credits} credits</p>
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           )}

@@ -30,12 +30,20 @@ export function navHrefFeature(href: string): LicenseFeatureKey | null {
     href.includes("/assignments") ||
     href.includes("/results") ||
     href.includes("/report-cards") ||
-    href.includes("/certificates")
+    href.includes("/certificates") ||
+    href.includes("/exams")
   ) {
     return "assessments";
   }
   if (href.includes("/attendance") && !href.includes("staff-attendance")) return "attendance";
   if (href.includes("/timetable")) return "timetable";
+  if (href.includes("/reviews")) return "teacher_reviews";
+  if (href.includes("/downloads")) return "download_centre";
+  if (href.includes("/learner-leave") || href === "/student/leave" || href.startsWith("/student/leave/")) {
+    return "student_leave";
+  }
+  if (href.includes("/visitor")) return "visitor_management";
+  if (href.includes("/messages")) return "messaging";
   if (href === "/admin/reports" || href.startsWith("/admin/reports/")) return "reporting";
   return null;
 }

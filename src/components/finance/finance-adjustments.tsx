@@ -18,6 +18,14 @@ interface StudentOpt {
 
 export function FinanceAdjustments(props: {
   students: StudentOpt[];
+  payments: Array<{
+    id: string;
+    receiptNumber: string;
+    amount: unknown;
+    paidAt: Date | string;
+    studentId: string;
+    studentName: string;
+  }>;
   creditNotes: Array<{ id: string; number: string; amount: unknown; reason: string; createdAt: Date | string; student: StudentOpt }>;
   refunds: Array<{ id: string; amount: unknown; reason: string; status: string; createdAt: Date | string; student: StudentOpt }>;
   awards: Array<{ id: string; name: string; type: string; amount: unknown; createdAt: Date | string; student: StudentOpt }>;
@@ -79,6 +87,7 @@ export function FinanceAdjustments(props: {
                 const form = new FormData(e.currentTarget);
                 post("/api/refunds", {
                   studentId: form.get("studentId"),
+                  paymentId: form.get("paymentId") || null,
                   amount: Number(form.get("amount")),
                   reason: form.get("reason"),
                 }, "rf", "Refund submitted for approval");
@@ -86,6 +95,17 @@ export function FinanceAdjustments(props: {
               }}
             >
               <StudentSelect students={props.students} />
+              <div>
+                <Label>Linked receipt (optional)</Label>
+                <select name="paymentId" className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm">
+                  <option value="">No linked payment</option>
+                  {props.payments.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.receiptNumber} · {p.studentName} · {formatZAR(Number(p.amount))}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div><Label>Amount</Label><Input name="amount" type="number" step="0.01" required /></div>
               <div><Label>Reason</Label><Input name="reason" required /></div>
               <Button type="submit" disabled={loading === "rf"}>Request refund</Button>

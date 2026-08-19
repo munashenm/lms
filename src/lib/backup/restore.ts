@@ -229,6 +229,10 @@ async function replaceSchoolData(
   preserveUserId: string | null
 ) {
   await prisma.$transaction(async (tx) => {
+    await tx.studentAbsenceRequest.deleteMany({ where: { schoolId } });
+    await tx.teacherReview.deleteMany({ where: { schoolId } });
+    await tx.lessonPlan.deleteMany({ where: { schoolId } });
+    await tx.curriculumTopic.deleteMany({ where: { schoolId } });
     await tx.payslip.deleteMany({ where: { item: { run: { schoolId } } } });
     await tx.payrollItem.deleteMany({ where: { run: { schoolId } } });
     await tx.payrollRun.deleteMany({ where: { schoolId } });
@@ -402,5 +406,9 @@ async function replaceSchoolData(
     await createManyIgnore(tx.studentLedgerEntry, snapshot.studentLedgerEntries);
     await createManyIgnore(tx.communicationBatch, snapshot.communicationBatches);
     await createManyIgnore(tx.communicationLog, snapshot.communicationLogs);
+    await createManyIgnore(tx.studentAbsenceRequest, snapshot.studentAbsenceRequests ?? []);
+    await createManyIgnore(tx.teacherReview, snapshot.teacherReviews ?? []);
+    await createManyIgnore(tx.lessonPlan, snapshot.lessonPlans ?? []);
+    await createManyIgnore(tx.curriculumTopic, snapshot.curriculumTopics ?? []);
   }, { timeout: 120_000 });
 }

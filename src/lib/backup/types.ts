@@ -92,6 +92,10 @@ export interface BackupSnapshot {
   payrollItems?: Record<string, unknown>[];
   payslips?: Record<string, unknown>[];
   enrolmentModules?: Record<string, unknown>[];
+  studentAbsenceRequests?: Record<string, unknown>[];
+  teacherReviews?: Record<string, unknown>[];
+  lessonPlans?: Record<string, unknown>[];
+  curriculumTopics?: Record<string, unknown>[];
   files: { relativePath: string; contentBase64: string; mimeType?: string }[];
 }
 

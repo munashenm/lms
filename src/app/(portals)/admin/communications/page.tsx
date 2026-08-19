@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { NoticeComposeForm } from "@/components/communications/notice-compose-form";
+import { SendRemainingButton } from "@/components/communications/send-remaining-button";
 
 export default async function CommunicationsPage() {
   const session = await getSession();
@@ -22,7 +23,7 @@ export default async function CommunicationsPage() {
     hasPermission(session.role, "announcements:write") ||
     hasPermission(session.role, "settings:write");
 
-  const [logs, students, grades, classes] = await Promise.all([
+  const [logs, queuedBatches, students, grades, classes] = await Promise.all([
     prisma.communicationLog.findMany({
       where: filter,
       include: {
@@ -32,6 +33,11 @@ export default async function CommunicationsPage() {
       },
       orderBy: { createdAt: "desc" },
       take: 100,
+    }),
+    prisma.communicationBatch.findMany({
+      where: { ...filter, queuedCount: { gt: 0 } },
+      orderBy: { createdAt: "desc" },
+      take: 20,
     }),
     canCompose
       ? prisma.student.findMany({
@@ -75,6 +81,31 @@ export default async function CommunicationsPage() {
 
       {canCompose ? (
         <NoticeComposeForm students={students} grades={grades} classes={classes} />
+      ) : null}
+
+      {queuedBatches.length > 0 ? (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <p className="text-sm font-medium">Queued notice batches</p>
+            <p className="text-xs text-muted">
+              Large sends are processed in chunks. Use Send remaining until the queue is empty.
+            </p>
+            {queuedBatches.map((batch) => (
+              <div
+                key={batch.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
+              >
+                <div className="text-sm">
+                  <p className="font-medium">{batch.category.replaceAll("_", " ")}</p>
+                  <p className="text-xs text-muted">
+                    {batch.queuedCount} queued · {batch.sentCount} sent · {batch.failedCount} failed
+                  </p>
+                </div>
+                <SendRemainingButton batchId={batch.id} queuedCount={batch.queuedCount} />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       ) : null}
 
       <Card>

@@ -182,6 +182,10 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     refunds,
     studentAidAwards,
     paymentAllocations,
+    studentAbsenceRequests,
+    teacherReviews,
+    lessonPlans,
+    curriculumTopics,
   ] = await Promise.all([
     prisma.feeStructure.findMany({ where: { schoolId } }),
     prisma.studentCharge.findMany({ where: { schoolId }, include: { instalments: true } }),
@@ -206,6 +210,10 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     prisma.refund.findMany({ where: { schoolId } }),
     prisma.studentAidAward.findMany({ where: { schoolId } }),
     prisma.paymentAllocation.findMany({ where: { schoolId } }),
+    prisma.studentAbsenceRequest.findMany({ where: { schoolId } }),
+    prisma.teacherReview.findMany({ where: { schoolId } }),
+    prisma.lessonPlan.findMany({ where: { schoolId } }),
+    prisma.curriculumTopic.findMany({ where: { schoolId } }),
   ]);
 
   const enrolmentModules = await prisma.enrolmentModule.findMany({
@@ -296,6 +304,10 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     payrollItems: jsonSafe(payrollRuns.flatMap((r) => r.items.map((i) => omitKey(i as unknown as Record<string, unknown>, "payslip")))),
     payslips: jsonSafe(payrollRuns.flatMap((r) => r.items.flatMap((i) => (i.payslip ? [i.payslip] : [])))),
     enrolmentModules: jsonSafe(enrolmentModules),
+    studentAbsenceRequests: jsonSafe(studentAbsenceRequests),
+    teacherReviews: jsonSafe(teacherReviews),
+    lessonPlans: jsonSafe(lessonPlans),
+    curriculumTopics: jsonSafe(curriculumTopics),
     files,
   };
 
@@ -310,5 +322,5 @@ export function snapshotCounts(snapshot: BackupSnapshot) {
   };
 }
 
-export const SCHEMA_VERSION = "20260819110000_staff_portal_role";
+export const SCHEMA_VERSION = "20260819120000_learner_portal_services";
 export const APP_VERSION = process.env.npm_package_version || "0.1.0";

@@ -7,6 +7,7 @@ interface TimetableSlot {
   startTime: string;
   endTime: string;
   room: string | null;
+  onlineMeetingUrl?: string | null;
   subject?: { name: string; code: string } | null;
   module?: { name: string; code: string } | null;
   teacher?: { firstName: string; lastName: string } | null;
@@ -65,6 +66,16 @@ export function TimetableGrid({ slots, showClass = false, highlightDay }: Timeta
                         {slot.teacher.firstName} {slot.teacher.lastName}
                       </p>
                     )}
+                    {slot.onlineMeetingUrl ? (
+                      <a
+                        href={slot.onlineMeetingUrl}
+                        className="text-xs text-primary hover:underline"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Join online
+                      </a>
+                    ) : null}
                   </div>
                 ))}
               </div>

@@ -24,12 +24,19 @@ export type NavIconName =
   | "DatabaseBackup"
   | "Plug"
   | "Briefcase"
-  | "Banknote";
+  | "Banknote"
+  | "User"
+  | "Bell"
+  | "Download"
+  | "MessageSquare"
+  | "Star"
+  | "CalendarDays";
 
 export interface NavItem {
   label: string;
   href: string;
   icon: NavIconName;
+  section?: string;
 }
 
 export function getAdminNav(
@@ -59,6 +66,7 @@ export function getAdminNav(
     { label: "Payroll", href: "/admin/payroll", icon: "Banknote" },
     { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
     { label: "Communications", href: "/admin/communications", icon: "Megaphone" },
+    { label: "Learner Leave", href: "/admin/learner-leave", icon: "Palmtree" },
     { label: "Documents", href: "/admin/documents", icon: "FolderOpen" },
     { label: "Reports", href: "/admin/reports", icon: "BarChart3" },
     { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
@@ -86,6 +94,9 @@ export const teacherNav: NavItem[] = [
   { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
   { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
   { label: "Materials", href: "/teacher/materials", icon: "Upload" },
+  { label: "Lesson Plans", href: "/teacher/lesson-plans", icon: "BookOpen" },
+  { label: "Curriculum", href: "/teacher/curriculum", icon: "ClipboardList" },
+  { label: "Learner Leave", href: "/teacher/learner-leave", icon: "Palmtree" },
   { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },
   { label: "My Timesheets", href: "/staff/timesheets", icon: "ClipboardCheck" },
   { label: "Announcements", href: "/teacher/announcements", icon: "Megaphone" },
@@ -93,16 +104,25 @@ export const teacherNav: NavItem[] = [
 
 export const studentNav: NavItem[] = [
   { label: "Dashboard", href: "/student/dashboard", icon: "LayoutDashboard" },
-  { label: "Results", href: "/student/results", icon: "Award" },
-  { label: "Assignments", href: "/student/assignments", icon: "FileText" },
-  { label: "Report Cards", href: "/student/report-cards", icon: "Award" },
-  { label: "Certificates", href: "/student/certificates", icon: "Award" },
-  { label: "Fees", href: "/student/fees", icon: "CreditCard" },
-  { label: "Timetable", href: "/student/timetable", icon: "Calendar" },
-  { label: "Subjects", href: "/student/subjects", icon: "BookOpen" },
-  { label: "Materials", href: "/student/materials", icon: "FolderOpen" },
-  { label: "Attendance", href: "/student/attendance", icon: "ClipboardCheck" },
-  { label: "Announcements", href: "/student/announcements", icon: "Megaphone" },
+  { label: "My Profile", href: "/student/profile", icon: "User", section: "Profile" },
+  { label: "My Documents", href: "/student/documents", icon: "FolderOpen", section: "Profile" },
+  { label: "My Subjects", href: "/student/subjects", icon: "BookOpen", section: "Academics" },
+  { label: "Class Timetable", href: "/student/timetable", icon: "Calendar", section: "Academics" },
+  { label: "Lesson Plan", href: "/student/lesson-plans", icon: "ClipboardList", section: "Academics" },
+  { label: "Curriculum Progress", href: "/student/progress", icon: "BarChart3", section: "Academics" },
+  { label: "Homework", href: "/student/assignments", icon: "FileText", section: "Academics" },
+  { label: "Attendance", href: "/student/attendance", icon: "ClipboardCheck", section: "Academics" },
+  { label: "Online Exams", href: "/student/exams", icon: "Award", section: "Examinations" },
+  { label: "Results", href: "/student/results", icon: "Award", section: "Examinations" },
+  { label: "Report Cards", href: "/student/report-cards", icon: "Award", section: "Examinations" },
+  { label: "Certificates", href: "/student/certificates", icon: "Award", section: "Examinations" },
+  { label: "Fees", href: "/student/fees", icon: "CreditCard", section: "Finance" },
+  { label: "Notice Board", href: "/student/announcements", icon: "Megaphone", section: "Communication" },
+  { label: "Notifications", href: "/student/notifications", icon: "Bell", section: "Communication" },
+  { label: "Teacher Reviews", href: "/student/reviews", icon: "Star", section: "Communication" },
+  { label: "Apply Leave", href: "/student/leave", icon: "Palmtree", section: "Student Services" },
+  { label: "Download Centre", href: "/student/downloads", icon: "Download", section: "Student Services" },
+  { label: "Academic Calendar", href: "/student/calendar", icon: "CalendarDays", section: "Student Services" },
 ];
 
 export const financeNav: NavItem[] = [

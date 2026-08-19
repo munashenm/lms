@@ -4,9 +4,10 @@ import path from "path";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
-import { requireSchoolId } from "@/lib/portal-data";
+import { requireSchoolId, getStudentForSession } from "@/lib/portal-data";
 import { DocumentType } from "@prisma/client";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { documentVisibleToLearner } from "@/lib/learner-portal";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -21,11 +22,31 @@ export async function GET(request: NextRequest) {
     where: {
       ...getSchoolFilter(session),
       ...(type && { type }),
-      ...((session.role === "STUDENT" || session.role === "PARENT") && { isPublic: true }),
     },
     include: { uploader: { select: { firstName: true, lastName: true } } },
     orderBy: { createdAt: "desc" },
   });
+
+  if (session.role === "STUDENT") {
+    const student = await getStudentForSession(session);
+    if (!student) return NextResponse.json({ documents: [] });
+    const scope = {
+      id: student.id,
+      gradeId: student.gradeId,
+      classId: student.classId,
+      campusId: student.campusId,
+      courseIds: student.enrolments
+        .map((e) => e.courseId)
+        .filter((id): id is string => Boolean(id)),
+    };
+    return NextResponse.json({
+      documents: documents.filter((doc) => documentVisibleToLearner(doc, scope)),
+    });
+  }
+
+  if (session.role === "PARENT") {
+    return NextResponse.json({ documents: documents.filter((d) => d.isPublic) });
+  }
 
   return NextResponse.json({ documents });
 }
@@ -42,6 +63,12 @@ export async function POST(request: NextRequest) {
   const description = (formData.get("description") as string) || null;
   const type = (formData.get("type") as DocumentType) || "LEARNING_MATERIAL";
   const isPublic = formData.get("isPublic") === "true";
+  const learnerVisible = formData.get("learnerVisible") === "true";
+  const targetGradeId = (formData.get("targetGradeId") as string) || null;
+  const targetClassId = (formData.get("targetClassId") as string) || null;
+  const targetCampusId = (formData.get("targetCampusId") as string) || null;
+  const targetCourseId = (formData.get("targetCourseId") as string) || null;
+  const targetStudentId = (formData.get("targetStudentId") as string) || null;
 
   if (!file || !title) {
     return NextResponse.json({ message: "File and title required" }, { status: 400 });
@@ -71,6 +98,12 @@ export async function POST(request: NextRequest) {
       fileSize: buffer.length,
       mimeType: file.type || null,
       isPublic,
+      learnerVisible: learnerVisible || isPublic,
+      targetGradeId,
+      targetClassId,
+      targetCampusId,
+      targetCourseId,
+      targetStudentId,
     },
   });
 

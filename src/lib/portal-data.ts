@@ -28,8 +28,32 @@ export async function getStudentForSession(session: SessionPayload) {
       grade: { select: { name: true } },
       class: { select: { id: true, name: true } },
       campus: { select: { name: true } },
+      school: {
+        select: {
+          name: true,
+          teacherReviewsAnonymous: true,
+          studentLeaveRequiresGuardian: true,
+        },
+      },
+      user: { select: { email: true } },
+      guardians: {
+        include: {
+          guardian: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+              relationship: true,
+            },
+          },
+        },
+      },
       enrolments: {
-        include: { course: { include: { modules: { orderBy: { sortOrder: "asc" } } } } },
+        include: {
+          academicYear: { select: { id: true, name: true, isCurrent: true } },
+          course: { include: { modules: { orderBy: { sortOrder: "asc" } } } },
+        },
       },
     },
   });

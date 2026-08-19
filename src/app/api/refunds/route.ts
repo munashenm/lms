@@ -7,6 +7,7 @@ import { requireSchoolId } from "@/lib/portal-data";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { roundMoney } from "@/lib/money";
+import { paymentBelongsToStudent } from "@/lib/refund-payment";
 import { z } from "zod";
 
 const schema = z.object({
@@ -45,11 +46,31 @@ export async function POST(request: NextRequest) {
   });
   if (!student) return NextResponse.json({ message: "Student not found" }, { status: 404 });
 
+  let paymentId: string | null = parsed.data.paymentId ?? null;
+  if (paymentId) {
+    const payment = await prisma.payment.findFirst({
+      where: { id: paymentId, schoolId, reversedAt: null },
+      include: { invoice: { select: { studentId: true, schoolId: true } } },
+    });
+    if (
+      !paymentBelongsToStudent({
+        payment,
+        studentId: student.id,
+        schoolId,
+      })
+    ) {
+      return NextResponse.json(
+        { message: "Payment does not belong to this student" },
+        { status: 400 }
+      );
+    }
+  }
+
   const refund = await prisma.refund.create({
     data: {
       schoolId,
       studentId: parsed.data.studentId,
-      paymentId: parsed.data.paymentId ?? null,
+      paymentId,
       amount: roundMoney(parsed.data.amount),
       reason: parsed.data.reason,
       status: ApprovalStatus.PENDING,

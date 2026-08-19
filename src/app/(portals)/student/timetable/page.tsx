@@ -5,6 +5,7 @@ import { TimetableGrid } from "@/components/academics/timetable-grid";
 import { Card, CardContent } from "@/components/ui/card";
 import { getTodayDayOfWeek } from "@/lib/timetable-conflicts";
 import { DAY_LABELS } from "@/lib/portal-data";
+import { PrintPageButton } from "@/components/learner/print-page-button";
 
 export default async function StudentTimetablePage() {
   const session = await getSession();
@@ -27,11 +28,14 @@ export default async function StudentTimetablePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">My Timetable</h1>
-        <p className="text-muted text-sm mt-1">
-          {student?.class ? `Class: ${student.class.name}` : "No class assigned"}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">My Timetable</h1>
+          <p className="text-muted text-sm mt-1">
+            {student?.class ? `Class: ${student.class.name}` : "No class assigned"}
+          </p>
+        </div>
+        {student?.classId ? <PrintPageButton /> : null}
       </div>
 
       {!student?.classId ? (

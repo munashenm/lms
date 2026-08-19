@@ -25,6 +25,12 @@ import {
   Plug,
   Briefcase,
   Banknote,
+  User,
+  Bell,
+  Download,
+  MessageSquare,
+  Star,
+  CalendarDays,
   Circle,
   type LucideIcon,
 } from "lucide-react";
@@ -55,6 +61,12 @@ const ICON_MAP: Record<NavIconName, LucideIcon> = {
   Plug,
   Briefcase,
   Banknote,
+  User,
+  Bell,
+  Download,
+  MessageSquare,
+  Star,
+  CalendarDays,
 };
 
 interface NavIconProps {

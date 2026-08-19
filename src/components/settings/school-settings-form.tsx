@@ -35,6 +35,8 @@ interface SchoolData {
   curriculumType: string;
   periodStructure: string;
   absenceNotifyEnabled?: boolean;
+  teacherReviewsAnonymous?: boolean;
+  studentLeaveRequiresGuardian?: boolean;
 }
 
 interface SchoolSettingsFormProps {
@@ -84,6 +86,8 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             curriculumType: form.get("curriculumType"),
             periodStructure: form.get("periodStructure"),
             absenceNotifyEnabled: form.get("absenceNotifyEnabled") === "on",
+            teacherReviewsAnonymous: form.get("teacherReviewsAnonymous") === "on",
+            studentLeaveRequiresGuardian: form.get("studentLeaveRequiresGuardian") === "on",
           }),
         }
       );
@@ -270,6 +274,35 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
               className="rounded"
             />
             Send automatic absence SMS to parents/guardians
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Learner portal</CardTitle>
+          <p className="text-sm text-muted">
+            Controls how learners submit leave and whether teacher reviews stay anonymous.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="teacherReviewsAnonymous"
+              defaultChecked={school.teacherReviewsAnonymous ?? true}
+              className="rounded"
+            />
+            Teacher reviews are anonymous to lecturers
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="studentLeaveRequiresGuardian"
+              defaultChecked={school.studentLeaveRequiresGuardian ?? false}
+              className="rounded"
+            />
+            Learner leave requests must be submitted by a parent/guardian
           </label>
         </CardContent>
       </Card>

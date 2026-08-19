@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ClassForm } from "@/components/academics/class-form";
 import { ClassTeacherAssign } from "@/components/academics/class-teacher-assign";
+import { ClassDeactivateButton } from "@/components/academics/class-deactivate-button";
 
 export default async function ClassesPage() {
   const session = await getSession();
@@ -12,7 +13,7 @@ export default async function ClassesPage() {
 
   const [classes, grades, campuses, academicYears, teachers] = await Promise.all([
     prisma.class.findMany({
-      where: { ...filter, isActive: true },
+      where: filter,
       include: {
         grade: { select: { name: true } },
         campus: { select: { name: true } },
@@ -36,7 +37,9 @@ export default async function ClassesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Classes</h1>
-          <p className="text-muted text-sm mt-1">{classes.length} active classes</p>
+          <p className="text-muted text-sm mt-1">
+            {classes.filter((c) => c.isActive).length} active · {classes.length} total
+          </p>
         </div>
         <ClassForm
           grades={grades.map((g) => ({ id: g.id, name: g.name }))}
@@ -57,12 +60,20 @@ export default async function ClassesPage() {
                 <th className="text-left px-4 py-3 font-medium text-muted hidden md:table-cell">Teacher</th>
                 <th className="text-left px-4 py-3 font-medium text-muted">Students</th>
                 <th className="text-left px-4 py-3 font-medium text-muted hidden sm:table-cell">Room</th>
+                <th className="text-right px-4 py-3 font-medium text-muted">Status</th>
               </tr>
             </thead>
             <tbody>
               {classes.map((cls) => (
                 <tr key={cls.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 font-medium">{cls.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {cls.name}
+                    {!cls.isActive ? (
+                      <Badge variant="secondary" className="ml-2">
+                        Inactive
+                      </Badge>
+                    ) : null}
+                  </td>
                   <td className="px-4 py-3 text-muted">{cls.grade?.name ?? "—"}</td>
                   <td className="px-4 py-3 text-muted hidden md:table-cell">{cls.campus?.name ?? "—"}</td>
                   <td className="px-4 py-3 hidden md:table-cell min-w-[12rem]">
@@ -78,6 +89,9 @@ export default async function ClassesPage() {
                     <Badge variant="default">{cls._count.students}</Badge>
                   </td>
                   <td className="px-4 py-3 text-muted hidden sm:table-cell">{cls.room ?? "—"}</td>
+                  <td className="px-4 py-3 text-right">
+                    <ClassDeactivateButton classId={cls.id} isActive={cls.isActive} />
+                  </td>
                 </tr>
               ))}
             </tbody>

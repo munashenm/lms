@@ -2,16 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
+  const takeParam = new URL(request.url).searchParams.get("take");
+  const take = Math.min(Math.max(Number(takeParam) || 20, 1), 100);
+
   const notifications = await prisma.notification.findMany({
     where: { userId: session.userId },
     orderBy: { createdAt: "desc" },
-    take: 20,
+    take,
   });
 
   const unreadCount = await prisma.notification.count({

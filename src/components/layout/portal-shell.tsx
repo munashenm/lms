@@ -9,6 +9,8 @@ import type { SessionOption } from "@/lib/academic-session-shared";
 import type { EvaluatedLicense } from "@/lib/licensing/types";
 import { LicenseStatusBanner } from "@/components/enterprise/license-banner";
 
+const COLLAPSE_KEY = "schoolhub-sidebar-collapsed";
+
 interface PortalShellProps {
   user: SessionPayload;
   title?: string;
@@ -33,6 +35,19 @@ export function PortalShell({
   children,
 }: PortalShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  function toggleCollapsed() {
+    setCollapsed((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -41,6 +56,8 @@ export function PortalShell({
         onClose={() => setSidebarOpen(false)}
         navItems={navItems}
         portalLabel={portalLabel}
+        collapsed={collapsed}
+        onToggleCollapsed={toggleCollapsed}
       />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header

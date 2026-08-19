@@ -17,8 +17,8 @@ export default async function StudentAnnouncementsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Announcements</h1>
-        <p className="text-muted text-sm mt-1">Notices from your school</p>
+        <h1 className="text-2xl font-bold">Notice Board</h1>
+        <p className="text-muted text-sm mt-1">Notices for learners, your class and the wider school</p>
       </div>
       <AnnouncementList announcements={announcements} />
     </div>

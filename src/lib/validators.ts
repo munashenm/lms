@@ -525,6 +525,8 @@ export const schoolSettingsSchema = z.object({
   curriculumType: z.enum(["CAPS", "NSC", "TVET_NQF", "CUSTOM"]).optional(),
   periodStructure: z.enum(["TERMS_4", "SEMESTERS_2", "CUSTOM"]).optional(),
   absenceNotifyEnabled: z.coerce.boolean().optional(),
+  teacherReviewsAnonymous: z.coerce.boolean().optional(),
+  studentLeaveRequiresGuardian: z.coerce.boolean().optional(),
 });
 
 export const studentLedgerEntrySchema = z.object({
@@ -640,3 +642,62 @@ export const rolloverCommitSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type StudentInput = z.infer<typeof studentSchema>;
+
+export const learnerProfilePatchSchema = z.object({
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  province: z.string().optional().nullable(),
+  postalCode: z.string().optional().nullable(),
+});
+
+export const studentAbsenceSchema = z.object({
+  type: z.enum(["SICK", "FAMILY", "PERSONAL", "SCHOOL_ACTIVITY", "OTHER"]),
+  fromDate: z.string().min(1),
+  toDate: z.string().min(1),
+  reason: z.string().min(3),
+  documentUrl: z.string().optional().nullable(),
+});
+
+export const studentAbsenceReviewSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+  reviewNote: z.string().optional().nullable(),
+});
+
+export const teacherReviewSchema = z.object({
+  teacherId: z.string().min(1),
+  teachingQuality: z.coerce.number().int().min(1).max(5),
+  communication: z.coerce.number().int().min(1).max(5),
+  preparedness: z.coerce.number().int().min(1).max(5),
+  subjectKnowledge: z.coerce.number().int().min(1).max(5),
+  availability: z.coerce.number().int().min(1).max(5),
+  overall: z.coerce.number().int().min(1).max(5),
+  comment: z.string().optional().nullable(),
+});
+
+export const lessonPlanSchema = z.object({
+  subjectId: z.string().min(1),
+  classId: z.string().optional().nullable(),
+  termId: z.string().optional().nullable(),
+  weekNumber: z.coerce.number().int().min(1).max(54).optional().nullable(),
+  title: z.string().min(1),
+  topic: z.string().min(1),
+  objective: z.string().optional().nullable(),
+  resources: z.string().optional().nullable(),
+  readingMaterial: z.string().optional().nullable(),
+  relatedAssessmentId: z.string().optional().nullable(),
+  lessonDate: z.string().min(1),
+  isPublished: z.coerce.boolean().optional(),
+});
+
+export const curriculumTopicSchema = z.object({
+  subjectId: z.string().min(1),
+  classId: z.string().optional().nullable(),
+  termId: z.string().optional().nullable(),
+  title: z.string().min(1),
+  description: z.string().optional().nullable(),
+  sortOrder: z.coerce.number().int().optional(),
+  status: z.enum(["PLANNED", "CURRENT", "COMPLETED"]).optional(),
+});
+

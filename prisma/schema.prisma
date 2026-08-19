@@ -184,6 +184,20 @@ enum LeaveStatus {
   CANCELLED
 }
 
+enum StudentAbsenceType {
+  SICK
+  FAMILY
+  PERSONAL
+  SCHOOL_ACTIVITY
+  OTHER
+}
+
+enum CurriculumTopicStatus {
+  PLANNED
+  CURRENT
+  COMPLETED
+}
+
 enum LedgerEntryType {
   INCOME
   EXPENSE
@@ -390,6 +404,8 @@ model School {
   currency        String          @default("ZAR")
   popiaConsentText String?
   absenceNotifyEnabled Boolean    @default(false)
+  teacherReviewsAnonymous Boolean @default(true)
+  studentLeaveRequiresGuardian Boolean @default(false)
   isActive        Boolean         @default(true)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -449,6 +465,10 @@ model School {
   leavePolicies          LeavePolicy[]
   payrollRuleSets        PayrollRuleSet[]
   payrollRuns            PayrollRun[]
+  studentAbsenceRequests StudentAbsenceRequest[]
+  teacherReviews         TeacherReview[]
+  lessonPlans            LessonPlan[]
+  curriculumTopics       CurriculumTopic[]
 
   @@index([slug])
   @@map("schools")
@@ -513,6 +533,7 @@ model User {
   certificatesIssued Certificate[] @relation("CertificateIssuer")
   leaveReviews       LeaveRequest[] @relation("LeaveReviewer")
   leaveApplications  LeaveRequest[] @relation("LeaveApplicant")
+  studentAbsenceReviews StudentAbsenceRequest[] @relation("StudentAbsenceReviewer")
   ledgerEntries      LedgerEntry[]  @relation("LedgerRecorder")
   studentLedgerEntries StudentLedgerEntry[] @relation("StudentLedgerRecorder")
   staffAttendance    StaffAttendanceRecord[] @relation("StaffAttendanceUser")
@@ -580,6 +601,8 @@ model Term {
   reportCards    ReportCard[]
   attendanceRecords AttendanceRecord[]
   feeStructures  FeeStructure[]
+  lessonPlans    LessonPlan[]
+  curriculumTopics CurriculumTopic[]
 
   @@unique([academicYearId, termNumber])
   @@index([academicYearId])
@@ -628,6 +651,8 @@ model Subject {
   assessments Assessment[]
   timetableSlots TimetableSlot[]
   attendanceRecords AttendanceRecord[]
+  lessonPlans       LessonPlan[]
+  curriculumTopics  CurriculumTopic[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -705,6 +730,8 @@ model Class {
   attendanceRecords AttendanceRecord[]
   enrolments     Enrolment[]
   feeStructures  FeeStructure[]
+  lessonPlans    LessonPlan[]
+  curriculumTopics CurriculumTopic[]
 
   @@index([schoolId])
   @@map("classes")
@@ -787,6 +814,8 @@ model Student {
   creditNotes     CreditNote[]
   refunds         Refund[]
   aidAwards       StudentAidAward[]
+  absenceRequests StudentAbsenceRequest[]
+  teacherReviews  TeacherReview[]
 
   @@unique([schoolId, studentNumber])
   @@index([schoolId])
@@ -821,6 +850,8 @@ model Teacher {
   timetableSlots TimetableSlot[]
   leaveRequests  LeaveRequest[]
   employee       Employee?
+  lessonPlans    LessonPlan[]
+  teacherReviews TeacherReview[]
 
   @@unique([schoolId, employeeNumber])
   @@index([schoolId])
@@ -976,6 +1007,7 @@ model TimetableSlot {
   startTime String
   endTime   String
   room      String?
+  onlineMeetingUrl String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -1002,6 +1034,9 @@ model Assessment {
   maxMarks    Decimal        @db.Decimal(6, 2)
   weight      Decimal?       @db.Decimal(5, 2)
   dueDate     DateTime?
+  venue       String?
+  durationMinutes Int?
+  availableFrom DateTime?
   isPublished Boolean        @default(false)
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -1240,6 +1275,12 @@ model Document {
   fileSize    Int?
   mimeType    String?
   isPublic    Boolean      @default(false)
+  learnerVisible Boolean   @default(false)
+  targetGradeId String?
+  targetClassId String?
+  targetCampusId String?
+  targetCourseId String?
+  targetStudentId String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -2716,4 +2757,110 @@ model Payslip {
   item           PayrollItem @relation(fields: [payrollItemId], references: [id], onDelete: Cascade)
 
   @@map("payslips")
+}
+
+// ─── Learner portal services ─────────────────────────────────────────────────
+
+model StudentAbsenceRequest {
+  id           String             @id @default(cuid())
+  schoolId     String
+  studentId    String
+  type         StudentAbsenceType
+  fromDate     DateTime           @db.Date
+  toDate       DateTime           @db.Date
+  reason       String
+  documentUrl  String?
+  status       LeaveStatus        @default(PENDING)
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNote   String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  school       School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student      Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  reviewedBy   User?              @relation("StudentAbsenceReviewer", fields: [reviewedById], references: [id])
+
+  @@index([schoolId, status])
+  @@index([studentId, createdAt])
+  @@map("student_absence_requests")
+}
+
+model TeacherReview {
+  id                 String   @id @default(cuid())
+  schoolId           String
+  studentId          String
+  teacherId          String
+  periodKey          String
+  teachingQuality    Int
+  communication      Int
+  preparedness       Int
+  subjectKnowledge   Int
+  availability       Int
+  overall            Int
+  comment            String?
+  isAnonymous        Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  school             School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student            Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher            Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, teacherId, periodKey])
+  @@index([schoolId, teacherId])
+  @@map("teacher_reviews")
+}
+
+model LessonPlan {
+  id                 String    @id @default(cuid())
+  schoolId           String
+  subjectId          String
+  teacherId          String
+  classId            String?
+  termId             String?
+  weekNumber         Int?
+  title              String
+  topic              String
+  objective          String?
+  resources          String?
+  readingMaterial    String?
+  relatedAssessmentId String?
+  lessonDate         DateTime  @db.Date
+  isPublished        Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  school             School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  subject            Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher            Teacher   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  class              Class?    @relation(fields: [classId], references: [id])
+  term               Term?     @relation(fields: [termId], references: [id])
+
+  @@index([schoolId, subjectId])
+  @@index([classId, lessonDate])
+  @@map("lesson_plans")
+}
+
+model CurriculumTopic {
+  id          String                 @id @default(cuid())
+  schoolId    String
+  subjectId   String
+  classId     String?
+  termId      String?
+  title       String
+  description String?
+  sortOrder   Int                    @default(0)
+  status      CurriculumTopicStatus  @default(PLANNED)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  school      School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  subject     Subject                @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class       Class?                 @relation(fields: [classId], references: [id])
+  term        Term?                  @relation(fields: [termId], references: [id])
+
+  @@index([schoolId, subjectId])
+  @@index([classId, sortOrder])
+  @@map("curriculum_topics")
 }

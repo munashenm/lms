@@ -16,6 +16,11 @@ export const LICENSE_FEATURE_KEYS = [
   "api_access",
   "advanced_analytics",
   "hr_payroll",
+  "teacher_reviews",
+  "download_centre",
+  "student_leave",
+  "visitor_management",
+  "messaging",
 ] as const;
 
 export type LicenseFeatureKey = (typeof LICENSE_FEATURE_KEYS)[number];
@@ -38,6 +43,11 @@ export const LICENSE_FEATURE_LABELS: Record<LicenseFeatureKey, string> = {
   api_access: "API access",
   advanced_analytics: "Advanced Analytics",
   hr_payroll: "HR & Payroll",
+  teacher_reviews: "Teacher Reviews",
+  download_centre: "Download Centre",
+  student_leave: "Learner Leave",
+  visitor_management: "Visitor Management",
+  messaging: "Internal Messaging",
 };
 
 export const DEFAULT_LICENSE_FEATURES: Record<LicenseFeatureKey, boolean> = {
@@ -58,6 +68,11 @@ export const DEFAULT_LICENSE_FEATURES: Record<LicenseFeatureKey, boolean> = {
   api_access: false,
   advanced_analytics: false,
   hr_payroll: false,
+  teacher_reviews: true,
+  download_centre: true,
+  student_leave: true,
+  visitor_management: false,
+  messaging: false,
 };
 
 export function normalizeFeatures(
