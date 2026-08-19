@@ -112,7 +112,7 @@ export function getAdminNav(
       { label: "Reports", href: "/admin/reports", icon: "BarChart3" },
     ]),
     ...grouped("Settings", "Settings", [
-      { label: "School", href: "/admin/settings", icon: "Settings" },
+      { label: "School settings", href: "/admin/settings", icon: "Settings" },
       { label: "Licence", href: "/admin/settings/licence", icon: "Shield" },
       ...(opts?.vendorTools
         ? [{ label: "Issue licences", href: "/admin/settings/licence-server", icon: "Shield" as const }]

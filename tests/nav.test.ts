@@ -11,6 +11,7 @@ describe("admin nav groups", () => {
     expect(hrefs).toContain("/admin/settings/backup");
     expect(hrefs).toContain("/admin/system-health");
     expect(hrefs).toContain("/admin/integrations/sa-sams");
+    expect(settings.find((item) => item.href === "/admin/settings")?.label).toBe("School settings");
     expect(settings.every((item) => item.sectionIcon === "Settings")).toBe(true);
     expect(nav.some((item) => item.href === "/admin/settings/licence" && !item.section)).toBe(false);
   });
