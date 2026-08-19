@@ -11,7 +11,11 @@ export default async function IncomePage() {
   if (schoolId) await ensureFinanceCatalog(schoolId);
   const filter = getSchoolFilter(session!);
   const [items, categories] = await Promise.all([
-    prisma.otherIncome.findMany({ where: filter, include: { category: true }, orderBy: { receivedAt: "desc" } }),
+    prisma.otherIncome.findMany({
+      where: filter,
+      include: { category: true, ledgerEntry: { select: { attachmentUrl: true } } },
+      orderBy: { receivedAt: "desc" },
+    }),
     prisma.incomeCategory.findMany({ where: filter, orderBy: { name: "asc" } }),
   ]);
   return (
@@ -21,7 +25,14 @@ export default async function IncomePage() {
         <p className="text-muted text-sm mt-1">Donations, grants, rentals, events and sales feed the same reporting engine as student fees.</p>
       </div>
       <IncomeManager
-        items={items.map((i) => ({ id: i.id, description: i.description, amount: Number(i.amount), receivedAt: i.receivedAt, category: i.category }))}
+        items={items.map((i) => ({
+          id: i.id,
+          description: i.description,
+          amount: Number(i.amount),
+          receivedAt: i.receivedAt,
+          category: i.category,
+          attachmentUrl: i.ledgerEntry?.attachmentUrl ?? null,
+        }))}
         categories={categories}
       />
     </div>

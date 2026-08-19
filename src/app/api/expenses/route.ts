@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { ApprovalStatus, LedgerEntryType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -9,6 +7,7 @@ import { requireSchoolId } from "@/lib/portal-data";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { ensureFinanceCatalog } from "@/lib/finance-catalog";
+import { saveFinanceSlip } from "@/lib/finance-uploads";
 import { z } from "zod";
 
 const schema = z.object({
@@ -25,26 +24,9 @@ const schema = z.object({
   post: z.boolean().optional(),
 });
 
-const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
-const MAX_BYTES = 10 * 1024 * 1024;
-
 function emptyToNull(value: FormDataEntryValue | null): string | null {
   const text = typeof value === "string" ? value.trim() : "";
   return text ? text : null;
-}
-
-async function saveExpenseSlip(schoolId: string, file: File): Promise<string> {
-  if (file.size > MAX_BYTES) throw new Error("File must be under 10 MB");
-  if (file.type && !ALLOWED_TYPES.includes(file.type)) {
-    throw new Error("Upload a PDF or image (JPG, PNG, WebP)");
-  }
-  const bytes = await file.arrayBuffer();
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", schoolId, "expenses");
-  await mkdir(uploadsDir, { recursive: true });
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filename = `${Date.now()}-${safeName}`;
-  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
-  return `/uploads/${schoolId}/expenses/${filename}`;
 }
 
 async function readExpenseBody(request: NextRequest, schoolId: string) {
@@ -56,7 +38,7 @@ async function readExpenseBody(request: NextRequest, schoolId: string) {
   const file = form.get("file");
   let attachmentUrl = emptyToNull(form.get("attachmentUrl"));
   if (file instanceof File && file.size > 0) {
-    attachmentUrl = await saveExpenseSlip(schoolId, file);
+    attachmentUrl = await saveFinanceSlip(schoolId, "expenses", file);
   }
   return {
     supplierId: emptyToNull(form.get("supplierId")),

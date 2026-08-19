@@ -10,7 +10,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatZAR, formatDate } from "@/lib/utils";
 
 export function IncomeManager(props: {
-  items: Array<{ id: string; description: string; amount: number; receivedAt: Date | string; category?: { name: string } | null }>;
+  items: Array<{
+    id: string;
+    description: string;
+    amount: number;
+    receivedAt: Date | string;
+    category?: { name: string } | null;
+    attachmentUrl?: string | null;
+  }>;
   categories: Array<{ id: string; name: string }>;
 }) {
   const router = useRouter();
@@ -18,22 +25,15 @@ export function IncomeManager(props: {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = e.currentTarget;
     try {
       const res = await fetch("/api/other-income", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: form.get("description"),
-          amount: Number(form.get("amount")),
-          receivedAt: form.get("receivedAt"),
-          categoryId: form.get("categoryId") || null,
-          reference: form.get("reference") || null,
-        }),
+        body: new FormData(form),
       });
       if (!res.ok) throw new Error();
       toast.success("Income recorded");
-      e.currentTarget.reset();
+      form.reset();
       router.refresh();
     } catch {
       toast.error("Could not save income");
@@ -58,6 +58,10 @@ export function IncomeManager(props: {
               </select>
             </div>
             <div><Label htmlFor="reference">Reference</Label><Input id="reference" name="reference" /></div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="file">Slip / receipt (PDF or image)</Label>
+              <Input id="file" name="file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" />
+            </div>
             <div className="sm:col-span-2"><Button type="submit" disabled={loading}>Save</Button></div>
           </form>
         </CardContent>
@@ -70,6 +74,7 @@ export function IncomeManager(props: {
                 <th className="text-left px-4 py-3 font-medium text-muted">Date</th>
                 <th className="text-left px-4 py-3 font-medium text-muted">Description</th>
                 <th className="text-right px-4 py-3 font-medium text-muted">Amount</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -78,6 +83,13 @@ export function IncomeManager(props: {
                   <td className="px-4 py-3">{formatDate(row.receivedAt)}</td>
                   <td className="px-4 py-3">{row.description}<span className="text-muted text-xs block">{row.category?.name}</span></td>
                   <td className="px-4 py-3 text-right">{formatZAR(row.amount)}</td>
+                  <td className="px-4 py-3 text-right">
+                    {row.attachmentUrl ? (
+                      <a href={row.attachmentUrl} className="text-primary hover:underline" target="_blank" rel="noreferrer">
+                        Slip
+                      </a>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
             </tbody>

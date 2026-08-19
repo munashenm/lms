@@ -20,6 +20,8 @@ import { chargeOutstanding, selectedAllocations, unpaidInstalmentIds } from "@/l
 import { isCollectedPayment } from "@/lib/finance";
 import { reversingLedgerAmount } from "@/lib/payroll-reversal";
 import { payrollListingCsv, payrollListingRows, PAYROLL_LISTING_HEADERS } from "@/lib/payroll-listing";
+import { matchCourseId, matchGradeId, shouldCreateStudentOnAccept } from "@/lib/application-enrolment";
+import { FINANCE_SLIP_TYPES, saveFinanceSlip } from "@/lib/finance-uploads";
 
 const ctx: EnrolmentFeeContext = {
   schoolId: "sch-1",
@@ -360,5 +362,41 @@ describe("payroll payment listing", () => {
       "bankAccountLast4",
     ]);
     expect(rows[0]).not.toHaveProperty("bankAccountEnc");
+  });
+});
+
+describe("application enrolment matching", () => {
+  it("matches grade and course names without inventing unmatched records", () => {
+    const grades = [
+      { id: "g10", name: "Grade 10" },
+      { id: "g11", name: "11" },
+    ];
+    expect(matchGradeId(grades, "Grade 10")).toBe("g10");
+    expect(matchGradeId(grades, "10")).toBe("g10");
+    expect(matchGradeId(grades, "Grade 11")).toBe("g11");
+    expect(matchGradeId(grades, "Grade 12")).toBeNull();
+    expect(matchGradeId(grades, "")).toBeNull();
+
+    const courses = [
+      { id: "c1", code: "BSC-CS", name: "BSc Computer Science" },
+    ];
+    expect(matchCourseId(courses, "BSC-CS")).toBe("c1");
+    expect(matchCourseId(courses, "BSc Computer Science")).toBe("c1");
+    expect(matchCourseId(courses, "Law")).toBeNull();
+  });
+
+  it("enrols a student only the first time an application is accepted", () => {
+    expect(shouldCreateStudentOnAccept({ nextStatus: "ACCEPTED", studentId: null })).toBe(true);
+    expect(shouldCreateStudentOnAccept({ nextStatus: "ACCEPTED", studentId: "stu-1" })).toBe(false);
+    expect(shouldCreateStudentOnAccept({ nextStatus: "REJECTED", studentId: null })).toBe(false);
+    expect(shouldCreateStudentOnAccept({ nextStatus: "UNDER_REVIEW", studentId: null })).toBe(false);
+  });
+});
+
+describe("finance slips", () => {
+  it("only accepts PDF and image slips", async () => {
+    expect(FINANCE_SLIP_TYPES).toEqual(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
+    const file = new File(["not-a-slip"], "virus.exe", { type: "application/x-msdownload" });
+    await expect(saveFinanceSlip("sch-1", "income", file)).rejects.toThrow(/PDF or image/);
   });
 });

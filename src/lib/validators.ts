@@ -280,6 +280,8 @@ export const applicationSchema = z.object({
 export const applicationStatusSchema = z.object({
   status: z.enum(["SUBMITTED", "UNDER_REVIEW", "ACCEPTED", "REJECTED", "WAITLISTED", "WITHDRAWN"]),
   notes: z.string().optional(),
+  hostel: z.boolean().optional(),
+  transport: z.boolean().optional(),
 });
 
 export const invoiceLineItemSchema = z.object({

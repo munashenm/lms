@@ -11,6 +11,7 @@ export default async function ApplicationsPage() {
 
   const applications = await prisma.application.findMany({
     where: filter,
+    include: { student: { select: { id: true, studentNumber: true } } },
     orderBy: { submittedAt: "desc" },
   });
 

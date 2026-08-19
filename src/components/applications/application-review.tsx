@@ -23,6 +23,8 @@ interface Application {
   status: string;
   submittedAt: Date;
   notes: string | null;
+  studentId: string | null;
+  student?: { id: string; studentNumber: string } | null;
 }
 
 const statusVariant: Record<string, "success" | "warning" | "danger" | "secondary" | "default"> = {
@@ -38,20 +40,29 @@ export function ApplicationReview({ applications }: { applications: Application[
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
 
-  async function updateStatus(id: string, status: string) {
+  async function updateStatus(
+    id: string,
+    status: string,
+    extras?: { hostel?: boolean; transport?: boolean }
+  ) {
     setLoading(id);
     try {
       const res = await fetch(`/api/applications/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, ...extras }),
       });
-      if (!res.ok) throw new Error();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Failed to update application");
       const label = APPLICATION_STATUS_LABELS[status] ?? status;
-      toast.success(`Application marked as ${label}`);
+      if (data.student?.studentNumber) {
+        toast.success(`Accepted and enrolled ${data.student.studentNumber}`);
+      } else {
+        toast.success(`Application marked as ${label}`);
+      }
       router.refresh();
-    } catch {
-      toast.error("Failed to update application");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update application");
     } finally {
       setLoading(null);
     }
@@ -81,7 +92,7 @@ export function ApplicationReview({ applications }: { applications: Application[
       {applications.map((app) => {
         const pending = app.status === "SUBMITTED" || app.status === "UNDER_REVIEW";
         return (
-          <Card key={app.id}>
+          <Card key={app.id} data-application-card>
             <CardContent className="p-5">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
@@ -118,6 +129,14 @@ export function ApplicationReview({ applications }: { applications: Application[
                     {app.email} {app.phone && `· ${app.phone}`}
                   </p>
                   <p className="text-xs text-muted mt-1">Submitted {formatDate(app.submittedAt)}</p>
+                  {app.student?.studentNumber ? (
+                    <p className="text-sm mt-2">
+                      Enrolled{" "}
+                      <Link href={`/admin/students/${app.student.id}`} className="text-primary hover:underline font-mono">
+                        {app.student.studentNumber}
+                      </Link>
+                    </p>
+                  ) : null}
                 </div>
                 {pending ? (
                   <div className="flex flex-wrap gap-2 shrink-0">
@@ -131,10 +150,23 @@ export function ApplicationReview({ applications }: { applications: Application[
                         Start Review
                       </Button>
                     )}
+                    <label className="flex items-center gap-2 text-xs text-muted">
+                      <input type="checkbox" name="hostel" className="rounded border-border" />
+                      Hostel
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-muted">
+                      <input type="checkbox" name="transport" className="rounded border-border" />
+                      Transport
+                    </label>
                     <Button
                       size="sm"
                       disabled={loading === app.id}
-                      onClick={() => updateStatus(app.id, "ACCEPTED")}
+                      onClick={(e) => {
+                        const card = (e.currentTarget as HTMLElement).closest("[data-application-card]");
+                        const hostel = card?.querySelector<HTMLInputElement>('input[name="hostel"]')?.checked;
+                        const transport = card?.querySelector<HTMLInputElement>('input[name="transport"]')?.checked;
+                        updateStatus(app.id, "ACCEPTED", { hostel: Boolean(hostel), transport: Boolean(transport) });
+                      }}
                     >
                       Accept
                     </Button>
