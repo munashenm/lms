@@ -10,6 +10,7 @@ import { filterNavByLicense } from "@/lib/licensing/portal";
 
 const staffLeaveNav: NavItem[] = [
   { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
+  { label: "Visitor Book", href: "/staff/visitors", icon: "NotebookPen" },
   { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
   { label: "My Timesheets", href: "/staff/timesheets", icon: "ClipboardCheck" },
   { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },

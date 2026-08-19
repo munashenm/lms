@@ -186,6 +186,7 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     teacherReviews,
     lessonPlans,
     curriculumTopics,
+    visitorEntries,
   ] = await Promise.all([
     prisma.feeStructure.findMany({ where: { schoolId } }),
     prisma.studentCharge.findMany({ where: { schoolId }, include: { instalments: true } }),
@@ -214,6 +215,7 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     prisma.teacherReview.findMany({ where: { schoolId } }),
     prisma.lessonPlan.findMany({ where: { schoolId } }),
     prisma.curriculumTopic.findMany({ where: { schoolId } }),
+    prisma.visitorEntry.findMany({ where: { schoolId } }),
   ]);
 
   const enrolmentModules = await prisma.enrolmentModule.findMany({
@@ -308,6 +310,7 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     teacherReviews: jsonSafe(teacherReviews),
     lessonPlans: jsonSafe(lessonPlans),
     curriculumTopics: jsonSafe(curriculumTopics),
+    visitorEntries: jsonSafe(visitorEntries),
     files,
   };
 
@@ -322,5 +325,5 @@ export function snapshotCounts(snapshot: BackupSnapshot) {
   };
 }
 
-export const SCHEMA_VERSION = "20260819120000_learner_portal_services";
+export const SCHEMA_VERSION = "20260819130000_visitor_book";
 export const APP_VERSION = process.env.npm_package_version || "0.1.0";

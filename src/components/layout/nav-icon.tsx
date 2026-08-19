@@ -31,6 +31,7 @@ import {
   MessageSquare,
   Star,
   CalendarDays,
+  NotebookPen,
   Circle,
   type LucideIcon,
 } from "lucide-react";
@@ -67,6 +68,7 @@ const ICON_MAP: Record<NavIconName, LucideIcon> = {
   MessageSquare,
   Star,
   CalendarDays,
+  NotebookPen,
 };
 
 interface NavIconProps {

@@ -382,6 +382,30 @@ enum SalaryPayType {
   HOURLY
 }
 
+enum VisitorIdentityType {
+  SA_ID
+  PASSPORT
+  DRIVERS_LICENCE
+  OTHER
+}
+
+enum VisitorHostKind {
+  STAFF
+  LEARNER
+  OTHER
+}
+
+enum VisitorPurpose {
+  PARENT_GUARDIAN
+  ENROLMENT
+  DELIVERY
+  CONTRACTOR
+  OFFICIAL
+  SPORTS_CULTURE
+  MEETING
+  OTHER
+}
+
 // ─── Multi-tenant Core ───────────────────────────────────────────────────────
 
 model School {
@@ -469,6 +493,7 @@ model School {
   teacherReviews         TeacherReview[]
   lessonPlans            LessonPlan[]
   curriculumTopics       CurriculumTopic[]
+  visitorEntries         VisitorEntry[]
 
   @@index([slug])
   @@map("schools")
@@ -496,6 +521,7 @@ model Campus {
   employees  Employee[]
   feeStructures FeeStructure[]
   financialAccounts FinancialAccount[]
+  visitorEntries VisitorEntry[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -542,6 +568,8 @@ model User {
   restoreJobsCreated RestoreJob[] @relation("RestoreCreator")
   importJobsCreated  ImportJob[] @relation("ImportCreator")
   employee           Employee?
+  visitorsSignedIn   VisitorEntry[] @relation("VisitorSignedInBy")
+  visitorsSignedOut  VisitorEntry[] @relation("VisitorSignedOutBy")
 
   @@index([schoolId])
   @@index([role])
@@ -2864,3 +2892,38 @@ model CurriculumTopic {
   @@index([classId, sortOrder])
   @@map("curriculum_topics")
 }
+
+model VisitorEntry {
+  id                  String               @id @default(cuid())
+  schoolId            String
+  campusId            String?
+  firstName           String
+  lastName            String
+  organisation        String?
+  phone               String?
+  identityType        VisitorIdentityType?
+  identityNumber      String?
+  hostKind            VisitorHostKind
+  hostName            String
+  purpose             VisitorPurpose
+  purposeDetail       String?
+  vehicleRegistration String?
+  badgeNumber         String?
+  notes               String?
+  signedInAt          DateTime             @default(now())
+  signedOutAt         DateTime?
+  signedInById        String
+  signedOutById       String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  campus              Campus?              @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  signedInBy          User                 @relation("VisitorSignedInBy", fields: [signedInById], references: [id])
+  signedOutBy         User?                @relation("VisitorSignedOutBy", fields: [signedOutById], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, signedOutAt])
+  @@index([schoolId, signedInAt])
+  @@map("visitor_entries")
+}
+

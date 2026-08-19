@@ -705,3 +705,56 @@ export const curriculumTopicSchema = z.object({
   status: z.enum(["PLANNED", "CURRENT", "COMPLETED"]).optional(),
 });
 
+const optionalText = z.string().optional().nullable().or(z.literal(""));
+
+export const visitorSignInSchema = z
+  .object({
+    firstName: z.string().min(1, "First name is required").max(100),
+    lastName: z.string().min(1, "Last name is required").max(100),
+    organisation: optionalText,
+    phone: z
+      .string()
+      .optional()
+      .nullable()
+      .or(z.literal(""))
+      .refine((val) => !val || validateSAPhone(val), {
+        message: "Phone must be 10 digits starting with 0",
+      }),
+    identityType: z.preprocess(
+      (value) => (value === "" ? null : value),
+      z.enum(["SA_ID", "PASSPORT", "DRIVERS_LICENCE", "OTHER"]).optional().nullable()
+    ),
+    identityNumber: z.string().max(40).optional().nullable().or(z.literal("")),
+    hostKind: z.enum(["STAFF", "LEARNER", "OTHER"]),
+    hostName: z.string().min(1, "Who they are visiting is required").max(200),
+    purpose: z.enum([
+      "PARENT_GUARDIAN",
+      "ENROLMENT",
+      "DELIVERY",
+      "CONTRACTOR",
+      "OFFICIAL",
+      "SPORTS_CULTURE",
+      "MEETING",
+      "OTHER",
+    ]),
+    purposeDetail: z.string().max(500).optional().nullable().or(z.literal("")),
+    vehicleRegistration: z.string().max(20).optional().nullable().or(z.literal("")),
+    badgeNumber: z.string().max(40).optional().nullable().or(z.literal("")),
+    campusId: optionalText,
+    notes: z.string().max(500).optional().nullable().or(z.literal("")),
+  })
+  .superRefine((data, ctx) => {
+    const idNumber = data.identityNumber?.trim();
+    if (data.identityType === "SA_ID" && idNumber && !validateSAIdNumber(idNumber)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid 13-digit SA ID number",
+        path: ["identityNumber"],
+      });
+    }
+  });
+
+export const visitorSignOutSchema = z.object({
+  action: z.literal("sign_out"),
+});
+

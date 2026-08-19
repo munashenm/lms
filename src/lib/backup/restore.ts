@@ -410,5 +410,6 @@ async function replaceSchoolData(
     await createManyIgnore(tx.teacherReview, snapshot.teacherReviews ?? []);
     await createManyIgnore(tx.lessonPlan, snapshot.lessonPlans ?? []);
     await createManyIgnore(tx.curriculumTopic, snapshot.curriculumTopics ?? []);
+    await createManyIgnore(tx.visitorEntry, snapshot.visitorEntries ?? []);
   }, { timeout: 120_000 });
 }

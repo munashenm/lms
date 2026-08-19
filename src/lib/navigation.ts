@@ -30,7 +30,8 @@ export type NavIconName =
   | "Download"
   | "MessageSquare"
   | "Star"
-  | "CalendarDays";
+  | "CalendarDays"
+  | "NotebookPen";
 
 export interface NavItem {
   label: string;
@@ -67,6 +68,7 @@ export function getAdminNav(
     { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
     { label: "Communications", href: "/admin/communications", icon: "Megaphone" },
     { label: `${t?.student ?? "Learner"} Leave`, href: "/admin/learner-leave", icon: "Palmtree" },
+    { label: "Visitor Book", href: "/admin/visitors", icon: "NotebookPen" },
     { label: "Documents", href: "/admin/documents", icon: "FolderOpen" },
     { label: "Reports", href: "/admin/reports", icon: "BarChart3" },
     { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
@@ -99,6 +101,7 @@ export function getTeacherNav(terms?: Terminology): NavItem[] {
     { label: "Lesson Plans", href: "/teacher/lesson-plans", icon: "BookOpen" },
     { label: "Curriculum", href: "/teacher/curriculum", icon: "ClipboardList" },
     { label: `${t.student} Leave`, href: "/teacher/learner-leave", icon: "Palmtree" },
+    { label: "Visitor Book", href: "/teacher/visitors", icon: "NotebookPen" },
     { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },
     { label: "My Timesheets", href: "/staff/timesheets", icon: "ClipboardCheck" },
     { label: "Announcements", href: "/teacher/announcements", icon: "Megaphone" },
@@ -154,6 +157,7 @@ export const financeNav: NavItem[] = [
   { label: "Reports", href: "/finance/reports", icon: "BarChart3" },
   { label: "Ledger", href: "/finance/ledger", icon: "Wallet" },
   { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
+  { label: "Visitor Book", href: "/staff/visitors", icon: "NotebookPen" },
   { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
   { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },
   { label: "My Timesheets", href: "/staff/timesheets", icon: "ClipboardCheck" },
@@ -168,6 +172,7 @@ export const hrNav: NavItem[] = [
   { label: "Payroll", href: "/hr/payroll", icon: "Banknote" },
   { label: "Reports", href: "/hr/reports", icon: "BarChart3" },
   { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
+  { label: "Visitor Book", href: "/staff/visitors", icon: "NotebookPen" },
   { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
   { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },
   { label: "My Timesheets", href: "/staff/timesheets", icon: "ClipboardCheck" },

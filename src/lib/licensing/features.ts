@@ -71,7 +71,7 @@ export const DEFAULT_LICENSE_FEATURES: Record<LicenseFeatureKey, boolean> = {
   teacher_reviews: true,
   download_centre: true,
   student_leave: true,
-  visitor_management: false,
+  visitor_management: true,
   messaging: false,
 };
 

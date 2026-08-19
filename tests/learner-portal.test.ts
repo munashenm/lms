@@ -160,6 +160,7 @@ describe("learner licence mapping", () => {
     expect(navHrefFeature("/parent/exams")).toBe("assessments");
     expect(navHrefFeature("/parent/downloads")).toBe("download_centre");
     expect(navHrefFeature("/parent/calendar")).toBeNull();
+    expect(navHrefFeature("/admin/visitors")).toBe("visitor_management");
     expect(navHrefFeature("/staff/leave")).toBe("hr_payroll");
     expect(navHrefFeature("/student/dashboard")).toBeNull();
   });

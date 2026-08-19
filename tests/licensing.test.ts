@@ -231,6 +231,8 @@ describe("portal feature flags", () => {
     expect(navHrefFeature("/staff/payslips")).toBe("hr_payroll");
     expect(navHrefFeature("/staff/timesheets")).toBe("hr_payroll");
     expect(navHrefFeature("/staff/attendance")).toBe("attendance");
+    expect(navHrefFeature("/admin/visitors")).toBe("visitor_management");
+    expect(navHrefFeature("/staff/visitors")).toBe("visitor_management");
   });
 
   it("uses a restricted banner after expiry", () => {

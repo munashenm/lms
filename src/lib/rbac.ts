@@ -47,7 +47,9 @@ export type Permission =
   | "sasams.import"
   | "sasams.map"
   | "sasams.execute"
-  | "sasams.rollback";
+  | "sasams.rollback"
+  | "visitors:read"
+  | "visitors:write";
 
 const ENTERPRISE_FULL: Permission[] = [
   "license.view", "license.manage",
@@ -83,6 +85,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "marks:read", "marks:write",
     "reports:read", "settings:read", "settings:write", "audit:read",
     "announcements:write",
+    "visitors:read", "visitors:write",
     ...FINANCE_ALL, ...HR_ALL, ...PAYROLL_ALL,
     ...ENTERPRISE_FULL,
   ],
@@ -92,6 +95,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "marks:read", "marks:write",
     "reports:read", "settings:read", "settings:write", "audit:read",
     "announcements:write",
+    "visitors:read", "visitors:write",
     ...FINANCE_ALL, ...HR_ALL, ...PAYROLL_ALL,
     ...ENTERPRISE_FULL,
   ],
@@ -101,24 +105,29 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "hr.view", "payroll.view",
     "reports:read", "settings:read",
     "audit:read", "announcements:write",
+    "visitors:read", "visitors:write",
     ...ENTERPRISE_VIEW,
   ],
   TEACHER: [
     "students:read", "classes:read", "attendance:read", "attendance:write",
     "marks:read", "marks:write", "announcements:write",
+    "visitors:read", "visitors:write",
   ],
   STUDENT: ["marks:read", "attendance:read"],
   PARENT: ["students:read", "marks:read", "attendance:read", "finance:read", "finance.receipts.view"],
   FINANCE_OFFICER: [
     "students:read", ...FINANCE_ALL, "reports:read",
+    "visitors:read", "visitors:write",
   ],
   ADMISSIONS_OFFICER: [
     "students:read", "students:write", "reports:read",
+    "visitors:read", "visitors:write",
   ],
   HR_OFFICER: [
     "staff:read", "staff:write", ...HR_ALL, ...PAYROLL_ALL, "reports:read",
+    "visitors:read", "visitors:write",
   ],
-  STAFF: [],
+  STAFF: ["visitors:read", "visitors:write"],
 };
 
 export function hasPermission(role: UserRole, permission: Permission): boolean {
