@@ -200,6 +200,7 @@ export const studentNav: NavItem[] = getStudentNav();
 export const financeNav: NavItem[] = [
   { label: "Dashboard", href: "/finance/dashboard", icon: "LayoutDashboard" },
   ...grouped("Fees", "CreditCard", [
+    { label: "Collect fees", href: "/finance/collect", icon: "Wallet" },
     { label: "Invoices", href: "/finance/invoices", icon: "FileText" },
     { label: "Payments", href: "/finance/payments", icon: "Wallet" },
     { label: "Debtors", href: "/finance/debtors", icon: "TrendingDown" },

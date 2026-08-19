@@ -1,6 +1,19 @@
 import type { Prisma } from "@prisma/client";
 
 export const invoiceDetailInclude = {
+  school: {
+    select: {
+      name: true,
+      email: true,
+      phone: true,
+      website: true,
+      address: true,
+      city: true,
+      province: true,
+      postalCode: true,
+      registrationNo: true,
+    },
+  },
   student: {
     include: {
       grade: { select: { name: true } },

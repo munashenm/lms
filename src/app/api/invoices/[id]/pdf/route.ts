@@ -6,12 +6,14 @@ import { getChildStudentIds, getStudentForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import {
   INVOICE_STATUS_LABELS,
+  PAYMENT_METHOD_LABELS,
   getOutstandingBalance,
 } from "@/lib/finance";
 import { generateInvoicePdf } from "@/lib/pdf-invoice";
 import { toSchoolBrand } from "@/lib/pdf-branding";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
 import { getTerminology } from "@/lib/terminology";
+import { collectedPaymentsForInvoice, invoiceSchoolDetailLines } from "@/lib/fee-collection";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -30,6 +32,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     include: {
       school: true,
       lineItems: { orderBy: { createdAt: "asc" } },
+      payments: { orderBy: { paidAt: "asc" } },
       student: {
         select: {
           id: true,
@@ -67,8 +70,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   const total = Number(invoice.total);
   const amountPaid = Number(invoice.amountPaid);
 
+  const brand = toSchoolBrand(invoice.school);
   const pdf = await generateInvoicePdf({
-    brand: toSchoolBrand(invoice.school),
+    brand,
     invoiceNumber: invoice.invoiceNumber,
     statusLabel: INVOICE_STATUS_LABELS[invoice.status],
     description: invoice.description,
@@ -78,8 +82,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     gradeOrProgramme: [invoice.student.grade?.name, invoice.student.class?.name]
       .filter(Boolean)
       .join(" / "),
-    issuedAt: formatDate(invoice.issuedAt),
+    issuedAt: formatDateTime(invoice.issuedAt),
     dueDate: invoice.dueDate ? formatDate(invoice.dueDate) : null,
+    generatedAt: formatDateTime(new Date()),
+    schoolDetails: invoiceSchoolDetailLines(brand),
     lineItems: invoice.lineItems.map((item) => ({
       description: item.description,
       quantity: item.quantity,
@@ -91,6 +97,12 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     total,
     amountPaid,
     outstanding: getOutstandingBalance(total, amountPaid),
+    collections: collectedPaymentsForInvoice(invoice.payments).map((payment) => ({
+      paidAt: formatDateTime(payment.paidAt),
+      methodLabel: PAYMENT_METHOD_LABELS[payment.method],
+      receiptNumber: payment.receiptNumber,
+      amount: Number(payment.amount),
+    })),
   });
 
   return new NextResponse(Buffer.from(pdf), {

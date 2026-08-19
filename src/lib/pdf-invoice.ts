@@ -23,12 +23,20 @@ export interface InvoicePdfData {
   gradeOrProgramme?: string | null;
   issuedAt: string;
   dueDate?: string | null;
+  generatedAt?: string;
+  schoolDetails?: string[];
   lineItems: InvoicePdfLineItem[];
   subtotal: number;
   discount: number;
   total: number;
   amountPaid: number;
   outstanding: number;
+  collections?: Array<{
+    paidAt: string;
+    methodLabel: string;
+    receiptNumber: string;
+    amount: number;
+  }>;
 }
 
 function money(n: number): string {
@@ -66,7 +74,16 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
   line(`Status: ${data.statusLabel}`);
   line(`Issued: ${data.issuedAt}`);
   if (data.dueDate) line(`Due date: ${data.dueDate}`);
+  if (data.generatedAt) line(`Printed: ${data.generatedAt}`);
   y -= 6;
+
+  const schoolLines = (data.schoolDetails ?? []).filter(Boolean);
+  if (schoolLines.length > 0) {
+    line("Issuing school", true, 11);
+    for (const row of schoolLines) line(row);
+    y -= 6;
+  }
+
   line(`Bill to: ${data.studentName}`, true, 11);
   line(`${data.studentNumberLabel ?? "Admission No"}: ${data.studentNumber}`);
   if (data.gradeOrProgramme) line(`Grade / Programme: ${data.gradeOrProgramme}`);
@@ -161,6 +178,25 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
       color: rgb(0.11, 0.3, 0.43),
     });
     y -= bold ? 16 : 14;
+  }
+
+  const collections = data.collections ?? [];
+  if (collections.length > 0 && y > 160) {
+    y -= 10;
+    line("Fees collected", true, 11);
+    page.drawText("Date / time", { x: 50, y, size: 8, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
+    page.drawText("Method", { x: 200, y, size: 8, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
+    page.drawText("Receipt", { x: 320, y, size: 8, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
+    page.drawText("Amount", { x: 430, y, size: 8, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
+    y -= 12;
+    for (const row of collections.slice(0, 12)) {
+      if (y < 70) break;
+      page.drawText(row.paidAt.slice(0, 22), { x: 50, y, size: 8, font, color: rgb(0.15, 0.15, 0.2) });
+      page.drawText(row.methodLabel.slice(0, 18), { x: 200, y, size: 8, font, color: rgb(0.15, 0.15, 0.2) });
+      page.drawText(row.receiptNumber.slice(0, 18), { x: 320, y, size: 8, font, color: rgb(0.15, 0.15, 0.2) });
+      page.drawText(money(row.amount), { x: 430, y, size: 8, font, color: rgb(0.15, 0.15, 0.2) });
+      y -= 12;
+    }
   }
 
   drawBrandedFooter({ page, brand: data.brand, font, y: 42 });

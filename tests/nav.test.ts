@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAdminNav, getParentNav, getStudentNav, getTeacherNav, isNavHrefActive } from "@/lib/navigation";
+import { getAdminNav, getParentNav, getStudentNav, getTeacherNav, financeNav, isNavHrefActive } from "@/lib/navigation";
 
 describe("admin nav groups", () => {
   it("places licence, backup, system health and SA-SAMS under Settings", () => {
@@ -47,6 +47,14 @@ describe("other portal groups", () => {
   it("groups parent academics and teacher self-service", () => {
     expect(getParentNav().find((item) => item.href === "/parent/exams")?.section).toBe("Academics");
     expect(getTeacherNav().find((item) => item.href === "/staff/payslips")?.section).toBe("My work");
+  });
+
+  it("puts Collect fees first under Finance Fees", () => {
+    const fees = financeNav.filter((item) => item.section === "Fees");
+    expect(fees[0]?.href).toBe("/finance/collect");
+    expect(fees[0]?.label).toBe("Collect fees");
+    expect(fees.map((item) => item.href)).toContain("/finance/invoices");
+    expect(fees.map((item) => item.href)).toContain("/finance/payments");
   });
 });
 

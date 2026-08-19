@@ -1,12 +1,14 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter } from "@/lib/rbac";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { PaymentReceiptButton } from "@/components/finance/payment-receipt-button";
 import { PaymentReverseButton } from "@/components/finance/payment-reverse-button";
 import { PAYMENT_METHOD_LABELS } from "@/lib/finance";
-import { formatDate, formatZAR } from "@/lib/utils";
+import { formatDateTime, formatZAR } from "@/lib/utils";
 
 export default async function FinancePaymentsPage() {
   const session = await getSession();
@@ -32,11 +34,16 @@ export default async function FinancePaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Payments</h1>
-        <p className="text-muted text-sm mt-1">
-          {payments.length} recent receipts · {formatZAR(collected)} collected (reversals excluded)
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Payments</h1>
+          <p className="text-muted text-sm mt-1">
+            {payments.length} recent receipts · {formatZAR(collected)} collected (reversals excluded)
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/finance/collect">Collect fees</Link>
+        </Button>
       </div>
 
       <Card>
@@ -48,7 +55,7 @@ export default async function FinancePaymentsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-background/50">
-                    <th className="text-left px-4 py-3 font-medium text-muted">Date</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted">Date / time</th>
                     <th className="text-left px-4 py-3 font-medium text-muted">Amount</th>
                     <th className="text-left px-4 py-3 font-medium text-muted">Method</th>
                     <th className="text-left px-4 py-3 font-medium text-muted">Invoice</th>
@@ -60,7 +67,7 @@ export default async function FinancePaymentsPage() {
                 <tbody>
                   {payments.map((p) => (
                     <tr key={p.id} className="border-b border-border last:border-0">
-                      <td className="px-4 py-3 text-muted">{formatDate(p.paidAt)}</td>
+                      <td className="px-4 py-3 text-muted">{formatDateTime(p.paidAt)}</td>
                       <td className="px-4 py-3 font-medium">
                         {formatZAR(Number(p.amount))}
                         {p.reversedAt ? <Badge variant="secondary" className="ml-2">Reversed</Badge> : null}

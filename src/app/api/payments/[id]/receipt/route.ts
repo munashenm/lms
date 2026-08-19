@@ -8,7 +8,7 @@ import { PAYMENT_METHOD_LABELS, getOutstandingBalance } from "@/lib/finance";
 import { generatePaymentReceiptPdf } from "@/lib/pdf-payment-receipt";
 import { toSchoolBrand } from "@/lib/pdf-branding";
 import { amountInWordsZar } from "@/lib/amount-in-words";
-import { formatDate } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { getTerminology } from "@/lib/terminology";
 
 interface RouteParams {
@@ -93,7 +93,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     methodLabel: PAYMENT_METHOD_LABELS[payment.method],
     reference: payment.reference,
     notes: payment.notes,
-    paidAt: formatDate(payment.paidAt),
+    paidAt: formatDateTime(payment.paidAt),
     invoiceTotal,
     invoiceAmountPaid,
     outstanding,

@@ -89,6 +89,9 @@ export default async function AdminFinancePage() {
             <Link href="/admin/finance/reminders">Fee Reminders</Link>
           </Button>
           <Button asChild>
+            <Link href="/admin/finance/collect">Collect fees</Link>
+          </Button>
+          <Button asChild>
             <Link href="/admin/finance/invoices/new">New Invoice</Link>
           </Button>
         </div>

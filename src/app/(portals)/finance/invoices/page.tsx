@@ -38,9 +38,14 @@ export default async function FinanceInvoicesPage({ searchParams }: PageProps) {
           <h1 className="text-2xl font-bold">Invoices</h1>
           <p className="text-muted text-sm mt-1">{invoices.length} invoices</p>
         </div>
-        <Button asChild>
-          <Link href="/finance/invoices/new">New Invoice</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/finance/collect">Collect fees</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/finance/invoices/new">New Invoice</Link>
+          </Button>
+        </div>
       </div>
       <InvoiceList invoices={mapped} detailHref={(id) => `/finance/invoices/${id}`} />
     </div>

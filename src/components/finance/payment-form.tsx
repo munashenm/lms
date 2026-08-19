@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { PAYMENT_METHOD_LABELS } from "@/lib/finance";
-import { formatZAR, formatDate } from "@/lib/utils";
+import { formatDate, formatZAR, johannesburgDatetimeLocalValue } from "@/lib/utils";
 import { outstandingOf } from "@/lib/money";
 import { selectedAllocations } from "@/lib/charge-reversal";
 import type { PaymentMethod } from "@prisma/client";
@@ -27,6 +27,7 @@ interface PaymentFormProps {
     amountPaid: number;
     status: string;
   }>;
+  onRecorded?: () => void;
 }
 
 export function PaymentForm({
@@ -34,6 +35,7 @@ export function PaymentForm({
   invoiceNumber,
   outstanding,
   instalments = [],
+  onRecorded,
 }: PaymentFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -65,6 +67,7 @@ export function PaymentForm({
           method: form.get("method"),
           reference: form.get("reference") || undefined,
           notes: form.get("notes") || undefined,
+          paidAt: form.get("paidAt") || undefined,
           allocations: picked.allocations.length ? picked.allocations : undefined,
         }),
       });
@@ -74,7 +77,13 @@ export function PaymentForm({
       }
       toast.success("Payment recorded");
       router.refresh();
-      (e.target as HTMLFormElement).reset();
+      onRecorded?.();
+      const formEl = e.target as HTMLFormElement;
+      formEl.reset();
+      const paidAtInput = formEl.elements.namedItem("paidAt");
+      if (paidAtInput instanceof HTMLInputElement) {
+        paidAtInput.value = johannesburgDatetimeLocalValue();
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to record payment");
     } finally {
@@ -113,6 +122,15 @@ export function PaymentForm({
                 </option>
               ))}
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Collection date and time *</Label>
+            <Input
+              name="paidAt"
+              type="datetime-local"
+              defaultValue={johannesburgDatetimeLocalValue()}
+              required
+            />
           </div>
           <div className="space-y-2">
             <Label>Reference</Label>

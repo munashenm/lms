@@ -11,7 +11,9 @@ import {
   PAYMENT_METHOD_LABELS,
   getOutstandingBalance,
 } from "@/lib/finance";
-import { formatDate, formatZAR } from "@/lib/utils";
+import { formatDate, formatDateTime, formatZAR } from "@/lib/utils";
+import { invoiceSchoolDetailLines } from "@/lib/fee-collection";
+import { toSchoolBrand } from "@/lib/pdf-branding";
 import type { InvoiceStatus, PaymentMethod } from "@prisma/client";
 
 interface LineItem {
@@ -52,6 +54,17 @@ interface InvoiceDetailProps {
       grade?: { name: string } | null;
       class?: { name: string } | null;
     };
+    school?: {
+      name: string;
+      email?: string | null;
+      phone?: string | null;
+      website?: string | null;
+      address?: string | null;
+      city?: string | null;
+      province?: string | null;
+      postalCode?: string | null;
+      registrationNo?: string | null;
+    } | null;
     lineItems: LineItem[];
     payments: Payment[];
     instalments?: InstalmentView[];
@@ -61,6 +74,9 @@ interface InvoiceDetailProps {
 
 export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetailProps) {
   const outstanding = getOutstandingBalance(Number(invoice.total), Number(invoice.amountPaid));
+  const schoolLines = invoice.school
+    ? invoiceSchoolDetailLines(toSchoolBrand(invoice.school))
+    : [];
 
   return (
     <div className="space-y-6">
@@ -70,6 +86,7 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
           <p className="text-muted text-sm mt-1">
             {invoice.student.firstName} {invoice.student.lastName} · {invoice.student.studentNumber}
             {invoice.student.grade && ` · ${invoice.student.grade.name}`}
+            {invoice.student.class && ` · ${invoice.student.class.name}`}
           </p>
           {invoice.description && (
             <p className="text-sm mt-2">{invoice.description}</p>
@@ -86,10 +103,23 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
         </div>
       </div>
 
+      {schoolLines.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Issuing school</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-1">
+            {schoolLines.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
         <div>
           <p className="text-muted">Issued</p>
-          <p className="font-medium">{formatDate(invoice.issuedAt)}</p>
+          <p className="font-medium">{formatDateTime(invoice.issuedAt)}</p>
         </div>
         <div>
           <p className="text-muted">Due</p>
@@ -170,7 +200,7 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
                       {PAYMENT_METHOD_LABELS[p.method]}
                       {p.reference && ` · Ref: ${p.reference}`}
                       {" · "}
-                      {formatDate(p.paidAt)}
+                      {formatDateTime(p.paidAt)}
                       {p.reversedAt ? " · Reversed" : ""}
                       {p.reversalOfId ? " · Reversal" : ""}
                     </p>
@@ -188,7 +218,7 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
         </Card>
       )}
 
-      {showPaymentForm && (
+      {showPaymentForm && invoice.status !== "DRAFT" && invoice.status !== "CANCELLED" && (
         <PaymentForm
           invoiceId={invoice.id}
           invoiceNumber={invoice.invoiceNumber}

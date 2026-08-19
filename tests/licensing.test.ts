@@ -233,6 +233,8 @@ describe("portal feature flags", () => {
     expect(navHrefFeature("/staff/attendance")).toBe("attendance");
     expect(navHrefFeature("/admin/visitors")).toBe("visitor_management");
     expect(navHrefFeature("/staff/visitors")).toBe("visitor_management");
+    expect(navHrefFeature("/finance/collect")).toBe("finance");
+    expect(navHrefFeature("/admin/finance/collect")).toBe("finance");
   });
 
   it("reserves online examinations as a future module without hiding exam listings", () => {

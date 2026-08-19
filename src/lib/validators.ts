@@ -436,6 +436,7 @@ export const paymentSchema = z.object({
   ]),
   reference: z.string().optional(),
   notes: z.string().optional(),
+  paidAt: z.string().min(1).optional(),
   allocations: z
     .array(z.object({ instalmentId: z.string(), amount: z.coerce.number().positive() }))
     .optional(),

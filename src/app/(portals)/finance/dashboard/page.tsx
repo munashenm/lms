@@ -88,9 +88,14 @@ export default async function FinanceDashboardPage() {
             Welcome, {session!.firstName}. Manage billing and payments.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/finance/invoices/new">New Invoice</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild>
+            <Link href="/finance/invoices/new">New Invoice</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/finance/collect">Collect fees</Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -148,6 +153,9 @@ export default async function FinanceDashboardPage() {
           <CardTitle className="text-base">Finance operations</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/finance/collect">Collect fees</Link>
+          </Button>
           <Button variant="outline" size="sm" asChild>
             <Link href="/finance/charges">Charges</Link>
           </Button>

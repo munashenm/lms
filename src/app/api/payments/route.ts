@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requirePermission, getSchoolFilter, canAccessSchool } from "@/lib/rbac";
 import { paymentSchema } from "@/lib/validators";
 import { deriveInvoiceStatus } from "@/lib/finance";
 import { logAudit } from "@/lib/audit";
@@ -10,6 +10,7 @@ import { postPaymentToStudentLedger } from "@/lib/student-ledger";
 import { nextReceiptNumber } from "@/lib/finance-catalog";
 import { allocatePaymentManual, allocatePaymentToOldest } from "@/lib/payment-allocation";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { assertPaidAtAcceptable, parseCollectionPaidAt } from "@/lib/fee-collection";
 
 export async function GET() {
   const session = await getSession();
@@ -46,7 +47,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
 
-  const { invoiceId, amount, method, reference, notes, allocations } = parsed.data;
+  const { invoiceId, amount, method, reference, notes, allocations, paidAt: paidAtRaw } = parsed.data;
+
+  let paidAt: Date | undefined;
+  if (paidAtRaw) {
+    const parsedPaidAt = parseCollectionPaidAt(paidAtRaw);
+    if (!parsedPaidAt) {
+      return NextResponse.json({ message: "Invalid collection date and time" }, { status: 400 });
+    }
+    const paidAtError = assertPaidAtAcceptable(parsedPaidAt);
+    if (paidAtError) {
+      return NextResponse.json({ message: paidAtError }, { status: 400 });
+    }
+    paidAt = parsedPaidAt;
+  }
 
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
@@ -54,6 +68,12 @@ export async function POST(request: NextRequest) {
   });
   if (!invoice) {
     return NextResponse.json({ message: "Invoice not found" }, { status: 404 });
+  }
+  if (!canAccessSchool(session!, invoice.schoolId)) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+  }
+  if (invoice.status === "CANCELLED" || invoice.status === "DRAFT") {
+    return NextResponse.json({ message: "This invoice cannot accept collections" }, { status: 400 });
   }
 
   const denied = await requireLicenseWrite(invoice.schoolId, { feature: "finance" });
@@ -78,6 +98,7 @@ export async function POST(request: NextRequest) {
         notes: notes || null,
         receiptNumber: await nextReceiptNumber(invoice.schoolId),
         recordedById: session!.userId,
+        ...(paidAt ? { paidAt } : {}),
       },
     });
   } catch {
@@ -91,6 +112,7 @@ export async function POST(request: NextRequest) {
         notes: notes || null,
         receiptNumber: `${await nextReceiptNumber(invoice.schoolId)}-R`,
         recordedById: session!.userId,
+        ...(paidAt ? { paidAt } : {}),
       },
     });
   }
@@ -108,7 +130,13 @@ export async function POST(request: NextRequest) {
     action: "PAYMENT_RECEIVED",
     entity: "Payment",
     entityId: payment.id,
-    metadata: { invoiceId, amount, method, receiptNumber: payment.receiptNumber },
+    metadata: {
+      invoiceId,
+      amount,
+      method,
+      receiptNumber: payment.receiptNumber,
+      paidAt: payment.paidAt.toISOString(),
+    },
   });
 
   if (allocations?.length) {
