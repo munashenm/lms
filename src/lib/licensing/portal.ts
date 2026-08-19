@@ -15,7 +15,7 @@ export function navHrefFeature(href: string): LicenseFeatureKey | null {
   if (href.includes("/finance") || href.includes("/fees") || href.includes("/debtors") || href.includes("/ledger") || href.includes("/expenses") || href.includes("/structures")) {
     return "finance";
   }
-  if (href.includes("/hr") || href.includes("/payroll") || href.includes("/payslips") || href.includes("/leave-policies")) {
+  if (href.includes("/hr") || href.includes("/payroll") || href.includes("/payslips") || href.includes("/leave-policies") || href.includes("/timesheets")) {
     return "hr_payroll";
   }
   if (

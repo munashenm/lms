@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatZAR, formatDate } from "@/lib/utils";
+import Link from "next/link";
 
 export function PayrollManager(props: {
   runs: Array<{
@@ -106,6 +107,9 @@ export function PayrollManager(props: {
                   <td className="px-4 py-3 text-right">{formatZAR(Number(run.totalEmployer))}</td>
                   <td className="px-4 py-3 text-right">{formatZAR(Number(run.totalNet))}</td>
                   <td className="px-4 py-3 text-right space-x-2">
+                    <Button size="sm" variant="ghost" asChild>
+                      <Link href={`/hr/payroll/${run.id}`}>Review</Link>
+                    </Button>
                     {run.status === "DRAFT" || run.status === "CALCULATED" ? (
                       <Button size="sm" variant="outline" disabled={Boolean(loading)} onClick={() => act(run.id, "approve")}>Approve</Button>
                     ) : null}

@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { advanceRecurringDate, generateDueRecurringExpenses } from "@/lib/recurring-expenses";
 import { z } from "zod";
 
 const schema = z.object({
@@ -40,6 +41,10 @@ export async function POST(request: NextRequest) {
   const denied = await requireLicenseWrite(schoolId, { feature: "finance" });
   if (denied) return denied;
   const body = await request.json();
+  if (body.generateDue) {
+    const summary = await generateDueRecurringExpenses({ schoolId, actorId: session.userId });
+    return NextResponse.json({ summary }, { status: 201 });
+  }
   if (body.generateId) {
     const rec = await prisma.recurringExpense.findFirst({
       where: { id: body.generateId, schoolId },
@@ -56,15 +61,13 @@ export async function POST(request: NextRequest) {
         amount: rec.amount,
         transactionDate: rec.nextDueDate,
         approvalStatus: rec.requireConfirm ? ApprovalStatus.DRAFT : ApprovalStatus.PENDING,
-        createdById: session!.userId,
+        createdById: session.userId,
       },
     });
-    const next = new Date(rec.nextDueDate);
-    if (rec.interval === RecurringInterval.YEARLY) next.setUTCFullYear(next.getUTCFullYear() + 1);
-    else if (rec.interval === RecurringInterval.QUARTERLY) next.setUTCMonth(next.getUTCMonth() + 3);
-    else if (rec.interval === RecurringInterval.HALF_YEARLY) next.setUTCMonth(next.getUTCMonth() + 6);
-    else next.setUTCMonth(next.getUTCMonth() + 1);
-    await prisma.recurringExpense.update({ where: { id: rec.id }, data: { nextDueDate: next } });
+    await prisma.recurringExpense.update({
+      where: { id: rec.id },
+      data: { nextDueDate: advanceRecurringDate(rec.nextDueDate, rec.interval) },
+    });
     return NextResponse.json({ expense }, { status: 201 });
   }
   const parsed = schema.safeParse(body);

@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { canAccessSchool, requirePermission } from "@/lib/rbac";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
+import { asInputJson } from "@/lib/json";
 import { z } from "zod";
 
 interface Params {
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       payType: parsed.data.payType,
       baseSalary: parsed.data.baseSalary,
       hourlyRate: parsed.data.hourlyRate ?? null,
-      allowancesJson: parsed.data.allowances ?? undefined,
+      allowancesJson: parsed.data.allowances ? asInputJson(parsed.data.allowances) : undefined,
     },
   });
   await logAudit({

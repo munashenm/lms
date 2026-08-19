@@ -3,7 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter, canAccessAdmin } from "@/lib/rbac";
+import { getSchoolFilter, canAccessAdmin, hasPermission } from "@/lib/rbac";
 import {
   canApplyForLeave,
   getStaffLeaveApplicant,
@@ -13,6 +13,10 @@ import {
 import { notifySchoolRoles } from "@/lib/notifications";
 import { UserRole, LeaveType } from "@prisma/client";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import {
+  assertLeaveBalance,
+  unpaidLeaveDoesNotConsume,
+} from "@/lib/leave-entitlement";
 
 function calcLeaveDays(start: Date, end: Date): number {
   const diff = end.getTime() - start.getTime();
@@ -31,6 +35,8 @@ export async function GET(request: NextRequest) {
   const include = {
     applicant: { select: { firstName: true, lastName: true, role: true, email: true } },
     teacher: { select: { firstName: true, lastName: true, employeeNumber: true, department: true } },
+    employee: { select: { firstName: true, lastName: true, employeeNumber: true } },
+    leavePolicy: { select: { name: true, leaveType: true } },
   };
 
   const scope = new URL(request.url).searchParams.get("scope");
@@ -44,7 +50,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ leaveRequests });
   }
 
-  if (canApplyForLeave(session.role) && !canAccessAdmin(session.role)) {
+  if (canApplyForLeave(session.role) && !canAccessAdmin(session.role) && !hasPermission(session.role, "hr.leave.manage")) {
     const leaveRequests = await prisma.leaveRequest.findMany({
       where: { userId: session.userId },
       include,
@@ -53,7 +59,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ leaveRequests });
   }
 
-  if (!canAccessAdmin(session.role) && !requirePermission(session, "staff:read")) {
+  if (!canAccessAdmin(session.role) && !hasPermission(session.role, "staff:read") && !hasPermission(session.role, "hr.leave.manage")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
@@ -101,6 +107,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "End date must be after start date" }, { status: 400 });
   }
 
+  const days = calcLeaveDays(startDate, endDate);
+  const leaveType = type as LeaveType;
+  const policy = applicant.employeeId
+    ? await prisma.leavePolicy.findFirst({
+        where: { schoolId: applicant.schoolId, leaveType, isActive: true },
+        orderBy: { createdAt: "asc" },
+      })
+    : null;
+
+  if (policy && applicant.employeeId && !unpaidLeaveDoesNotConsume(leaveType)) {
+    try {
+      await assertLeaveBalance({
+        employeeId: applicant.employeeId,
+        policy,
+        days,
+        asOf: startDate,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { message: error instanceof Error ? error.message : "Insufficient leave balance" },
+        { status: 400 }
+      );
+    }
+  }
+
   let sickNoteUrl: string | null = null;
   let sickNoteFilename: string | null = null;
 
@@ -137,10 +168,12 @@ export async function POST(request: NextRequest) {
       schoolId: applicant.schoolId,
       userId: applicant.userId,
       teacherId: applicant.teacherId ?? undefined,
-      type: type as LeaveType,
+      employeeId: applicant.employeeId ?? undefined,
+      leavePolicyId: policy?.id ?? undefined,
+      type: leaveType,
       startDate,
       endDate,
-      days: calcLeaveDays(startDate, endDate),
+      days,
       reason: reason.trim(),
       sickNoteUrl,
       sickNoteFilename,
@@ -153,11 +186,11 @@ export async function POST(request: NextRequest) {
 
   await notifySchoolRoles({
     schoolId: applicant.schoolId,
-    roles: [UserRole.SCHOOL_ADMIN, UserRole.PRINCIPAL],
+    roles: [UserRole.SCHOOL_ADMIN, UserRole.PRINCIPAL, UserRole.HR_OFFICER],
     title: "Leave request",
     message: `${applicant.firstName} ${applicant.lastName} requested ${type.toLowerCase()} leave.`,
     type: "INFO",
-    link: "/admin/leave",
+    link: "/hr/leave",
   });
 
   return NextResponse.json({ leaveRequest }, { status: 201 });

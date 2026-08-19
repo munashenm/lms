@@ -4,13 +4,14 @@ import { getSchoolFilter } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { ensureFinanceCatalog } from "@/lib/finance-catalog";
 import { ExpenseManager } from "@/components/finance/expense-manager";
+import { RecurringExpenseManager } from "@/components/finance/recurring-expense-manager";
 
 export default async function ExpensesPage() {
   const session = await getSession();
   const schoolId = session!.schoolId ?? (await requireSchoolId(session!).catch(() => null));
   if (schoolId) await ensureFinanceCatalog(schoolId);
   const filter = getSchoolFilter(session!);
-  const [expenses, categories, suppliers, accounts] = await Promise.all([
+  const [expenses, categories, suppliers, accounts, recurring] = await Promise.all([
     prisma.expense.findMany({
       where: filter,
       include: { category: true, supplier: true },
@@ -20,6 +21,11 @@ export default async function ExpensesPage() {
     prisma.expenseCategory.findMany({ where: filter, orderBy: { name: "asc" } }),
     prisma.supplier.findMany({ where: filter, orderBy: { name: "asc" } }),
     prisma.financialAccount.findMany({ where: filter, orderBy: { name: "asc" } }),
+    prisma.recurringExpense.findMany({
+      where: filter,
+      include: { supplier: true, category: true },
+      orderBy: { nextDueDate: "asc" },
+    }),
   ]);
   return (
     <div className="space-y-6">
@@ -38,6 +44,12 @@ export default async function ExpensesPage() {
           category: e.category,
           supplier: e.supplier,
         }))}
+        categories={categories}
+        suppliers={suppliers}
+        accounts={accounts}
+      />
+      <RecurringExpenseManager
+        items={recurring}
         categories={categories}
         suppliers={suppliers}
         accounts={accounts}

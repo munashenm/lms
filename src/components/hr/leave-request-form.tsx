@@ -55,6 +55,8 @@ export function LeaveRequestForm() {
               <option value="ANNUAL">Annual Leave</option>
               <option value="SICK">Sick Leave</option>
               <option value="FAMILY">Family Responsibility</option>
+              <option value="MATERNITY">Maternity</option>
+              <option value="STUDY">Study</option>
               <option value="UNPAID">Unpaid Leave</option>
               <option value="OTHER">Other</option>
             </Select>

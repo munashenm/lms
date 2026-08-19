@@ -49,3 +49,15 @@ Teachers do not inherit finance or payroll access. Finance officers do not inher
 ## Student ledger
 
 Balances are always the sum of `StudentLedgerEntry.signedAmount`. Payments, credit notes, bursaries and reversals append rows. Receipts are never deleted; reversals create a linked audit payment.
+
+## Follow-on (this increment)
+
+Leave remaining balances accrue from configurable `LeavePolicy.daysPerYear` (NONE / MONTHLY / YEARLY). Unpaid leave does not consume days. Approval increments `taken`; reject/cancel after approval restores it.
+
+Employee documents upload under HR. Disciplinary files are hidden from the employee and from view-only roles.
+
+Timesheets capture hours/overtime. Approved timesheets feed hourly payroll. Missing hours raise a payroll exception instead of inventing pay.
+
+Recurring expenses generate draft/pending expenses (`POST /api/cron/recurring-expenses` with `CRON_SECRET`, or Finance “Generate due now”). Credit notes, refunds and bursaries have a Finance adjustments screen.
+
+Payroll run review lists exception notes. Salary changes are recorded on the employee record without logging amounts or full bank numbers.

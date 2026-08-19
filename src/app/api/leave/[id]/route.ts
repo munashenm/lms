@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { leaveStatusSchema } from "@/lib/validators";
+import { assertLeaveBalance, syncLeaveTakenOnStatusChange } from "@/lib/leave-entitlement";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -30,6 +31,25 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
+  if (parsed.data.status === "APPROVED" && existing.leavePolicyId && existing.employeeId && existing.type !== "UNPAID") {
+    const policy = await prisma.leavePolicy.findUnique({ where: { id: existing.leavePolicyId } });
+    if (policy) {
+      try {
+        await assertLeaveBalance({
+          employeeId: existing.employeeId,
+          policy,
+          days: Number(existing.days),
+          asOf: existing.startDate,
+        });
+      } catch (error) {
+        return NextResponse.json(
+          { message: error instanceof Error ? error.message : "Insufficient leave balance" },
+          { status: 400 }
+        );
+      }
+    }
+  }
+
   const leaveRequest = await prisma.leaveRequest.update({
     where: { id },
     data: {
@@ -41,6 +61,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     include: {
       teacher: { select: { firstName: true, lastName: true } },
     },
+  });
+
+  await syncLeaveTakenOnStatusChange({
+    previousStatus: existing.status,
+    nextStatus: parsed.data.status,
+    employeeId: existing.employeeId,
+    leavePolicyId: existing.leavePolicyId,
+    days: Number(existing.days),
+    startDate: existing.startDate,
   });
 
   if (parsed.data.status === "APPROVED" && existing.teacherId) {

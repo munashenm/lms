@@ -1,6 +1,7 @@
 import { UserRole } from "@prisma/client";
 import type { SessionPayload } from "./auth";
 import { getTeacherForSession } from "./portal-data";
+import { prisma } from "./db";
 
 export const STAFF_LEAVE_ROLES: UserRole[] = [
   UserRole.TEACHER,
@@ -19,16 +20,23 @@ export function canApplyForLeave(role: UserRole): boolean {
 export async function getStaffLeaveApplicant(session: SessionPayload) {
   if (!session.schoolId) return null;
 
-  const teacher = await getTeacherForSession(session);
+  const [teacher, employee] = await Promise.all([
+    getTeacherForSession(session),
+    prisma.employee.findFirst({
+      where: { userId: session.userId, schoolId: session.schoolId },
+      select: { id: true, firstName: true, lastName: true, employeeNumber: true, department: true },
+    }),
+  ]);
 
   return {
     userId: session.userId,
     schoolId: session.schoolId,
     teacherId: teacher?.id ?? null,
-    firstName: teacher?.firstName ?? session.firstName,
-    lastName: teacher?.lastName ?? session.lastName,
-    employeeNumber: teacher?.employeeNumber ?? null,
-    department: teacher?.department ?? null,
+    employeeId: employee?.id ?? null,
+    firstName: employee?.firstName ?? teacher?.firstName ?? session.firstName,
+    lastName: employee?.lastName ?? teacher?.lastName ?? session.lastName,
+    employeeNumber: employee?.employeeNumber ?? teacher?.employeeNumber ?? null,
+    department: employee?.department ?? teacher?.department ?? null,
   };
 }
 

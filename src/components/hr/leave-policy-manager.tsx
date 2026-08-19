@@ -15,6 +15,20 @@ export function LeavePolicyManager(props: {
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [accruing, setAccruing] = useState(false);
+  async function accrue() {
+    setAccruing(true);
+    try {
+      const res = await fetch("/api/leave-entitlements/accrue", { method: "POST" });
+      if (!res.ok) throw new Error();
+      toast.success("Leave balances accrued for the current cycle");
+      router.refresh();
+    } catch {
+      toast.error("Could not accrue balances");
+    } finally {
+      setAccruing(false);
+    }
+  }
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
@@ -68,7 +82,10 @@ export function LeavePolicyManager(props: {
               <input id="requiresHrApproval" name="requiresHrApproval" type="checkbox" />
               <Label htmlFor="requiresHrApproval">Requires HR approval</Label>
             </div>
-            <div className="sm:col-span-2"><Button type="submit" disabled={loading}>Save policy</Button></div>
+            <div className="sm:col-span-2 flex gap-2">
+              <Button type="submit" disabled={loading}>Save policy</Button>
+              <Button type="button" variant="outline" disabled={accruing} onClick={accrue}>Accrue balances now</Button>
+            </div>
           </form>
         </CardContent>
       </Card>

@@ -30,7 +30,19 @@ export async function GET(_request: NextRequest, { params }: Params) {
   if (!run || !canAccessSchool(session!, run.schoolId)) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
-  return NextResponse.json({ run });
+  return NextResponse.json({
+    run: {
+      ...run,
+      items: run.items.map((item) => ({
+        ...item,
+        employee: (() => {
+          const { bankAccountEnc, ...safe } = item.employee as typeof item.employee & { bankAccountEnc?: string | null };
+          void bankAccountEnc;
+          return safe;
+        })(),
+      })),
+    },
+  });
 }
 
 export async function POST(request: NextRequest, { params }: Params) {

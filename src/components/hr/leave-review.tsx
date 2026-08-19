@@ -52,6 +52,8 @@ const TYPE_LABELS: Record<string, string> = {
   ANNUAL: "Annual",
   SICK: "Sick",
   FAMILY: "Family",
+  MATERNITY: "Maternity",
+  STUDY: "Study",
   UNPAID: "Unpaid",
   OTHER: "Other",
 };

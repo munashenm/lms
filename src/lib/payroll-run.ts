@@ -1,4 +1,5 @@
 import {
+  ApprovalStatus,
   LedgerEntryType,
   PayrollRunStatus,
   type Prisma,
@@ -9,6 +10,7 @@ import { nextPayslipNumber } from "./finance-catalog";
 import { logAudit } from "./audit";
 import { addMoney } from "./money";
 import { asInputJson } from "./json";
+import { sumTimesheetHours } from "./timesheet-hours";
 
 function asAllowances(json: unknown): Array<{ name: string; amount: number }> {
   if (!Array.isArray(json)) return [];
@@ -54,15 +56,38 @@ export async function calculatePayrollRun(params: {
       (s) => s.effectiveFrom <= run.periodEnd && (!s.effectiveTo || s.effectiveTo >= run.periodStart)
     );
     if (!salary) continue;
+    const timesheets = await prisma.timesheet.findMany({
+      where: {
+        employeeId: employee.id,
+        status: { in: [ApprovalStatus.APPROVED, ApprovalStatus.POSTED] },
+        periodStart: { lte: run.periodEnd },
+        periodEnd: { gte: run.periodStart },
+      },
+      include: { entries: true },
+    });
+    const hours = sumTimesheetHours(
+      timesheets.flatMap((t) =>
+        t.entries.map((entry) => ({
+          hours: Number(entry.hours),
+          overtimeHours: Number(entry.overtimeHours),
+        }))
+      )
+    );
     const calc = calculateEmployeePay(
       {
         payType: salary.payType,
         baseSalary: Number(salary.baseSalary),
         hourlyRate: salary.hourlyRate ? Number(salary.hourlyRate) : null,
+        hoursWorked: hours.totalHours,
+        overtimeHours: hours.overtimeHours,
         allowances: asAllowances(salary.allowancesJson),
       },
       rules
     );
+    const exceptionNote =
+      salary.payType === "HOURLY" && hours.totalHours <= 0
+        ? "No approved timesheet hours in this period"
+        : calc.exceptionNote ?? null;
     totalGross = addMoney(totalGross, calc.grossPay);
     totalDeductions = addMoney(totalDeductions, calc.totalDeductions);
     totalEmployer = addMoney(totalEmployer, calc.employerContributions);
@@ -79,7 +104,7 @@ export async function calculatePayrollRun(params: {
         earningsJson: asInputJson(calc.earnings),
         deductionsJson: asInputJson(calc.deductions),
         employerJson: asInputJson(calc.employer),
-        exceptionNote: calc.exceptionNote ?? null,
+        exceptionNote,
       },
     });
   }

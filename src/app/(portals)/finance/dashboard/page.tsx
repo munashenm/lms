@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOutstandingBalance } from "@/lib/finance";
 import { formatZAR } from "@/lib/utils";
 import { CreditCard, FileText, TrendingDown, Wallet } from "lucide-react";
+import { FinancePositionChart } from "@/components/finance/finance-position-chart";
 
 export default async function FinanceDashboardPage() {
   const session = await getSession();
@@ -35,7 +36,7 @@ export default async function FinanceDashboardPage() {
         },
       },
     }),
-    prisma.ledgerEntry.findMany({ where: filter, select: { type: true, amount: true } }),
+    prisma.ledgerEntry.findMany({ where: filter, select: { type: true, amount: true, entryDate: true } }),
   ]);
 
   const totalBilled = invoices.reduce((s, i) => s + Number(i.total), 0);
@@ -48,6 +49,29 @@ export default async function FinanceDashboardPage() {
   const totalIncome = ledger.filter((e) => e.type === "INCOME").reduce((s, e) => s + Number(e.amount), 0) + totalCollected;
   const totalExpenses = ledger.filter((e) => e.type === "EXPENSE").reduce((s, e) => s + Number(e.amount), 0);
   const collectionRate = totalBilled > 0 ? (totalCollected / totalBilled) * 100 : 0;
+
+  const monthKeys: string[] = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    monthKeys.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+  }
+  const chartMap = new Map(monthKeys.map((k) => [k, { month: k.slice(5), income: 0, expenses: 0 }]));
+  for (const row of ledger) {
+    const key = `${row.entryDate.getUTCFullYear()}-${String(row.entryDate.getUTCMonth() + 1).padStart(2, "0")}`;
+    const bucket = chartMap.get(key);
+    if (!bucket) continue;
+    if (row.type === "INCOME") bucket.income += Number(row.amount);
+    if (row.type === "EXPENSE") bucket.expenses += Number(row.amount);
+  }
+  const chartData = monthKeys.map((k) => {
+    const row = chartMap.get(k)!;
+    return {
+      month: new Date(`${k}-01T00:00:00Z`).toLocaleString("en-ZA", { month: "short" }),
+      income: row.income,
+      expenses: row.expenses,
+    };
+  });
 
   const recentInvoices = invoices.slice(0, 8).map((i) => ({
     ...i,
@@ -79,6 +103,8 @@ export default async function FinanceDashboardPage() {
         <StatCard title="Net Position" value={formatZAR(totalIncome - totalExpenses)} icon={FileText} />
         <StatCard title="Collection Rate" value={`${collectionRate.toFixed(1)}%`} icon={CreditCard} />
       </div>
+
+      <FinancePositionChart data={chartData} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">

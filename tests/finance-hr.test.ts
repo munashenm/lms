@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FeeChargeSource, BillingFrequency, UserRole } from "@prisma/client";
+import { AccrualMethod, LeaveType, RecurringInterval, FeeChargeSource, BillingFrequency, UserRole } from "@prisma/client";
 import { splitInstalmentAmounts, roundMoney, addMoney } from "@/lib/money";
 import { amountInWordsZar } from "@/lib/amount-in-words";
 import {
@@ -11,7 +11,10 @@ import {
 } from "@/lib/fee-matching";
 import { calculateEmployeePay, EMPTY_PAYROLL_RULES } from "@/lib/payroll-engine";
 import { hasPermission } from "@/lib/rbac";
+import { remainingLeaveDays, accruedDaysFor, unpaidLeaveDoesNotConsume } from "@/lib/leave-balance";
 import { DEFAULT_LICENSE_FEATURES } from "@/lib/licensing/features";
+import { advanceRecurringDate } from "@/lib/recurring-schedule";
+import { sumTimesheetHours, visibleEmployeeDocuments } from "@/lib/timesheet-hours";
 
 const ctx: EnrolmentFeeContext = {
   schoolId: "sch-1",
@@ -156,6 +159,72 @@ describe("licensing", () => {
   it("treats HR/Payroll as a separately licensable module", () => {
     expect(DEFAULT_LICENSE_FEATURES.hr_payroll).toBe(false);
     expect(DEFAULT_LICENSE_FEATURES.finance).toBe(true);
+  });
+});
+
+describe("leave entitlements", () => {
+  it("grants the full configured days when accrual is NONE or YEARLY", () => {
+    expect(
+      accruedDaysFor({
+        daysPerYear: 15,
+        method: AccrualMethod.NONE,
+        cycleYear: 2026,
+        asOf: new Date("2026-06-15T00:00:00Z"),
+      })
+    ).toBe(15);
+    expect(
+      accruedDaysFor({
+        daysPerYear: 21,
+        method: AccrualMethod.YEARLY,
+        cycleYear: 2026,
+        asOf: new Date("2026-02-01T00:00:00Z"),
+      })
+    ).toBe(21);
+  });
+
+  it("accrues monthly from the policy days, without hard-coded BCEA tables", () => {
+    expect(
+      accruedDaysFor({
+        daysPerYear: 12,
+        method: AccrualMethod.MONTHLY,
+        cycleYear: 2026,
+        asOf: new Date("2026-06-15T00:00:00Z"),
+      })
+    ).toBe(6);
+  });
+
+  it("computes remaining as opening + accrued - taken", () => {
+    expect(remainingLeaveDays({ openingBalance: 2, accrued: 10, taken: 3 })).toBe(9);
+  });
+
+  it("does not consume unpaid leave", () => {
+    expect(unpaidLeaveDoesNotConsume(LeaveType.UNPAID)).toBe(true);
+    expect(unpaidLeaveDoesNotConsume(LeaveType.ANNUAL)).toBe(false);
+  });
+});
+
+describe("recurring expenses", () => {
+  it("advances the next due date by the configured interval", () => {
+    const from = new Date("2026-01-15T00:00:00Z");
+    expect(advanceRecurringDate(from, RecurringInterval.MONTHLY).toISOString().slice(0, 10)).toBe("2026-02-15");
+    expect(advanceRecurringDate(from, RecurringInterval.QUARTERLY).toISOString().slice(0, 10)).toBe("2026-04-15");
+    expect(advanceRecurringDate(from, RecurringInterval.YEARLY).toISOString().slice(0, 10)).toBe("2027-01-15");
+  });
+});
+
+describe("timesheets and documents", () => {
+  it("sums hours and overtime to two decimal places", () => {
+    expect(sumTimesheetHours([{ hours: 8 }, { hours: 7.5, overtimeHours: 2 }])).toEqual({
+      totalHours: 15.5,
+      overtimeHours: 2,
+    });
+  });
+
+  it("hides disciplinary files from the employee and from view-only roles", () => {
+    const docs = [{ type: "CV" }, { type: "DISCIPLINARY" }];
+    expect(visibleEmployeeDocuments(docs, { isSelf: true, canManageDocs: false })).toEqual([{ type: "CV" }]);
+    expect(visibleEmployeeDocuments(docs, { isSelf: false, canManageDocs: false, canView: true })).toEqual([{ type: "CV" }]);
+    expect(visibleEmployeeDocuments(docs, { isSelf: true, canManageDocs: true })).toHaveLength(2);
   });
 });
 

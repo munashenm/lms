@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatZAR } from "@/lib/utils";
+import Link from "next/link";
 
 const CATEGORIES = [
   "EDUCATOR", "PRINCIPAL", "DEPUTY_PRINCIPAL", "ADMINISTRATION", "FINANCE", "HR",
@@ -116,7 +117,11 @@ export function EmployeeManager(props: {
               {props.employees.map((e) => (
                 <tr key={e.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 font-mono text-xs">{e.employeeNumber}</td>
-                  <td className="px-4 py-3 font-medium">{e.firstName} {e.lastName}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link href={`/hr/employees/${e.id}`} className="text-primary hover:underline">
+                      {e.firstName} {e.lastName}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-muted">{e.category}</td>
                   <td className="px-4 py-3 text-muted">{e.department ?? "—"}</td>
                   <td className="px-4 py-3 text-right">{formatZAR(Number(e.salaryStructures?.[0]?.baseSalary ?? 0))}</td>
