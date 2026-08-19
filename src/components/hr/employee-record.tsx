@@ -254,7 +254,7 @@ export function EmployeeRecord(props: {
               </div>
               <div className="sm:col-span-2">
                 <p className="text-xs text-muted mb-3">
-                  Terminated staff are excluded from later payroll runs. Existing payslips and ledger rows are kept.
+                  Terminated staff are excluded from later payroll runs and their portal login is deactivated. Existing payslips and ledger rows are kept.
                 </p>
                 <Button type="submit" disabled={loading === "status"}>Update status</Button>
               </div>

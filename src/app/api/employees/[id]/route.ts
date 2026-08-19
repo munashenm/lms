@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { canAccessSchool, requirePermission } from "@/lib/rbac";
 import { licenseDeniedResponse, licenseWriteGuard, requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
+import { syncEmployeeEmploymentStatus } from "@/lib/employee-sync";
 import {
   canAssignStaffPortalRole,
   defaultStaffPortalRole,
@@ -83,6 +84,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       action: "EMPLOYEE_TERMINATED",
       entity: "Employee",
       entityId: id,
+    });
+  }
+  if (parsed.data.status && parsed.data.status !== existing.status) {
+    await syncEmployeeEmploymentStatus({
+      employeeId: id,
+      schoolId: existing.schoolId,
+      actorId: session!.userId,
+      status: parsed.data.status,
     });
   }
   let provision: { created: boolean; linked: boolean; invitesSent: number; skipped: boolean } | null = null;

@@ -148,5 +148,6 @@ export const parentNav: NavItem[] = [
   { label: "Results", href: "/parent/results", icon: "Award" },
   { label: "Report Cards", href: "/parent/report-cards", icon: "Award" },
   { label: "Timetable", href: "/parent/timetable", icon: "Calendar" },
+  { label: "Certificates", href: "/parent/certificates", icon: "Award" },
   { label: "Announcements", href: "/parent/announcements", icon: "Megaphone" },
 ];

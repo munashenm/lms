@@ -119,15 +119,39 @@ export async function ingestAttendanceForPeriod(params: {
   periodStart: Date;
   periodEnd: Date;
 }) {
+  const employee = params.employeeId
+    ? await prisma.employee.findFirst({
+        where: { id: params.employeeId, schoolId: params.schoolId },
+        select: { id: true, userId: true },
+      })
+    : null;
+
   const records = await prisma.staffAttendanceRecord.findMany({
     where: {
       schoolId: params.schoolId,
       date: { gte: params.periodStart, lte: params.periodEnd },
-      ...(params.employeeId ? { employeeId: params.employeeId } : {}),
+      ...(params.employeeId
+        ? {
+            OR: [
+              { employeeId: params.employeeId },
+              ...(employee?.userId ? [{ userId: employee.userId }] : []),
+            ],
+          }
+        : {}),
     },
   });
+
+  const missingUserIds = [...new Set(records.filter((row) => !row.employeeId).map((row) => row.userId))];
+  const linked = missingUserIds.length
+    ? await prisma.employee.findMany({
+        where: { schoolId: params.schoolId, userId: { in: missingUserIds } },
+        select: { id: true, userId: true },
+      })
+    : [];
+  const employeeByUser = new Map(linked.map((row) => [row.userId, row.id]));
+
   const punches: ClockPunch[] = records.map((row) => ({
-    employeeId: row.employeeId ?? undefined,
+    employeeId: row.employeeId ?? employeeByUser.get(row.userId) ?? undefined,
     workDate: row.date.toISOString().slice(0, 10),
     checkIn: row.checkIn,
     checkOut: row.checkOut,

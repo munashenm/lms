@@ -12,6 +12,7 @@ import {
   canSelfCheckIn,
   currentTimeHHMM,
   getApprovedLeaveUserIds,
+  resolveEmployeeIdForUser,
 } from "@/lib/staff-attendance";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
@@ -85,8 +86,28 @@ export async function POST(request: NextRequest) {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const checkIn = currentTimeHHMM();
+    const now = currentTimeHHMM();
+    const employeeId = await resolveEmployeeIdForUser(session.schoolId, session.userId);
+    const existing = await prisma.staffAttendanceRecord.findUnique({
+      where: { userId_date: { userId: session.userId, date: today } },
+    });
 
+    if (parsed.data.action === "checkout") {
+      if (!existing?.checkIn) {
+        return NextResponse.json({ message: "Check in before checking out" }, { status: 400 });
+      }
+      const record = await prisma.staffAttendanceRecord.update({
+        where: { id: existing.id },
+        data: {
+          checkOut: now,
+          employeeId: existing.employeeId ?? employeeId,
+          notes: parsed.data.notes ?? existing.notes,
+        },
+      });
+      return NextResponse.json({ record, checkOut: now });
+    }
+
+    const status = parsed.data.status ?? "PRESENT";
     const record = await prisma.staffAttendanceRecord.upsert({
       where: {
         userId_date: { userId: session.userId, date: today },
@@ -94,21 +115,23 @@ export async function POST(request: NextRequest) {
       create: {
         schoolId: session.schoolId,
         userId: session.userId,
+        employeeId,
         date: today,
-        status: parsed.data.status,
-        checkIn,
+        status,
+        checkIn: now,
         notes: parsed.data.notes ?? null,
         markedById: session.userId,
       },
       update: {
-        status: parsed.data.status,
-        checkIn,
+        status,
+        checkIn: existing?.checkIn || now,
+        employeeId: existing?.employeeId ?? employeeId,
         notes: parsed.data.notes ?? null,
         markedById: session.userId,
       },
     });
 
-    return NextResponse.json({ record, checkIn });
+    return NextResponse.json({ record, checkIn: record.checkIn });
   }
 
   if (!canMarkStaffAttendance(session.role)) {
@@ -124,6 +147,11 @@ export async function POST(request: NextRequest) {
   const attendanceDate = new Date(date);
   attendanceDate.setHours(0, 0, 0, 0);
   const onLeaveIds = await getApprovedLeaveUserIds(session.schoolId, attendanceDate);
+  const employees = await prisma.employee.findMany({
+    where: { schoolId: session.schoolId, userId: { in: records.map((r) => r.userId) } },
+    select: { id: true, userId: true },
+  });
+  const employeeByUser = new Map(employees.map((e) => [e.userId, e.id]));
 
   const results = await Promise.all(
     records.map((record) => {
@@ -131,6 +159,7 @@ export async function POST(request: NextRequest) {
         onLeaveIds.has(record.userId) && record.status !== "REMOTE"
           ? "ON_LEAVE"
           : record.status;
+      const employeeId = employeeByUser.get(record.userId) ?? null;
 
       return prisma.staffAttendanceRecord.upsert({
         where: {
@@ -139,15 +168,19 @@ export async function POST(request: NextRequest) {
         create: {
           schoolId: session.schoolId!,
           userId: record.userId,
+          employeeId,
           date: attendanceDate,
           status,
           checkIn: record.checkIn ?? null,
+          checkOut: record.checkOut ?? null,
           notes: record.notes ?? null,
           markedById: session.userId,
         },
         update: {
           status,
-          checkIn: record.checkIn ?? null,
+          ...(record.checkIn !== undefined ? { checkIn: record.checkIn } : {}),
+          ...(record.checkOut !== undefined ? { checkOut: record.checkOut } : {}),
+          employeeId,
           notes: record.notes ?? null,
           markedById: session.userId,
         },

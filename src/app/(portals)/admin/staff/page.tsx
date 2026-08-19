@@ -4,6 +4,7 @@ import { getSchoolFilter } from "@/lib/rbac";
 import { Card, CardContent } from "@/components/ui/card";
 import { StaffCreateForm } from "@/components/hr/staff-create-form";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 export default async function StaffPage() {
   const session = await getSession();
@@ -14,6 +15,7 @@ export default async function StaffPage() {
     include: {
       campus: { select: { name: true } },
       classTeachers: { include: { class: { select: { name: true } } } },
+      employee: { select: { id: true } },
     },
     orderBy: { lastName: "asc" },
   });
@@ -38,6 +40,7 @@ export default async function StaffPage() {
                 <th className="text-left px-4 py-3 font-medium text-muted hidden lg:table-cell">Campus</th>
                 <th className="text-left px-4 py-3 font-medium text-muted">Classes</th>
                 <th className="text-left px-4 py-3 font-medium text-muted">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-muted">Portal</th>
               </tr>
             </thead>
             <tbody>
@@ -55,6 +58,17 @@ export default async function StaffPage() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant={t.status === "ACTIVE" ? "success" : "secondary"}>{t.status}</Badge>
+                  </td>
+                  <td className="px-4 py-3 text-muted">
+                    {t.userId ? "Linked" : "—"}
+                    {t.employee?.id ? (
+                      <>
+                        {" · "}
+                        <Link href={`/hr/employees/${t.employee.id}`} className="text-primary hover:underline">
+                          HR record
+                        </Link>
+                      </>
+                    ) : null}
                   </td>
                 </tr>
               ))}

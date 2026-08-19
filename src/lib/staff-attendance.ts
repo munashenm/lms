@@ -71,3 +71,11 @@ export function currentTimeHHMM(): string {
 export function canSelfCheckIn(session: SessionPayload): boolean {
   return canTrackStaffAttendance(session.role);
 }
+
+export async function resolveEmployeeIdForUser(schoolId: string, userId: string) {
+  const employee = await prisma.employee.findFirst({
+    where: { schoolId, userId },
+    select: { id: true },
+  });
+  return employee?.id ?? null;
+}

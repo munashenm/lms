@@ -38,7 +38,7 @@ export default async function StaffAttendanceSelfPage() {
         today={todayStr}
         existing={
           existing
-            ? { status: existing.status, checkIn: existing.checkIn }
+            ? { status: existing.status, checkIn: existing.checkIn, checkOut: existing.checkOut }
             : null
         }
         onApprovedLeave={onLeaveIds.has(session.userId)}

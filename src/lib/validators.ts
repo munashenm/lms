@@ -62,6 +62,24 @@ export const studentSchema = z.object({
   transport: z.boolean().optional(),
 });
 
+export const studentGuardianSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z
+    .string()
+    .optional()
+    .refine((val) => !val || validateSAPhone(val), {
+      message: "Phone must be 10 digits starting with 0",
+    }),
+  relationship: z.string().optional(),
+});
+
+export const studentPatchSchema = z.object({
+  status: z.enum(["APPLICANT", "ACTIVE", "SUSPENDED", "GRADUATED", "WITHDRAWN"]).optional(),
+  invitePortal: z.boolean().optional(),
+});
+
 export const teacherSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
   lastName: z.string().min(1, "Last name is required").max(100),
@@ -156,14 +174,16 @@ export const staffAttendanceBulkSchema = z.object({
       userId: z.string().min(1),
       status: z.enum(["PRESENT", "ABSENT", "LATE", "ON_LEAVE", "REMOTE"]),
       checkIn: z.string().optional(),
+      checkOut: z.string().optional(),
       notes: z.string().optional(),
     })
   ).min(1),
 });
 
 export const staffAttendanceSelfSchema = z.object({
-  status: z.enum(["PRESENT", "LATE", "REMOTE"]),
+  status: z.enum(["PRESENT", "LATE", "REMOTE"]).optional(),
   notes: z.string().optional(),
+  action: z.enum(["checkin", "checkout"]).default("checkin"),
 });
 
 export const announcementSchema = z.object({

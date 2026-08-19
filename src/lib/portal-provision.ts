@@ -5,6 +5,8 @@ import { hashPassword } from "./auth";
 import { logAudit } from "./audit";
 import { issuePasswordSetup } from "./password-reset";
 
+export { learnerPortalShouldBeActive, staffPortalShouldBeActive, nextSelfAttendanceAction } from "./portal-lifecycle";
+
 export function normalizePortalEmail(email: string | null | undefined): string | null {
   const value = (email ?? "").trim().toLowerCase();
   if (!value || !value.includes("@")) return null;
@@ -367,5 +369,95 @@ export async function provisionStaffAccount(params: {
     linked: true,
     invitesSent: result.created ? 1 : 0,
     skipped: false,
+  };
+}
+
+export async function setLinkedUserActive(params: {
+  userId: string | null | undefined;
+  schoolId: string;
+  actorId: string;
+  isActive: boolean;
+}): Promise<{ updated: boolean }> {
+  if (!params.userId) return { updated: false };
+  const user = await prisma.user.findFirst({
+    where: { id: params.userId, schoolId: params.schoolId },
+    select: { id: true, isActive: true, role: true },
+  });
+  if (!user || user.role === UserRole.SUPER_ADMIN || user.isActive === params.isActive) {
+    return { updated: false };
+  }
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { isActive: params.isActive },
+  });
+  await logAudit({
+    schoolId: params.schoolId,
+    userId: params.actorId,
+    action: params.isActive ? "USER_ACTIVATED" : "USER_DEACTIVATED",
+    entity: "User",
+    entityId: user.id,
+    metadata: { source: "lifecycle" },
+  });
+  return { updated: true };
+}
+
+export async function provisionExistingStudent(params: {
+  studentId: string;
+  schoolId: string;
+  actorId: string;
+}): Promise<{ studentLoginCreated: boolean; guardianLinked: boolean; invitesSent: number }> {
+  const student = await prisma.student.findFirst({
+    where: { id: params.studentId, schoolId: params.schoolId },
+    include: {
+      guardians: { include: { guardian: true }, orderBy: { isPrimary: "desc" } },
+    },
+  });
+  if (!student) return { studentLoginCreated: false, guardianLinked: false, invitesSent: 0 };
+
+  const first = student.guardians[0]?.guardian;
+  const result = await provisionPortalAccounts({
+    studentId: student.id,
+    schoolId: params.schoolId,
+    actorId: params.actorId,
+    application: {
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      phone: student.phone,
+      guardianFirstName: first?.firstName ?? null,
+      guardianLastName: first?.lastName ?? null,
+      guardianEmail: first?.email ?? null,
+      guardianPhone: first?.phone ?? null,
+      guardianRelationship: student.guardians[0]?.relationship ?? first?.relationship ?? null,
+    },
+  });
+
+  let invitesSent = result.invitesSent;
+  let guardianLinked = result.guardianLinked;
+  for (const link of student.guardians.slice(1)) {
+    const extra = await provisionPortalAccounts({
+      studentId: student.id,
+      schoolId: params.schoolId,
+      actorId: params.actorId,
+      application: {
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email,
+        phone: student.phone,
+        guardianFirstName: link.guardian.firstName,
+        guardianLastName: link.guardian.lastName,
+        guardianEmail: link.guardian.email,
+        guardianPhone: link.guardian.phone,
+        guardianRelationship: link.relationship,
+      },
+    });
+    invitesSent += extra.invitesSent;
+    if (extra.guardianLinked) guardianLinked = true;
+  }
+
+  return {
+    studentLoginCreated: result.studentLoginCreated,
+    guardianLinked,
+    invitesSent,
   };
 }

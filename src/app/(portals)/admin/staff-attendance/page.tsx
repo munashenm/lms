@@ -121,7 +121,8 @@ export default async function StaffAttendancePage({ searchParams }: PageProps) {
                     </p>
                     <p className="text-xs text-muted">
                       {formatDate(r.date)}
-                      {r.checkIn ? ` · ${r.checkIn}` : ""}
+                      {r.checkIn ? ` · in ${r.checkIn}` : ""}
+                      {r.checkOut ? ` · out ${r.checkOut}` : ""}
                     </p>
                   </div>
                   <Badge

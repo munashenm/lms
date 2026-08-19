@@ -10,6 +10,7 @@ import { StudentExportButton } from "@/components/students/student-export-button
 import { StudentCardButton } from "@/components/students/student-card-button";
 import { StudentLedgerPanel } from "@/components/finance/student-ledger-panel";
 import { EnrolmentServicesForm } from "@/components/students/enrolment-services-form";
+import { StudentPortalPanel } from "@/components/students/student-portal-panel";
 import { ArrowLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getStudentLedger } from "@/lib/student-ledger";
@@ -127,31 +128,14 @@ export default async function StudentDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
 
-        {student.guardians.length > 0 && (
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-base">Guardians</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {student.guardians.map((sg) => (
-                  <div key={sg.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                    <div>
-                      <p className="text-sm font-medium">
-                        {sg.guardian.firstName} {sg.guardian.lastName}
-                        {sg.isPrimary && (
-                          <Badge variant="accent" className="ml-2">Primary</Badge>
-                        )}
-                      </p>
-                      <p className="text-xs text-muted">{sg.relationship}</p>
-                    </div>
-                    <p className="text-xs text-muted">{sg.guardian.phone ?? sg.guardian.email}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <StudentPortalPanel
+          studentId={student.id}
+          studentEmail={student.email}
+          studentUserId={student.userId}
+          studentStatus={student.status}
+          canWrite={canWriteStudents}
+          guardians={student.guardians}
+        />
       </div>
 
       {canWriteStudents && currentEnrolment ? (

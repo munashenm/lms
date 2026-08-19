@@ -23,6 +23,7 @@ import { reversingLedgerAmount } from "@/lib/payroll-reversal";
 import { payrollListingCsv, payrollListingRows, PAYROLL_LISTING_HEADERS } from "@/lib/payroll-listing";
 import { matchCourseId, matchGradeId, shouldCreateStudentOnAccept } from "@/lib/application-enrolment";
 import { canAssignStaffPortalRole, defaultStaffPortalRole, planPortalProvision } from "@/lib/portal-provision";
+import { learnerPortalShouldBeActive, nextSelfAttendanceAction, staffPortalShouldBeActive } from "@/lib/portal-lifecycle";
 import { canInitiateInvoicePayment } from "@/lib/payment-gateways/invoice-auth";
 import { FINANCE_SLIP_TYPES, saveFinanceSlip } from "@/lib/finance-uploads";
 import { financeOpsSectionCsv, type FinanceOpsReport } from "@/lib/finance-ops-report";
@@ -247,6 +248,9 @@ describe("timesheets and documents", () => {
     expect(hoursBetweenHhmm("08:00", "16:30")).toBe(8.5);
     expect(hoursBetweenHhmm("22:00", "06:00")).toBe(8);
     expect(hoursBetweenHhmm("08:00", null)).toBe(0);
+    expect(nextSelfAttendanceAction(null)).toBe("checkin");
+    expect(nextSelfAttendanceAction({ checkIn: "08:00", checkOut: null })).toBe("checkout");
+    expect(nextSelfAttendanceAction({ checkIn: "08:00", checkOut: "16:00" })).toBe("done");
   });
 
   it("parses a generic clock payload without vendor-specific schemas", () => {
@@ -464,6 +468,18 @@ describe("application enrolment matching", () => {
     expect(canAssignStaffPortalRole(UserRole.HR_OFFICER, UserRole.FINANCE_OFFICER)).toBe(false);
     expect(canAssignStaffPortalRole(UserRole.HR_OFFICER, UserRole.STAFF)).toBe(true);
     expect(canAssignStaffPortalRole(UserRole.SCHOOL_ADMIN, UserRole.FINANCE_OFFICER)).toBe(true);
+  });
+});
+
+describe("portal lifecycle", () => {
+  it("deactivates learner portals when they are not active and staff portals when terminated", () => {
+    expect(learnerPortalShouldBeActive("ACTIVE")).toBe(true);
+    expect(learnerPortalShouldBeActive("SUSPENDED")).toBe(false);
+    expect(learnerPortalShouldBeActive("WITHDRAWN")).toBe(false);
+    expect(learnerPortalShouldBeActive("GRADUATED")).toBe(false);
+    expect(staffPortalShouldBeActive("ACTIVE")).toBe(true);
+    expect(staffPortalShouldBeActive("ON_LEAVE")).toBe(true);
+    expect(staffPortalShouldBeActive("TERMINATED")).toBe(false);
   });
 });
 
