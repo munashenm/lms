@@ -11,6 +11,7 @@ import { ROLE_LABELS } from "@/lib/constants";
 import { UserRole } from "@prisma/client";
 import type { Decimal } from "@prisma/client/runtime/library";
 import { FileText, Download } from "lucide-react";
+import { leaveEvidenceLabel } from "@/lib/staff-leave-evidence";
 
 interface LeaveApplicant {
   firstName: string;
@@ -125,7 +126,7 @@ export function LeaveReview({ leaveRequests, admin = false }: { leaveRequests: L
                     className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-2"
                   >
                     <FileText className="h-4 w-4" />
-                    {req.sickNoteFilename ?? "Sick note"}
+                    {leaveEvidenceLabel(req.type, req.sickNoteFilename)}
                     <Download className="h-3 w-3" />
                   </a>
                 )}

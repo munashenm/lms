@@ -31,7 +31,7 @@ export default async function StaffLeavePage() {
       <div>
         <h1 className="text-2xl font-bold">My Leave</h1>
         <p className="text-muted text-sm mt-1">
-          Apply for leave and upload a sick note for medical absences. Remaining days come from configured policies.
+          Apply for leave and attach supporting evidence. A medical certificate is required for sick leave. Remaining days come from configured policies.
         </p>
       </div>
       {employee && employee.leaveEntitlements.length > 0 ? (

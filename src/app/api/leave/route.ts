@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter, canAccessAdmin, hasPermission } from "@/lib/rbac";
 import {
   canApplyForLeave,
   getStaffLeaveApplicant,
-  SICK_NOTE_MAX_BYTES,
-  SICK_NOTE_TYPES,
+  leaveEvidenceFileFromForm,
+  saveLeaveEvidenceFile,
+  validateLeaveEvidence,
 } from "@/lib/staff-leave";
 import { notifySchoolRoles } from "@/lib/notifications";
 import { UserRole, LeaveType } from "@prisma/client";
@@ -91,7 +90,7 @@ export async function POST(request: NextRequest) {
   const startDateStr = formData.get("startDate") as string;
   const endDateStr = formData.get("endDate") as string;
   const reason = formData.get("reason") as string;
-  const sickNote = formData.get("sickNote") as File | null;
+  const evidence = leaveEvidenceFileFromForm(formData);
 
   if (!type || !LEAVE_TYPES.has(type) || !startDateStr || !endDateStr || !reason?.trim()) {
     return NextResponse.json({ message: "Invalid form data" }, { status: 400 });
@@ -132,35 +131,17 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const evidenceError = validateLeaveEvidence(evidence, type);
+  if (evidenceError) {
+    return NextResponse.json({ message: evidenceError }, { status: 400 });
+  }
+
   let sickNoteUrl: string | null = null;
   let sickNoteFilename: string | null = null;
-
-  if (type === LeaveType.SICK) {
-    if (!sickNote || sickNote.size === 0) {
-      return NextResponse.json(
-        { message: "Sick leave requires a doctor's note or medical certificate upload" },
-        { status: 400 }
-      );
-    }
-    if (sickNote.size > SICK_NOTE_MAX_BYTES) {
-      return NextResponse.json({ message: "Sick note must be under 5 MB" }, { status: 400 });
-    }
-    if (sickNote.type && !SICK_NOTE_TYPES.includes(sickNote.type)) {
-      return NextResponse.json(
-        { message: "Upload a PDF or image (JPG, PNG, WebP)" },
-        { status: 400 }
-      );
-    }
-
-    const bytes = await sickNote.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", applicant.schoolId, "leave");
-    await mkdir(uploadsDir, { recursive: true });
-    const safeName = sickNote.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filename = `${Date.now()}-${safeName}`;
-    await writeFile(path.join(uploadsDir, filename), buffer);
-    sickNoteUrl = `/uploads/${applicant.schoolId}/leave/${filename}`;
-    sickNoteFilename = sickNote.name;
+  if (evidence) {
+    const saved = await saveLeaveEvidenceFile(applicant.schoolId, evidence);
+    sickNoteUrl = saved.url;
+    sickNoteFilename = saved.filename;
   }
 
   const leaveRequest = await prisma.leaveRequest.create({

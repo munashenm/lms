@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Upload } from "lucide-react";
+import { LEAVE_EVIDENCE_ACCEPT } from "@/lib/staff-leave-evidence";
 
 export function LeaveRequestForm() {
   const router = useRouter();
@@ -80,24 +81,27 @@ export function LeaveRequestForm() {
               placeholder="Brief reason for leave request..."
             />
           </div>
-          {leaveType === "SICK" && (
-            <div className="space-y-2 sm:col-span-2">
-              <Label>Sick Note / Doctor&apos;s Certificate *</Label>
-              <div className="flex items-center gap-3">
-                <Input
-                  name="sickNote"
-                  type="file"
-                  required
-                  accept=".pdf,image/jpeg,image/png,image/webp"
-                  className="cursor-pointer"
-                />
-              </div>
-              <p className="text-xs text-muted flex items-center gap-1">
-                <Upload className="h-3 w-3" />
-                PDF or image, max 5 MB — required for sick leave
-              </p>
-            </div>
-          )}
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="leave-evidence">
+              {leaveType === "SICK"
+                ? "Sick note / doctor&apos;s certificate *"
+                : "Supporting evidence (optional)"}
+            </Label>
+            <Input
+              id="leave-evidence"
+              name="evidence"
+              type="file"
+              required={leaveType === "SICK"}
+              accept={LEAVE_EVIDENCE_ACCEPT}
+              className="cursor-pointer"
+            />
+            <p className="text-xs text-muted flex items-center gap-1">
+              <Upload className="h-3 w-3" />
+              {leaveType === "SICK"
+                ? "Medical certificate required — PDF, Word or image, max 5 MB"
+                : "Letter, certificate or other proof — PDF, Word or image, max 5 MB"}
+            </p>
+          </div>
           <div>
             <Button type="submit" disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit Request"}

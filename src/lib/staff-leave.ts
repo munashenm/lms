@@ -1,7 +1,23 @@
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
 import { UserRole } from "@prisma/client";
 import type { SessionPayload } from "./auth";
 import { getTeacherForSession } from "./portal-data";
 import { prisma } from "./db";
+
+export {
+  LEAVE_EVIDENCE_ACCEPT,
+  LEAVE_EVIDENCE_MAX_BYTES,
+  LEAVE_EVIDENCE_TYPES,
+  SICK_NOTE_MAX_BYTES,
+  SICK_NOTE_TYPES,
+  isAllowedLeaveEvidence,
+  leaveEvidenceFileFromForm,
+  leaveEvidenceLabel,
+  leaveEvidenceRequired,
+  validateLeaveEvidence,
+} from "./staff-leave-evidence";
+export type { LeaveEvidenceInput } from "./staff-leave-evidence";
 
 export const STAFF_LEAVE_ROLES: UserRole[] = [
   UserRole.TEACHER,
@@ -41,10 +57,18 @@ export async function getStaffLeaveApplicant(session: SessionPayload) {
   };
 }
 
-export const SICK_NOTE_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
-export const SICK_NOTE_TYPES = [
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-];
+export async function saveLeaveEvidenceFile(
+  schoolId: string,
+  file: File
+): Promise<{ url: string; filename: string }> {
+  const bytes = await file.arrayBuffer();
+  const uploadsDir = path.join(process.cwd(), "public", "uploads", schoolId, "leave");
+  await mkdir(uploadsDir, { recursive: true });
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const filename = `${Date.now()}-${safeName}`;
+  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
+  return {
+    url: `/uploads/${schoolId}/leave/${filename}`,
+    filename: file.name,
+  };
+}
