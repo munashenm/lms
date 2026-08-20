@@ -7,7 +7,13 @@ export async function saveRegistrationFile(opts: {
   file: File;
 }): Promise<{ url: string; filename: string; mimeType: string; fileSize: number }> {
   const bytes = await opts.file.arrayBuffer();
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", opts.schoolId, opts.folder);
+  const uploadsDir = path.join(
+    /* turbopackIgnore: true */ process.cwd(),
+    "public",
+    "uploads",
+    opts.schoolId,
+    opts.folder
+  );
   await mkdir(uploadsDir, { recursive: true });
   const safeName = opts.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const filename = `${Date.now()}-${safeName}`;

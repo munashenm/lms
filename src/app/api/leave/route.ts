@@ -6,9 +6,9 @@ import {
   canApplyForLeave,
   getStaffLeaveApplicant,
   leaveEvidenceFileFromForm,
-  saveLeaveEvidenceFile,
   validateLeaveEvidence,
 } from "@/lib/staff-leave";
+import { saveRegistrationFile } from "@/lib/registration-uploads";
 import { notifySchoolRoles } from "@/lib/notifications";
 import { UserRole, LeaveType } from "@prisma/client";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
@@ -139,7 +139,11 @@ export async function POST(request: NextRequest) {
   let sickNoteUrl: string | null = null;
   let sickNoteFilename: string | null = null;
   if (evidence) {
-    const saved = await saveLeaveEvidenceFile(applicant.schoolId, evidence);
+    const saved = await saveRegistrationFile({
+      schoolId: applicant.schoolId,
+      folder: "leave",
+      file: evidence,
+    });
     sickNoteUrl = saved.url;
     sickNoteFilename = saved.filename;
   }
