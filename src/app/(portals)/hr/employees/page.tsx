@@ -17,7 +17,7 @@ export default async function HrEmployeesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Employees</h1>
-        <p className="text-muted text-sm mt-1">One employee record for educators, admin, finance, HR, operations and other staff.</p>
+        <p className="text-muted text-sm mt-1">One employee record for educators, admin, finance, HR, operations and other staff. Attach ID, contract and other documents when adding a record.</p>
       </div>
       <EmployeeManager employees={employees} />
     </div>

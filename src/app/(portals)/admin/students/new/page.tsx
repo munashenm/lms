@@ -45,7 +45,7 @@ export default async function NewStudentPage() {
         <div>
           <h1 className="text-2xl font-bold">Add {terms.student}</h1>
           <p className="text-muted text-sm mt-1">
-            Register a new {terms.student.toLowerCase()} with POPIA-compliant data capture
+            Register a new {terms.student.toLowerCase()} with a photo, supporting documents and POPIA-compliant data capture
           </p>
         </div>
       </div>

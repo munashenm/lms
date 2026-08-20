@@ -12,6 +12,14 @@ import { SA_PROVINCES } from "@/lib/constants";
 import type { Terminology } from "@/lib/terminology";
 import { getTerminology } from "@/lib/terminology";
 import { Loader2 } from "lucide-react";
+import {
+  REGISTRATION_DOC_ACCEPT,
+  STUDENT_PHOTO_ACCEPT,
+  STUDENT_REGISTRATION_DOC_SLOTS,
+  photoFileFromForm,
+  postMultipart,
+  registrationFilesFromForm,
+} from "@/lib/registration-docs";
 
 interface Option {
   id: string;
@@ -43,8 +51,28 @@ export function StudentForm({
     setLoading(true);
     setErrors({});
 
-    const form = new FormData(e.currentTarget);
-    const data = Object.fromEntries(form.entries());
+    const formEl = e.currentTarget;
+    const form = new FormData(formEl);
+    const photo = photoFileFromForm(form);
+    const documents = registrationFilesFromForm(form, STUDENT_REGISTRATION_DOC_SLOTS);
+    const data = {
+      firstName: form.get("firstName"),
+      lastName: form.get("lastName"),
+      studentNumber: form.get("studentNumber"),
+      saIdNumber: form.get("saIdNumber"),
+      email: form.get("email"),
+      phone: form.get("phone"),
+      dateOfBirth: form.get("dateOfBirth"),
+      gender: form.get("gender"),
+      gradeId: form.get("gradeId"),
+      classId: form.get("classId"),
+      campusId: form.get("campusId"),
+      status: form.get("status"),
+      address: form.get("address"),
+      city: form.get("city"),
+      province: form.get("province"),
+      postalCode: form.get("postalCode"),
+    };
 
     try {
       const res = await fetch("/api/students", {
@@ -66,7 +94,29 @@ export function StudentForm({
           ? `${terms.student} created. Password setup email sent.`
           : `${terms.student} created successfully`
       );
-      router.push("/admin/students");
+
+      const studentId = result.student?.id as string | undefined;
+      if (studentId) {
+        const uploadErrors: string[] = [];
+        if (photo) {
+          const photoResult = await postMultipart(`/api/students/${studentId}/photo`, { photo });
+          if (!photoResult.ok) uploadErrors.push(photoResult.message || "Photo");
+        }
+        for (const doc of documents) {
+          const docResult = await postMultipart(`/api/students/${studentId}/documents`, {
+            file: doc.file,
+            type: doc.type,
+            title: doc.title,
+          });
+          if (!docResult.ok) uploadErrors.push(doc.title);
+        }
+        if (uploadErrors.length) {
+          toast.error(`Created, but some files were not saved: ${uploadErrors.join(", ")}`);
+        }
+        router.push(`/admin/students/${studentId}`);
+      } else {
+        router.push("/admin/students");
+      }
       router.refresh();
     } catch {
       toast.error("Connection error. Please try again.");
@@ -226,6 +276,55 @@ export function StudentForm({
             <Label htmlFor="postalCode">Postal Code</Label>
             <Input id="postalCode" name="postalCode" />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Identity photo</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="photo">Photo for {terms.identityCard.toLowerCase()}</Label>
+          <Input
+            id="photo"
+            name="photo"
+            type="file"
+            accept={STUDENT_PHOTO_ACCEPT}
+            className="cursor-pointer"
+          />
+          <p className="text-xs text-muted">
+            Used on the printed {terms.identityCard.toLowerCase()} and learner portal. JPG, PNG or WebP. Max 5 MB.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Registration documents</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted">
+            Optional. Attach a birth certificate, ID, past results, or any other enrolment document.
+          </p>
+          {STUDENT_REGISTRATION_DOC_SLOTS.map((slot) => (
+            <div key={slot.name} className="space-y-2">
+              <Label htmlFor={slot.name}>{slot.title}</Label>
+              {slot.type === "OTHER" ? (
+                <Input
+                  name={`${slot.name}_title`}
+                  placeholder="Document title (optional)"
+                />
+              ) : null}
+              <Input
+                id={slot.name}
+                name={slot.name}
+                type="file"
+                accept={REGISTRATION_DOC_ACCEPT}
+                className="cursor-pointer"
+              />
+            </div>
+          ))}
+          <p className="text-xs text-muted">PDF, Word or image. Max 10 MB each.</p>
         </CardContent>
       </Card>
 

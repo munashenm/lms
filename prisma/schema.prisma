@@ -363,6 +363,13 @@ enum EmployeeDocumentType {
   OTHER
 }
 
+enum StudentDocumentType {
+  BIRTH_CERTIFICATE
+  ID_PASSPORT
+  PAST_RESULTS
+  OTHER
+}
+
 enum StudentAidType {
   DISCOUNT
   BURSARY
@@ -844,11 +851,28 @@ model Student {
   aidAwards       StudentAidAward[]
   absenceRequests StudentAbsenceRequest[]
   teacherReviews  TeacherReview[]
+  documents       StudentDocument[]
 
   @@unique([schoolId, studentNumber])
   @@index([schoolId])
   @@index([status])
   @@map("students")
+}
+
+model StudentDocument {
+  id         String              @id @default(cuid())
+  studentId  String
+  type       StudentDocumentType @default(OTHER)
+  title      String
+  fileUrl    String
+  mimeType   String?
+  fileSize   Int?
+  createdAt  DateTime            @default(now())
+
+  student    Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, type])
+  @@map("student_documents")
 }
 
 model Teacher {

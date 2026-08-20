@@ -10,6 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatZAR } from "@/lib/utils";
 import Link from "next/link";
+import {
+  EMPLOYEE_REGISTRATION_DOC_SLOTS,
+  REGISTRATION_DOC_ACCEPT,
+  postMultipart,
+  registrationFilesFromForm,
+} from "@/lib/registration-docs";
 
 const CATEGORIES = [
   "EDUCATOR", "PRINCIPAL", "DEPUTY_PRINCIPAL", "ADMINISTRATION", "FINANCE", "HR",
@@ -65,7 +71,26 @@ export function EmployeeManager(props: {
           ? "Employee created. Password setup email sent."
           : "Employee created"
       );
+      const employeeId = data.employee?.id as string | undefined;
+      const documents = registrationFilesFromForm(form, EMPLOYEE_REGISTRATION_DOC_SLOTS);
+      if (employeeId && documents.length) {
+        const failed: string[] = [];
+        for (const doc of documents) {
+          const result = await postMultipart(`/api/employees/${employeeId}/documents`, {
+            file: doc.file,
+            type: doc.type,
+            title: doc.title,
+          });
+          if (!result.ok) failed.push(doc.title);
+        }
+        if (failed.length) {
+          toast.error(`Created, but some files were not saved: ${failed.join(", ")}`);
+        }
+      }
       e.currentTarget.reset();
+      if (employeeId) {
+        router.push(`${employeeBasePath}/${employeeId}`);
+      }
       router.refresh();
     } catch {
       toast.error("Could not create employee");
@@ -116,6 +141,29 @@ export function EmployeeManager(props: {
             <div><Label htmlFor="baseSalary">Base salary (ZAR)</Label><Input id="baseSalary" name="baseSalary" type="number" step="0.01" /></div>
             <div><Label htmlFor="bankName">Bank</Label><Input id="bankName" name="bankName" /></div>
             <div><Label htmlFor="bankAccountNumber">Account number</Label><Input id="bankAccountNumber" name="bankAccountNumber" autoComplete="off" /></div>
+            <div className="sm:col-span-2 space-y-4">
+              <div>
+                <p className="text-sm font-medium">Registration documents</p>
+                <p className="text-xs text-muted mt-1">
+                  Optional. Attach ID, contract, qualifications, CV or other HR files. PDF, Word or image. Max 10 MB each.
+                </p>
+              </div>
+              {EMPLOYEE_REGISTRATION_DOC_SLOTS.map((slot) => (
+                <div key={slot.name} className="space-y-2">
+                  <Label htmlFor={slot.name}>{slot.title}</Label>
+                  {slot.type === "OTHER" ? (
+                    <Input name={`${slot.name}_title`} placeholder="Document title (optional)" />
+                  ) : null}
+                  <Input
+                    id={slot.name}
+                    name={slot.name}
+                    type="file"
+                    accept={REGISTRATION_DOC_ACCEPT}
+                    className="cursor-pointer"
+                  />
+                </div>
+              ))}
+            </div>
             <div className="sm:col-span-2"><Button type="submit" disabled={loading}>Save employee</Button></div>
           </form>
         </CardContent>

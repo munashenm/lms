@@ -12,6 +12,8 @@ import { StudentLedgerPanel } from "@/components/finance/student-ledger-panel";
 import { EnrolmentServicesForm } from "@/components/students/enrolment-services-form";
 import { StudentPortalPanel } from "@/components/students/student-portal-panel";
 import { StudentEditForm } from "@/components/students/student-edit-form";
+import { StudentPhotoPanel } from "@/components/students/student-photo-panel";
+import { StudentDocumentsPanel } from "@/components/students/student-documents-panel";
 import { ArrowLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getStudentLedger } from "@/lib/student-ledger";
@@ -34,6 +36,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
       campus: true,
       guardians: { include: { guardian: true } },
       school: { select: { name: true, institutionType: true } },
+      documents: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -164,6 +167,21 @@ export default async function StudentDetailPage({ params }: PageProps) {
           portalLabel={terms.portal}
         />
       </div>
+
+      <StudentPhotoPanel
+        studentId={student.id}
+        photoUrl={student.photoUrl}
+        firstName={student.firstName}
+        lastName={student.lastName}
+        canWrite={canWriteStudents}
+        identityCardLabel={terms.identityCard}
+      />
+
+      <StudentDocumentsPanel
+        studentId={student.id}
+        documents={student.documents}
+        canWrite={canWriteStudents}
+      />
 
       {canWriteStudents ? (
         <StudentEditForm

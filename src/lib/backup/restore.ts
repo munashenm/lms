@@ -353,6 +353,7 @@ async function replaceSchoolData(
     await createManyIgnore(tx.classSubject, snapshot.classSubjects);
     await createManyIgnore(tx.classTeacher, snapshot.classTeachers);
     await createManyIgnore(tx.student, snapshot.students);
+    await createManyIgnore(tx.studentDocument, snapshot.studentDocuments ?? []);
     await createManyIgnore(tx.teacher, snapshot.teachers);
     await createManyIgnore(tx.guardian, snapshot.guardians);
     await createManyIgnore(tx.studentGuardian, snapshot.studentGuardians);

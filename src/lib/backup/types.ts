@@ -97,6 +97,7 @@ export interface BackupSnapshot {
   lessonPlans?: Record<string, unknown>[];
   curriculumTopics?: Record<string, unknown>[];
   visitorEntries?: Record<string, unknown>[];
+  studentDocuments?: Record<string, unknown>[];
   files: { relativePath: string; contentBase64: string; mimeType?: string }[];
 }
 

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatZAR, formatDate } from "@/lib/utils";
+import { EMPLOYEE_DOCUMENT_LABELS, REGISTRATION_DOC_ACCEPT } from "@/lib/registration-docs";
 
 const DOC_TYPES = [
   "ID_PASSPORT",
@@ -314,11 +315,11 @@ export function EmployeeRecord(props: {
             <div>
               <Label htmlFor="type">Type</Label>
               <select id="type" name="type" className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm">
-                {DOC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                {DOC_TYPES.map((t) => <option key={t} value={t}>{EMPLOYEE_DOCUMENT_LABELS[t] ?? t}</option>)}
               </select>
             </div>
             <div><Label htmlFor="expiresAt">Expires</Label><Input id="expiresAt" name="expiresAt" type="date" /></div>
-            <div><Label htmlFor="file">File</Label><Input id="file" name="file" type="file" required /></div>
+            <div><Label htmlFor="file">File</Label><Input id="file" name="file" type="file" required accept={REGISTRATION_DOC_ACCEPT} /></div>
             <div className="sm:col-span-2"><Button type="submit" disabled={loading === "doc"}>Upload</Button></div>
           </form>
           <ul className="space-y-2 text-sm">
@@ -326,7 +327,7 @@ export function EmployeeRecord(props: {
             {props.documents.map((doc) => (
               <li key={doc.id} className="flex justify-between gap-4">
                 <a href={doc.fileUrl} className="text-primary hover:underline" target="_blank" rel="noreferrer">
-                  {doc.title} <span className="text-muted">({doc.type})</span>
+                  {doc.title} <span className="text-muted">({EMPLOYEE_DOCUMENT_LABELS[doc.type] ?? doc.type})</span>
                 </a>
                 {doc.expiresAt ? <span className="text-muted">Expires {formatDate(doc.expiresAt)}</span> : null}
               </li>
