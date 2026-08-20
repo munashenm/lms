@@ -57,7 +57,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
   const window = examWindow({
     availableFrom: assessment.availableFrom,
     dueDate: assessment.dueDate,
-    completed: existing?.status === "SUBMITTED",
+    completed: false,
   });
   if (window !== "AVAILABLE") {
     return NextResponse.json({ message: "This exam is not open for sitting" }, { status: 400 });
