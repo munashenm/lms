@@ -20,13 +20,20 @@ interface Option {
 export function LetterForm({
   students,
   defaultStudentId,
+  defaultType = "TRANSFER",
+  types,
 }: {
   students: Option[];
   defaultStudentId?: string;
+  defaultType?: string;
+  types?: string[];
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [type, setType] = useState("TRANSFER");
+  const [type, setType] = useState(defaultType);
+  const typeOptions = Object.entries(ISSUED_LETTER_LABELS).filter(
+    ([value]) => !types || types.includes(value)
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -83,7 +90,7 @@ export function LetterForm({
           <div className="space-y-2">
             <Label>Type *</Label>
             <Select value={type} onChange={(e) => setType(e.target.value)}>
-              {Object.entries(ISSUED_LETTER_LABELS).map(([value, label]) => (
+              {typeOptions.map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>

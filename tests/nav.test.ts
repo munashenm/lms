@@ -172,6 +172,7 @@ describe("other portal groups", () => {
     expect(financeNav.find((item) => item.href === "/finance/ledger")?.section).toBe("Books");
     expect(financeNav.map((item) => item.href)).toContain("/finance/invoices");
     expect(financeNav.map((item) => item.href)).toContain("/finance/payments");
+    expect(financeNav.find((item) => item.href === "/finance/letters")?.section).toBe("Collections");
   });
 
   it("groups HR officer tools under Human Resource", () => {

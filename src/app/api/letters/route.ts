@@ -16,6 +16,7 @@ import { authorizeAcademicDocument, isLearnerPortalRole } from "@/lib/fee-cleara
 import { getStudentForSession, getChildStudentIds } from "@/lib/portal-data";
 import { writeAcademicPdf } from "@/lib/pdf-response";
 import { logAudit } from "@/lib/audit";
+import { notifyAcademicDocumentFamily } from "@/lib/academic-document-notice";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -203,6 +204,12 @@ export async function POST(request: NextRequest) {
     entity: "IssuedLetter",
     entityId: letter.id,
     metadata: { type, letterNo, studentId: student.id },
+  });
+  await notifyAcademicDocumentFamily({
+    studentId: student.id,
+    schoolId: student.schoolId,
+    kind: "letter",
+    title: letter.title,
   });
 
   return NextResponse.json({ letter }, { status: 201 });

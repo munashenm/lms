@@ -6,6 +6,7 @@ import { paymentSchema } from "@/lib/validators";
 import { deriveInvoiceStatus } from "@/lib/finance";
 import { logAudit } from "@/lib/audit";
 import { notifyUser, notifyStudentGuardians } from "@/lib/notifications";
+import { notifyDocumentsReleasedIfClear } from "@/lib/academic-document-notice";
 import { postPaymentToStudentLedger } from "@/lib/student-ledger";
 import { nextReceiptNumber } from "@/lib/finance-catalog";
 import { allocatePaymentManual, allocatePaymentToOldest } from "@/lib/payment-allocation";
@@ -185,6 +186,11 @@ export async function POST(request: NextRequest) {
     message: `R${amount.toFixed(2)} paid for ${invoice.invoiceNumber}.`,
     type: "FEE",
     link: `/parent/fees/${invoiceId}`,
+  });
+  await notifyDocumentsReleasedIfClear({
+    studentId: invoice.studentId,
+    schoolId: invoice.schoolId,
+    studentUserId: invoice.student.userId,
   });
 
   return NextResponse.json({ payment, amountPaid: newAmountPaid, status: newStatus }, { status: 201 });

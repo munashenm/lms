@@ -11,6 +11,7 @@ import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { writeAcademicPdf } from "@/lib/pdf-response";
 import { isLearnerPortalRole } from "@/lib/fee-clearance";
 import { logAudit } from "@/lib/audit";
+import { notifyAcademicDocumentFamily } from "@/lib/academic-document-notice";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -117,6 +118,12 @@ export async function POST(request: NextRequest) {
     entity: "Certificate",
     entityId: certificate.id,
     metadata: { studentId: student.id, type: parsed.data.type, certificateNo },
+  });
+  await notifyAcademicDocumentFamily({
+    studentId: student.id,
+    schoolId: student.schoolId,
+    kind: "certificate",
+    title: certificate.title,
   });
 
   return NextResponse.json({ certificate }, { status: 201 });

@@ -11,6 +11,7 @@ import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { writeAcademicPdf } from "@/lib/pdf-response";
 import { isLearnerPortalRole } from "@/lib/fee-clearance";
 import { logAudit } from "@/lib/audit";
+import { notifyAcademicDocumentFamily } from "@/lib/academic-document-notice";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -163,6 +164,12 @@ export async function POST(request: NextRequest) {
     entity: "ReportCard",
     entityId: reportCard.id,
     metadata: { studentId, academicYearId, termId: termId ?? null },
+  });
+  await notifyAcademicDocumentFamily({
+    studentId,
+    schoolId: student.schoolId,
+    kind: "report",
+    title: `${academicYear?.name ?? "Report"}${term?.name ? ` — ${term.name}` : ""}`,
   });
 
   return NextResponse.json({ reportCard }, { status: 201 });

@@ -8,25 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ISSUED_LETTER_LABELS } from "@/lib/letter-labels";
-import type { IssuedLetterType } from "@prisma/client";
-import Link from "next/link";
 
-const LETTER_TYPES = Object.keys(ISSUED_LETTER_LABELS);
-
-interface PageProps {
-  searchParams: Promise<{ type?: string }>;
-}
-
-export default async function AdminLettersPage({ searchParams }: PageProps) {
+export default async function FinanceLettersPage() {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
-  const { type: typeParam } = await searchParams;
-  const type =
-    typeParam && LETTER_TYPES.includes(typeParam) ? (typeParam as IssuedLetterType) : undefined;
 
   const [letters, students] = await Promise.all([
     prisma.issuedLetter.findMany({
-      where: { student: filter, ...(type ? { type } : {}) },
+      where: { student: filter },
       include: { student: { select: { firstName: true, lastName: true, studentNumber: true } } },
       orderBy: { issuedAt: "desc" },
       take: 80,
@@ -40,36 +29,20 @@ export default async function AdminLettersPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Letters & transcripts</h1>
+        <h1 className="text-2xl font-bold">Letters & clearance</h1>
         <p className="text-muted text-sm mt-1">
-          Generate transfer letters, testimonials, leaving letters, fee clearance, enrolment
-          confirmation and academic transcripts.
+          Issue fee clearance and other official letters. Learners can download them once school
+          fees are paid in full.
         </p>
       </div>
       <LetterForm
+        defaultType="FEE_CLEARANCE"
         students={students.map((s) => ({
           id: s.id,
           name: `${s.firstName} ${s.lastName}`,
           studentNumber: s.studentNumber,
         }))}
       />
-      <div className="flex flex-wrap gap-2 text-sm">
-        <Link
-          href="/admin/letters"
-          className={!type ? "text-primary font-medium" : "text-muted hover:text-primary"}
-        >
-          All
-        </Link>
-        {LETTER_TYPES.map((value) => (
-          <Link
-            key={value}
-            href={`/admin/letters?type=${value}`}
-            className={type === value ? "text-primary font-medium" : "text-muted hover:text-primary"}
-          >
-            {ISSUED_LETTER_LABELS[value]}
-          </Link>
-        ))}
-      </div>
       <Card>
         <CardContent className="p-0">
           {letters.length === 0 ? (

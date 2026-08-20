@@ -2,6 +2,7 @@ import { PaymentMethod, UserRole } from "@prisma/client";
 import { prisma } from "../db";
 import { deriveInvoiceStatus } from "../finance";
 import { notifyUser, notifySchoolRoles } from "../notifications";
+import { notifyDocumentsReleasedIfClear } from "../academic-document-notice";
 import { nextReceiptNumber } from "../finance-catalog";
 import { postPaymentToStudentLedger } from "../student-ledger";
 import { allocatePaymentToOldest } from "../payment-allocation";
@@ -109,6 +110,12 @@ export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
     message: `${invoice.student.firstName} ${invoice.student.lastName} paid R${params.amount.toFixed(2)} via ${methodLabel}.`,
     type: "FEE",
     link: `/finance/invoices/${params.invoiceId}`,
+  });
+
+  await notifyDocumentsReleasedIfClear({
+    studentId: invoice.studentId,
+    schoolId: invoice.schoolId,
+    studentUserId: invoice.student.userId,
   });
 
   return { ok: true as const, duplicate: false };

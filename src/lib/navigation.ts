@@ -331,6 +331,7 @@ export const financeNav: NavItem[] = [
     { label: "Payments", href: "/finance/payments", icon: "Wallet" },
     { label: "Debtors", href: "/finance/debtors", icon: "TrendingDown" },
     { label: "Fee Reminders", href: "/finance/reminders", icon: "Megaphone" },
+    { label: "Letters", href: "/finance/letters", icon: "FileText" },
   ]),
   ...grouped("Books", "BarChart3", [
     { label: "Expenses", href: "/finance/expenses", icon: "TrendingDown" },

@@ -5,6 +5,7 @@ import { defaultLetterBody, wrapPdfLines } from "@/lib/pdf-letter";
 import { schoolSettingsSchema, issuedLetterSchema } from "@/lib/validators";
 import { readPublicPdf } from "@/lib/pdf-response";
 import { UserRole } from "@prisma/client";
+import { academicDocumentNotice } from "@/lib/academic-document-notice";
 
 describe("fee clearance for academic documents", () => {
   it("sums outstanding cents on collectable invoices", () => {
@@ -133,5 +134,30 @@ describe("school settings document hold", () => {
       type: "ENROLMENT",
     });
     expect(parsed.success).toBe(true);
+  });
+});
+
+describe("academic document notices", () => {
+  it("points families to the download when fees are clear", () => {
+    const notice = academicDocumentNotice({
+      kind: "report",
+      title: "Term 2 report",
+      released: true,
+    });
+    expect(notice.title).toBe("Report is ready");
+    expect(notice.studentLink).toBe("/student/report-cards");
+    expect(notice.parentLink).toBe("/parent/report-cards");
+    expect(notice.studentMessage).toContain("available to download");
+  });
+
+  it("sends unpaid families to fees instead of the PDF", () => {
+    const notice = academicDocumentNotice({
+      kind: "letter",
+      title: "Transfer letter",
+      released: false,
+    });
+    expect(notice.studentLink).toBe("/student/fees");
+    expect(notice.parentLink).toBe("/parent/fees");
+    expect(notice.studentMessage).toMatch(/paid in full/i);
   });
 });
