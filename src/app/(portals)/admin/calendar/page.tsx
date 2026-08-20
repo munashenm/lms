@@ -2,8 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter } from "@/lib/rbac";
 import { SchoolEventForm } from "@/components/calendar/school-event-form";
-import { Card, CardContent } from "@/components/ui/card";
-import { formatDate } from "@/lib/utils";
+import { SchoolEventList } from "@/components/calendar/school-event-list";
 
 export default async function AdminCalendarPage() {
   const session = await getSession();
@@ -22,23 +21,14 @@ export default async function AdminCalendarPage() {
         </p>
       </div>
       <SchoolEventForm />
-      <Card>
-        <CardContent className="divide-y divide-border p-0">
-          {events.length === 0 ? (
-            <p className="px-4 py-8 text-sm text-muted">No events yet.</p>
-          ) : (
-            events.map((event) => (
-              <div key={event.id} className="px-4 py-3">
-                <p className="font-medium">{event.title}</p>
-                <p className="text-sm text-muted">
-                  {formatDate(event.startsAt)}
-                  {event.isPublic ? " · Public" : " · Internal"}
-                </p>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <SchoolEventList
+        events={events.map((event) => ({
+          id: event.id,
+          title: event.title,
+          startsAt: event.startsAt,
+          isPublic: event.isPublic,
+        }))}
+      />
     </div>
   );
 }

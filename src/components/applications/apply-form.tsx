@@ -15,6 +15,7 @@ interface School {
   name: string;
   institutionType: string;
   city: string | null;
+  admissionsText?: string | null;
 }
 
 export function ApplyForm({
@@ -29,6 +30,8 @@ export function ApplyForm({
   const [loading, setLoading] = useState(false);
   const [referenceNo, setReferenceNo] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [schoolSlug, setSchoolSlug] = useState(initialSchoolSlug ?? "");
+  const selectedSchool = schools.find((school) => school.slug === schoolSlug);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -89,7 +92,12 @@ export function ApplyForm({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Institution *</Label>
-            <Select name="schoolSlug" required defaultValue={initialSchoolSlug ?? ""}>
+            <Select
+              name="schoolSlug"
+              required
+              value={schoolSlug}
+              onChange={(e) => setSchoolSlug(e.target.value)}
+            >
               <option value="">Select school/college...</option>
               {schools.map((s) => (
                 <option key={s.slug} value={s.slug}>
@@ -97,6 +105,9 @@ export function ApplyForm({
                 </option>
               ))}
             </Select>
+            {selectedSchool?.admissionsText ? (
+              <p className="text-sm text-muted whitespace-pre-wrap">{selectedSchool.admissionsText}</p>
+            ) : null}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">

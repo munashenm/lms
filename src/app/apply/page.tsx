@@ -11,7 +11,7 @@ export default async function ApplyPage({ searchParams }: ApplyPageProps) {
   const params = await searchParams;
   const schools = await prisma.school.findMany({
     where: { isActive: true },
-    select: { slug: true, name: true, institutionType: true, city: true },
+    select: { slug: true, name: true, institutionType: true, city: true, admissionsText: true },
     orderBy: { name: "asc" },
   });
 

@@ -93,7 +93,9 @@ export default async function StudentExamsPage() {
                       <p className="text-muted whitespace-pre-wrap">{exam.description || "Follow your teacher’s instructions to sit this exam."}</p>
                       {canSit && exam._count.questions > 0 ? (
                         <Button size="sm" className="mt-3" asChild>
-                          <Link href={`/student/exams/${exam.id}`}>Sit this exam</Link>
+                          <Link href={`/student/exams/${exam.id}`}>
+                            {exam.attempts[0]?.status === "IN_PROGRESS" ? "Continue exam" : "Sit this exam"}
+                          </Link>
                         </Button>
                       ) : (
                         <p className="text-muted">Online sitting is not open for this paper yet.</p>
@@ -102,7 +104,11 @@ export default async function StudentExamsPage() {
                   ) : key === "UPCOMING" ? (
                     <p className="text-muted">Venue and office instructions will be confirmed when the sitting opens.</p>
                   ) : (
-                    <p className="text-muted">This sitting has closed. Results appear under Results once published.</p>
+                    <p className="text-muted">
+                      {exam.attempts[0]?.status === "SUBMITTED" && exam.attempts[0].score != null
+                        ? `Submitted. Score ${Number(exam.attempts[0].score)} / ${Number(exam.maxMarks)}.`
+                        : "This sitting has closed. Results appear under Results once published."}
+                    </p>
                   )}
                 </CardContent>
               </Card>

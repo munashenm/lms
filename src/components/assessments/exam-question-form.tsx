@@ -63,6 +63,24 @@ export function ExamQuestionForm({
     }
   }
 
+  async function remove(questionId: string) {
+    if (!confirm("Remove this question?")) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/assessments/${assessmentId}/questions/${questionId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Could not remove question");
+      toast.success("Question removed");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not remove question");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -75,9 +93,20 @@ export function ExamQuestionForm({
         {questions.length > 0 ? (
           <ol className="space-y-2 text-sm list-decimal pl-5">
             {questions.map((q) => (
-              <li key={q.id}>
-                <span className="font-medium">{q.prompt}</span>
-                <span className="text-muted"> · {q.type} · {q.points} marks</span>
+              <li key={q.id} className="flex items-start justify-between gap-3">
+                <span>
+                  <span className="font-medium">{q.prompt}</span>
+                  <span className="text-muted"> · {q.type} · {q.points} marks</span>
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void remove(q.id)}
+                  disabled={loading}
+                >
+                  Remove
+                </Button>
               </li>
             ))}
           </ol>
