@@ -49,6 +49,8 @@ describe("admin nav groups", () => {
     expect(nav.find((item) => item.href === "/admin/classes")?.section).toBe("Academics");
     expect(nav.find((item) => item.href === "/admin/classes")?.group).toBe("Setup");
     expect(nav.find((item) => item.href === "/admin/assessments")?.group).toBe("Classroom");
+    expect(nav.find((item) => item.href === "/admin/letters")?.group).toBe("Results");
+    expect(nav.find((item) => item.href === "/admin/letters")?.section).toBe("Academics");
     expect(nav.find((item) => item.href === "/admin/hr")?.section).toBe("Human Resource");
     expect(nav.find((item) => item.href === "/admin/visitors")?.section).toBe("School");
     expect(nav.some((item) => item.section === "Organisation")).toBe(false);
@@ -158,6 +160,8 @@ describe("other portal groups", () => {
   it("groups parent academics and teacher self-service", () => {
     expect(getParentNav().find((item) => item.href === "/parent/exams")?.section).toBe("Academics");
     expect(getParentNav().find((item) => item.href === "/parent/exams")?.group).toBe("Results");
+    expect(getParentNav().find((item) => item.href === "/parent/letters")?.group).toBe("Results");
+    expect(getStudentNav().find((item) => item.href === "/student/letters")?.section).toBe("Examinations");
     expect(getTeacherNav().find((item) => item.href === "/staff/payslips")?.section).toBe("My work");
     expect(getTeacherNav().find((item) => item.href === "/teacher/classes")?.group).toBe("Classwork");
   });

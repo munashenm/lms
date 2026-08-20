@@ -31,6 +31,7 @@ export function navHrefFeature(href: string): LicenseFeatureKey | null {
     href.includes("/results") ||
     href.includes("/report-cards") ||
     href.includes("/certificates") ||
+    href.includes("/letters") ||
     href.includes("/exams")
   ) {
     return "assessments";

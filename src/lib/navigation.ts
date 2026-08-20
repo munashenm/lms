@@ -203,6 +203,7 @@ export function getAdminNav(
       ...cluster("Results", [
         { label: t?.reportCards ?? "Reports", href: "/admin/report-cards", icon: "Award" },
         { label: "Certificates", href: "/admin/certificates", icon: "Award" },
+        { label: "Letters", href: "/admin/letters", icon: "FileText" },
       ]),
     ]),
     ...grouped("Finance", "CreditCard", getAdminFinanceNavItems()),
@@ -295,6 +296,7 @@ export function getStudentNav(terms?: Terminology): NavItem[] {
       { label: "Results", href: "/student/results", icon: "Award" },
       { label: t.reportCards, href: "/student/report-cards", icon: "Award" },
       { label: "Certificates", href: "/student/certificates", icon: "Award" },
+      { label: "Letters", href: "/student/letters", icon: "FileText" },
     ]),
     ...grouped("Finance", "CreditCard", [
       { label: t.fees, href: "/student/fees", icon: "CreditCard" },
@@ -394,6 +396,7 @@ export function getParentNav(terms?: Terminology): NavItem[] {
         { label: "Results", href: "/parent/results", icon: "Award" },
         { label: t.reportCards, href: "/parent/report-cards", icon: "Award" },
         { label: "Certificates", href: "/parent/certificates", icon: "Award" },
+        { label: "Letters", href: "/parent/letters", icon: "FileText" },
       ]),
     ]),
     ...grouped("Wellbeing", "ClipboardCheck", [

@@ -508,6 +508,16 @@ export const certificateSchema = z.object({
   academicYearId: z.string().optional(),
 });
 
+export const issuedLetterSchema = z.object({
+  studentId: z.string().min(1),
+  type: z.enum(["TRANSFER", "TESTIMONIAL", "LEAVING", "FEE_CLEARANCE", "TRANSCRIPT"]),
+  title: z.string().optional(),
+  destinationSchool: z.string().optional(),
+  reason: z.string().optional(),
+  bodyText: z.string().optional(),
+  effectiveDate: z.string().optional(),
+});
+
 export const leaveRequestSchema = z.object({
   type: z.enum(["ANNUAL", "SICK", "FAMILY", "MATERNITY", "STUDY", "UNPAID", "OTHER"]),
   startDate: z.string().min(1),
@@ -578,6 +588,7 @@ export const schoolSettingsSchema = z.object({
   absenceNotifyEnabled: z.coerce.boolean().optional(),
   teacherReviewsAnonymous: z.coerce.boolean().optional(),
   studentLeaveRequiresGuardian: z.coerce.boolean().optional(),
+  requireFeesPaidForDocuments: z.coerce.boolean().optional(),
   heroHeadline: z.string().optional(),
   heroSubtitle: z.string().optional(),
   aboutText: z.string().optional(),

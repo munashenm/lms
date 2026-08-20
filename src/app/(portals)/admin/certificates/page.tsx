@@ -68,7 +68,7 @@ export default async function CertificatesPage() {
                     <Badge variant="secondary">{CERTIFICATE_TYPE_LABELS[cert.type] ?? cert.type}</Badge>
                     {cert.pdfUrl && (
                       <Button variant="outline" size="sm" asChild>
-                        <a href={cert.pdfUrl} download target="_blank" rel="noopener noreferrer">
+                        <a href={`/api/certificates/${cert.id}/pdf`}>
                           <Download className="h-4 w-4" />
                           PDF
                         </a>

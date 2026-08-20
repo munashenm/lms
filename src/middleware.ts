@@ -32,6 +32,15 @@ const PUBLIC_PATHS = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Academic PDFs are fee-gated — only serve via authenticated API routes.
+  if (
+    pathname.startsWith("/uploads/report-cards") ||
+    pathname.startsWith("/uploads/certificates") ||
+    pathname.startsWith("/uploads/letters")
+  ) {
+    return NextResponse.json({ message: "Not found" }, { status: 404 });
+  }
+
   if (
     PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
     pathname === "/" ||

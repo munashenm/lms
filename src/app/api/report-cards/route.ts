@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
@@ -10,10 +8,15 @@ import { generateReportCardPdf } from "@/lib/pdf-report-card";
 import { toSchoolBrand } from "@/lib/pdf-branding";
 import { getTerminology } from "@/lib/terminology";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { writeAcademicPdf } from "@/lib/pdf-response";
+import { isLearnerPortalRole } from "@/lib/fee-clearance";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!requirePermission(session, "marks:read")) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+  }
+  if (isLearnerPortalRole(session.role)) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
@@ -132,12 +135,8 @@ export async function POST(request: NextRequest) {
     comments: comments ?? undefined,
   });
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", "report-cards");
-  await mkdir(uploadsDir, { recursive: true });
   const filename = `report-${student.studentNumber}-${Date.now()}.pdf`;
-  const filePath = path.join(uploadsDir, filename);
-  await writeFile(filePath, pdfBytes);
-  const pdfUrl = `/uploads/report-cards/${filename}`;
+  const pdfUrl = await writeAcademicPdf("report-cards", filename, pdfBytes);
 
   const reportCard = await prisma.reportCard.create({
     data: {

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
+import { getDocumentRelease } from "@/lib/fee-clearance";
+import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -18,11 +20,12 @@ type CertificateWithCourse = Prisma.CertificateGetPayload<{
 export default async function StudentCertificatesPage() {
   const session = await getSession();
   const student = await getStudentForSession(session!);
+  const release = student ? await getDocumentRelease(student.id) : { released: true, outstandingCents: 0, requireFees: false };
 
   let certificates: CertificateWithCourse[] = [];
   let loadError: string | null = null;
 
-  if (student) {
+  if (student && release.released) {
     try {
       certificates = await prisma.certificate.findMany({
         where: { studentId: student.id },
@@ -38,7 +41,7 @@ export default async function StudentCertificatesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">My Certificates</h1>
-        <p className="text-muted text-sm mt-1">Download your issued certificates</p>
+        <p className="text-muted text-sm mt-1">Certificates are released when school fees are paid in full</p>
       </div>
 
       {loadError ? (
@@ -51,6 +54,8 @@ export default async function StudentCertificatesPage() {
             Your student profile could not be loaded.
           </CardContent>
         </Card>
+      ) : !release.released ? (
+        <DocumentsHoldNotice outstandingCents={release.outstandingCents} feesHref="/student/fees" />
       ) : certificates.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted">
@@ -70,14 +75,12 @@ export default async function StudentCertificatesPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant="secondary">{CERTIFICATE_TYPE_LABELS[cert.type] ?? cert.type}</Badge>
-                  {cert.pdfUrl && (
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={cert.pdfUrl} download target="_blank" rel="noopener noreferrer">
-                        <Download className="h-4 w-4" />
-                        PDF
-                      </a>
-                    </Button>
-                  )}
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={`/api/certificates/${cert.id}/pdf`}>
+                      <Download className="h-4 w-4" />
+                      PDF
+                    </a>
+                  </Button>
                 </div>
               </CardContent>
             </Card>

@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
@@ -10,10 +8,15 @@ import { toSchoolBrand } from "@/lib/pdf-branding";
 import { getTerminology } from "@/lib/terminology";
 import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { writeAcademicPdf } from "@/lib/pdf-response";
+import { isLearnerPortalRole } from "@/lib/fee-clearance";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!requirePermission(session, "marks:read")) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+  }
+  if (isLearnerPortalRole(session.role)) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
@@ -84,11 +87,8 @@ export async function POST(request: NextRequest) {
     issuedAt: issuedAt.toLocaleDateString("en-ZA"),
   });
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", "certificates");
-  await mkdir(uploadsDir, { recursive: true });
   const filename = `cert-${student.studentNumber}-${Date.now()}.pdf`;
-  await writeFile(path.join(uploadsDir, filename), pdfBytes);
-  const pdfUrl = `/uploads/certificates/${filename}`;
+  const pdfUrl = await writeAcademicPdf("certificates", filename, pdfBytes);
 
   const certificate = await prisma.certificate.create({
     data: {

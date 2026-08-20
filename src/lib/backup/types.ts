@@ -59,6 +59,7 @@ export interface BackupSnapshot {
   documents: Record<string, unknown>[];
   announcements: Record<string, unknown>[];
   certificates: Record<string, unknown>[];
+  issuedLetters?: Record<string, unknown>[];
   leaveRequests: Record<string, unknown>[];
   ledgerEntries: Record<string, unknown>[];
   studentLedgerEntries: Record<string, unknown>[];

@@ -7,20 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { getTerminology } from "@/lib/terminology";
 import { getDocumentRelease } from "@/lib/fee-clearance";
 import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
+import { ISSUED_LETTER_LABELS } from "@/lib/letter-labels";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
 }
 
-export default async function ParentReportCardsPage({ searchParams }: PageProps) {
+export default async function ParentLettersPage({ searchParams }: PageProps) {
   const session = await getSession();
   const guardian = await getGuardianForSession(session!);
-  const terms = getTerminology(guardian?.school.institutionType);
   const { studentId } = await searchParams;
-
   const children = guardian?.students.map((sg) => sg.student) ?? [];
   const childIds = children.map((c) => c.id);
   const filterIds = studentId && childIds.includes(studentId) ? [studentId] : childIds;
@@ -28,65 +26,53 @@ export default async function ParentReportCardsPage({ searchParams }: PageProps)
   const releasedIds = releases.filter((row) => row.released).map((row) => row.id);
   const blocked = releases.find((row) => !row.released);
 
-  const reportCards = releasedIds.length
-    ? await prisma.reportCard.findMany({
-        where: { studentId: { in: releasedIds }, publishedAt: { not: null } },
-        include: {
-          academicYear: { select: { name: true } },
-          term: { select: { name: true } },
-          student: { select: { firstName: true, lastName: true } },
-        },
-        orderBy: { publishedAt: "desc" },
+  const letters = releasedIds.length
+    ? await prisma.issuedLetter.findMany({
+        where: { studentId: { in: releasedIds } },
+        include: { student: { select: { firstName: true, lastName: true } } },
+        orderBy: { issuedAt: "desc" },
       })
     : [];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">{terms.reportCards}</h1>
-        <p className="text-muted text-sm mt-1">Published reports are released when school fees are paid in full</p>
+        <h1 className="text-2xl font-bold">Letters & transcripts</h1>
+        <p className="text-muted text-sm mt-1">
+          Official letters are released when school fees are paid in full
+        </p>
       </div>
-
       <ChildFilter
         students={children.map((c) => ({ id: c.id, firstName: c.firstName, lastName: c.lastName }))}
         selectedId={studentId}
-        basePath="/parent/report-cards"
+        basePath="/parent/letters"
       />
-
       {blocked ? (
         <DocumentsHoldNotice outstandingCents={blocked.outstandingCents} feesHref="/parent/fees" />
       ) : null}
-
-      {reportCards.length === 0 && !blocked ? (
+      {letters.length === 0 && !blocked ? (
         <Card>
-          <CardContent className="py-12 text-center text-muted">
-            No report cards available yet.
-          </CardContent>
+          <CardContent className="py-12 text-center text-muted">No letters issued yet.</CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
-          {reportCards.map((rc) => (
-            <Card key={rc.id}>
+          {letters.map((letter) => (
+            <Card key={letter.id}>
               <CardContent className="p-5 flex items-center justify-between gap-4">
                 <div>
-                  <p className="font-medium">
-                    {rc.student.firstName} {rc.student.lastName}
+                  <p className="font-medium">{letter.title}</p>
+                  <p className="text-sm text-muted">
+                    {letter.student.firstName} {letter.student.lastName}
                   </p>
-                  <p className="text-sm text-muted mt-1">
-                    {rc.academicYear.name}
-                    {rc.term && ` — ${rc.term.name}`}
-                    {rc.overallAverage && ` · Average: ${Number(rc.overallAverage)}%`}
-                    {rc.publishedAt && ` · ${formatDate(rc.publishedAt)}`}
-                  </p>
+                  <p className="text-xs text-muted font-mono mt-1">{letter.letterNo}</p>
+                  <p className="text-xs text-muted">{formatDate(letter.issuedAt)}</p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  {rc.overallAverage && (
-                    <Badge variant="default">{Number(rc.overallAverage)}%</Badge>
-                  )}
+                  <Badge variant="secondary">{ISSUED_LETTER_LABELS[letter.type] ?? letter.type}</Badge>
                   <Button variant="outline" size="sm" asChild>
-                    <a href={`/api/report-cards/${rc.id}/pdf`}>
+                    <a href={`/api/letters/${letter.id}/pdf`}>
                       <Download className="h-4 w-4" />
-                      Download PDF
+                      PDF
                     </a>
                   </Button>
                 </div>

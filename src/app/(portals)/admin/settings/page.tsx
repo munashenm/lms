@@ -104,6 +104,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           absenceNotifyEnabled: school.absenceNotifyEnabled,
           teacherReviewsAnonymous: school.teacherReviewsAnonymous,
           studentLeaveRequiresGuardian: school.studentLeaveRequiresGuardian,
+          requireFeesPaidForDocuments: school.requireFeesPaidForDocuments,
           heroHeadline: school.heroHeadline,
           heroSubtitle: school.heroSubtitle,
           aboutText: school.aboutText,

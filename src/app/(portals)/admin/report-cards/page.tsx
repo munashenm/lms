@@ -86,7 +86,7 @@ export default async function ReportCardsPage() {
                     )}
                     {rc.pdfUrl && (
                       <Button variant="outline" size="sm" asChild>
-                        <a href={rc.pdfUrl} download target="_blank" rel="noopener noreferrer">
+                        <a href={`/api/report-cards/${rc.id}/pdf`}>
                           <Download className="h-4 w-4" />
                           PDF
                         </a>

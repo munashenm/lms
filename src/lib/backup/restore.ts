@@ -294,6 +294,7 @@ async function replaceSchoolData(
     });
     await tx.attendanceRecord.deleteMany({ where: { student: { schoolId } } });
     await tx.reportCard.deleteMany({ where: { student: { schoolId } } });
+    await tx.issuedLetter.deleteMany({ where: { schoolId } });
     await tx.certificate.deleteMany({ where: { schoolId } });
     await tx.enrolment.deleteMany({ where: { student: { schoolId } } });
     await tx.studentGuardian.deleteMany({ where: { student: { schoolId } } });
@@ -347,6 +348,7 @@ async function replaceSchoolData(
         aboutText: (school.aboutText as string | null) ?? null,
         missionText: (school.missionText as string | null) ?? null,
         admissionsText: (school.admissionsText as string | null) ?? null,
+        requireFeesPaidForDocuments: school.requireFeesPaidForDocuments !== false,
       },
     });
 
@@ -413,6 +415,7 @@ async function replaceSchoolData(
     await createManyIgnore(tx.announcement, snapshot.announcements);
     await createManyIgnore(tx.schoolEvent, snapshot.schoolEvents ?? []);
     await createManyIgnore(tx.certificate, snapshot.certificates);
+    await createManyIgnore(tx.issuedLetter, snapshot.issuedLetters ?? []);
     await createManyIgnore(tx.leavePolicy, snapshot.leavePolicies ?? []);
     await createManyIgnore(tx.employee, snapshot.employees ?? []);
     await createManyIgnore(tx.staffAttendanceRecord, snapshot.staffAttendanceRecords);

@@ -15,6 +15,7 @@ describe("school settings", () => {
       absenceNotifyEnabled: false,
       teacherReviewsAnonymous: true,
       studentLeaveRequiresGuardian: false,
+      requireFeesPaidForDocuments: true,
     });
     expect(parsed.success).toBe(true);
   });

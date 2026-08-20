@@ -88,6 +88,7 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     documents,
     announcements,
     certificates,
+    issuedLetters,
     leaveRequests,
     ledgerEntries,
     studentLedgerEntries,
@@ -116,6 +117,7 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     prisma.document.findMany({ where: { schoolId } }),
     prisma.announcement.findMany({ where: { schoolId } }),
     prisma.certificate.findMany({ where: { schoolId } }),
+    prisma.issuedLetter.findMany({ where: { schoolId } }),
     prisma.leaveRequest.findMany({ where: { schoolId } }),
     prisma.ledgerEntry.findMany({ where: { schoolId } }),
     prisma.studentLedgerEntry.findMany({ where: { schoolId } }),
@@ -285,6 +287,7 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     documents: jsonSafe(documents),
     announcements: jsonSafe(announcements),
     certificates: jsonSafe(certificates),
+    issuedLetters: jsonSafe(issuedLetters),
     leaveRequests: jsonSafe(
       leaveRequests.map((r) => ({ ...r, sickNoteUrl: r.sickNoteUrl }))
     ),
@@ -346,5 +349,5 @@ export function snapshotCounts(snapshot: BackupSnapshot) {
   };
 }
 
-export const SCHEMA_VERSION = "20260820030000_school_experience";
+export const SCHEMA_VERSION = "20260820040000_academic_documents";
 export const APP_VERSION = process.env.npm_package_version || "0.1.0";

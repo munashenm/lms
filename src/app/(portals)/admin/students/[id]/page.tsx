@@ -14,6 +14,7 @@ import { StudentPortalPanel } from "@/components/students/student-portal-panel";
 import { StudentEditForm } from "@/components/students/student-edit-form";
 import { StudentPhotoPanel } from "@/components/students/student-photo-panel";
 import { StudentDocumentsPanel } from "@/components/students/student-documents-panel";
+import { LetterForm } from "@/components/letters/letter-form";
 import { ArrowLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getStudentLedger } from "@/lib/student-ledger";
@@ -182,6 +183,19 @@ export default async function StudentDetailPage({ params }: PageProps) {
         documents={student.documents}
         canWrite={canWriteStudents}
       />
+
+      {canWriteStudents ? (
+        <LetterForm
+          defaultStudentId={student.id}
+          students={[
+            {
+              id: student.id,
+              name: `${student.firstName} ${student.lastName}`,
+              studentNumber: student.studentNumber,
+            },
+          ]}
+        />
+      ) : null}
 
       {canWriteStudents ? (
         <StudentEditForm

@@ -178,6 +178,14 @@ enum CertificateType {
   ATTENDANCE
 }
 
+enum IssuedLetterType {
+  TRANSFER
+  TESTIMONIAL
+  LEAVING
+  FEE_CLEARANCE
+  TRANSCRIPT
+}
+
 enum LeaveType {
   ANNUAL
   SICK
@@ -455,6 +463,7 @@ model School {
   absenceNotifyEnabled Boolean    @default(false)
   teacherReviewsAnonymous Boolean @default(true)
   studentLeaveRequiresGuardian Boolean @default(false)
+  requireFeesPaidForDocuments Boolean @default(true)
   isActive        Boolean         @default(true)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -480,6 +489,7 @@ model School {
   feeReminderDispatches FeeReminderDispatch[]
   notifications   Notification[]
   certificates    Certificate[]
+  issuedLetters   IssuedLetter[]
   leaveRequests   LeaveRequest[]
   ledgerEntries   LedgerEntry[]
   studentLedgerEntries StudentLedgerEntry[]
@@ -583,6 +593,7 @@ model User {
   documents    Document[] @relation("DocumentUploader")
   notifications Notification[]
   certificatesIssued Certificate[] @relation("CertificateIssuer")
+  lettersIssued      IssuedLetter[] @relation("LetterIssuer")
   leaveReviews       LeaveRequest[] @relation("LeaveReviewer")
   leaveApplications  LeaveRequest[] @relation("LeaveApplicant")
   studentAbsenceReviews StudentAbsenceRequest[] @relation("StudentAbsenceReviewer")
@@ -862,6 +873,7 @@ model Student {
   submissions     AssignmentSubmission[]
   applications    Application[]
   certificates    Certificate[]
+  issuedLetters   IssuedLetter[]
   ledgerEntries   StudentLedgerEntry[]
   communicationLogs CommunicationLog[]
   charges         StudentCharge[]
@@ -1505,6 +1517,32 @@ model Certificate {
   @@unique([schoolId, certificateNo])
   @@index([studentId])
   @@map("certificates")
+}
+
+model IssuedLetter {
+  id                 String           @id @default(cuid())
+  schoolId           String
+  studentId          String
+  type               IssuedLetterType
+  letterNo           String
+  title              String
+  destinationSchool  String?
+  reason             String?
+  bodyText           String?          @db.Text
+  effectiveDate      DateTime         @default(now())
+  pdfUrl             String?
+  issuedAt           DateTime         @default(now())
+  issuedById         String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  school             School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student            Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  issuedBy           User?            @relation("LetterIssuer", fields: [issuedById], references: [id])
+
+  @@unique([schoolId, letterNo])
+  @@index([studentId])
+  @@map("issued_letters")
 }
 
 // ─── HR & Leave ──────────────────────────────────────────────────────────────

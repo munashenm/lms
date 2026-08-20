@@ -49,6 +49,7 @@ interface SchoolData {
   absenceNotifyEnabled?: boolean;
   teacherReviewsAnonymous?: boolean;
   studentLeaveRequiresGuardian?: boolean;
+  requireFeesPaidForDocuments?: boolean;
   heroHeadline?: string | null;
   heroSubtitle?: string | null;
   aboutText?: string | null;
@@ -120,6 +121,7 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             absenceNotifyEnabled: form.get("absenceNotifyEnabled") === "on",
             teacherReviewsAnonymous: form.get("teacherReviewsAnonymous") === "on",
             studentLeaveRequiresGuardian: form.get("studentLeaveRequiresGuardian") === "on",
+            requireFeesPaidForDocuments: form.get("requireFeesPaidForDocuments") === "on",
             heroHeadline: form.get("heroHeadline") || "",
             heroSubtitle: form.get("heroSubtitle") || "",
             aboutText: form.get("aboutText") || "",
@@ -513,6 +515,27 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
               className="rounded"
             />
             Learner leave requests must be submitted by a parent/guardian
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Reports and letters</CardTitle>
+          <p className="text-sm text-muted">
+            Hold official academic documents until the learner account has no outstanding school fees.
+            Staff can still generate reports, certificates and transfer letters.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="requireFeesPaidForDocuments"
+              defaultChecked={school.requireFeesPaidForDocuments ?? true}
+              className="rounded"
+            />
+            Release reports, certificates and letters only when school fees are paid in full
           </label>
         </CardContent>
       </Card>
