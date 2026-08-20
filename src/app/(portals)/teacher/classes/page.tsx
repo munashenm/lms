@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import { getTeacherForSession } from "@/lib/portal-data";
+import { getTeacherForSession, classIdsForTeacher } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,12 +9,11 @@ import { Button } from "@/components/ui/button";
 export default async function TeacherClassesPage() {
   const session = await getSession();
   const teacher = await getTeacherForSession(session!);
+  const classIds = classIdsForTeacher(teacher);
 
-  const classes = teacher
+  const classes = classIds.length
     ? await prisma.class.findMany({
-        where: {
-          id: { in: teacher.classTeachers.map((ct) => ct.classId) },
-        },
+        where: { id: { in: classIds } },
         include: {
           grade: { select: { name: true } },
           classSubjects: {
@@ -22,6 +21,7 @@ export default async function TeacherClassesPage() {
           },
           _count: { select: { students: true } },
         },
+        orderBy: { name: "asc" },
       })
     : [];
 
@@ -29,7 +29,10 @@ export default async function TeacherClassesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">My Classes</h1>
-        <p className="text-muted text-sm mt-1">{classes.length} assigned classes</p>
+        <p className="text-muted text-sm mt-1">
+          {classes.length} assigned {classes.length === 1 ? "class" : "classes"}. Open a class to mark
+          the register, capture marks, or message learners.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -53,12 +56,15 @@ export default async function TeacherClassesPage() {
                   ))}
                 </div>
               </div>
-              <div className="flex gap-2 mt-4">
+              <div className="flex flex-wrap gap-2 mt-4">
                 <Button size="sm" asChild>
-                  <Link href={`/teacher/attendance?classId=${cls.id}`}>Take Attendance</Link>
+                  <Link href={`/teacher/classes/${cls.id}`}>Open class</Link>
                 </Button>
                 <Button size="sm" variant="outline" asChild>
-                  <Link href="/teacher/report-cards">Reports</Link>
+                  <Link href={`/teacher/attendance?classId=${cls.id}`}>Register</Link>
+                </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <Link href="/teacher/assessments">Marks</Link>
                 </Button>
               </div>
             </CardContent>

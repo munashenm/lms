@@ -6,7 +6,7 @@ import { hasPermission, canAccessSchool } from "@/lib/rbac";
 import { studentAbsenceReviewSchema } from "@/lib/validators";
 import { nextAbsenceStatus } from "@/lib/learner-portal";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
-import { getTeacherForSession } from "@/lib/portal-data";
+import { getTeacherForSession, classIdsForTeacher } from "@/lib/portal-data";
 import { notifyUser } from "@/lib/notifications";
 
 interface Params {
@@ -38,14 +38,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   if (session.role === UserRole.TEACHER) {
     const teacher = await getTeacherForSession(session);
-    const classIds = new Set([
-      ...(teacher?.classTeachers.map((ct) => ct.classId) ?? []),
-    ]);
-    const taught = await prisma.classSubject.findMany({
-      where: { teacherId: teacher?.id ?? "__none__" },
-      select: { classId: true },
-    });
-    for (const row of taught) classIds.add(row.classId);
+    const classIds = new Set(classIdsForTeacher(teacher));
     if (!existing.student.classId || !classIds.has(existing.student.classId)) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
     }

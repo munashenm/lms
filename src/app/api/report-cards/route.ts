@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
-import { getTeacherForSession } from "@/lib/portal-data";
+import { getTeacherForSession, classIdsForTeacher } from "@/lib/portal-data";
 import { UserRole } from "@prisma/client";
 import { reportCardSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   const studentId = searchParams.get("studentId");
   const teacher =
     session!.role === UserRole.TEACHER ? await getTeacherForSession(session!) : null;
-  const classIds = teacher?.classTeachers.map((ct) => ct.classId) ?? [];
+  const classIds = classIdsForTeacher(teacher);
 
   const reportCards = await prisma.reportCard.findMany({
     where: {
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
   if (session.role === UserRole.TEACHER) {
     const teacher = await getTeacherForSession(session);
-    const classIds = teacher?.classTeachers.map((ct) => ct.classId) ?? [];
+    const classIds = classIdsForTeacher(teacher);
     if (!student.classId || !classIds.includes(student.classId)) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
     }

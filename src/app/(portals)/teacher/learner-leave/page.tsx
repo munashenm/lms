@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getTeacherForSession } from "@/lib/portal-data";
+import { getTeacherForSession, classIdsForTeacher } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { LearnerLeaveReviewList } from "@/components/learner/leave-review-list";
@@ -7,14 +7,7 @@ import { LearnerLeaveReviewList } from "@/components/learner/leave-review-list";
 export default async function TeacherLearnerLeavePage() {
   const session = await getSession();
   const teacher = await getTeacherForSession(session!);
-  const classIds = new Set(teacher?.classTeachers.map((ct) => ct.classId) ?? []);
-  if (teacher) {
-    const taught = await prisma.classSubject.findMany({
-      where: { teacherId: teacher.id },
-      select: { classId: true },
-    });
-    for (const row of taught) classIds.add(row.classId);
-  }
+  const classIds = new Set(classIdsForTeacher(teacher));
 
   const requests = teacher
     ? await prisma.studentAbsenceRequest.findMany({

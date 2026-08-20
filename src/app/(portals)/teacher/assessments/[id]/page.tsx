@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getTeacherForSession } from "@/lib/portal-data";
+import { getTeacherForSession, classIdsForTeacher } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { MarksEntry } from "@/components/assessments/marks-entry";
 import { PublishButton } from "@/components/assessments/publish-button";
@@ -37,7 +37,7 @@ export default async function TeacherAssessmentDetailPage({ params }: PageProps)
     notFound();
   }
 
-  const classIds = teacher?.classTeachers.map((ct) => ct.classId) ?? [];
+  const classIds = classIdsForTeacher(teacher);
   const students = await prisma.student.findMany({
     where: { classId: { in: classIds }, status: "ACTIVE" },
     orderBy: { lastName: "asc" },

@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getTeacherForSession } from "@/lib/portal-data";
+import { getTeacherForSession, classIdsForTeacher } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { LessonPlanForm } from "@/components/teacher/lesson-plan-form";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { formatDate } from "@/lib/utils";
 export default async function TeacherLessonPlansPage() {
   const session = await getSession();
   const teacher = await getTeacherForSession(session!);
-  const classIds = teacher?.classTeachers.map((ct) => ct.classId) ?? [];
+  const classIds = classIdsForTeacher(teacher);
   const taught = teacher
     ? await prisma.classSubject.findMany({
         where: { teacherId: teacher.id },

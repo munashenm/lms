@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
-import { getTeacherForSession } from "@/lib/portal-data";
+import { getTeacherForSession, classIdsForTeacher } from "@/lib/portal-data";
 import { UserRole } from "@prisma/client";
 import { reportCardBatchSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
   if (session.role === UserRole.TEACHER) {
     const teacher = await getTeacherForSession(session);
-    const classIds = teacher?.classTeachers.map((ct) => ct.classId) ?? [];
+    const classIds = classIdsForTeacher(teacher);
     if (!classIds.includes(classId)) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
     }

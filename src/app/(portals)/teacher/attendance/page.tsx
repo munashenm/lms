@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getTeacherForSession } from "@/lib/portal-data";
+import { getTeacherForSession, classIdsForTeacher } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { Suspense } from "react";
 import { AttendanceMarker } from "@/components/attendance/attendance-marker";
@@ -35,11 +35,15 @@ export default async function TeacherAttendancePage({ searchParams }: PageProps)
   const collegeMode = school ? isCollegeLike(school.institutionType) : false;
   const terms = getTerminology(school?.institutionType);
 
-  const assignedClasses =
-    teacher?.classTeachers.map((ct) => ({
-      id: ct.classId,
-      name: ct.class.name,
-    })) ?? [];
+  const assignedClassIds = classIdsForTeacher(teacher);
+  const assignedClassRows = assignedClassIds.length
+    ? await prisma.class.findMany({
+        where: { id: { in: assignedClassIds } },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
+  const assignedClasses = assignedClassRows.map((cls) => ({ id: cls.id, name: cls.name }));
 
   const modules = teacher
     ? await prisma.module.findMany({

@@ -18,8 +18,37 @@ export async function getTeacherForSession(session: SessionPayload) {
           },
         },
       },
+      classSubjects: {
+        include: {
+          class: {
+            include: {
+              grade: { select: { name: true } },
+              _count: { select: { students: true } },
+            },
+          },
+          subject: { select: { name: true, code: true } },
+        },
+      },
     },
   });
+}
+
+/** Homeroom and subject classes a teacher or lecturer is assigned to. */
+export function classIdsForTeacher(
+  teacher:
+    | {
+        classTeachers?: Array<{ classId: string }>;
+        classSubjects?: Array<{ classId: string }>;
+      }
+    | null
+    | undefined
+): string[] {
+  return [
+    ...new Set([
+      ...(teacher?.classTeachers ?? []).map((row) => row.classId),
+      ...(teacher?.classSubjects ?? []).map((row) => row.classId),
+    ]),
+  ];
 }
 
 export async function getStudentForSession(session: SessionPayload) {

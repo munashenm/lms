@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import { getTeacherForSession } from "@/lib/portal-data";
+import { getTeacherForSession, classIdsForTeacher } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,7 @@ export default async function TeacherDashboardPage() {
   const teacher = await getTeacherForSession(session!);
   const terms = getTerminology(teacher?.school.institutionType);
 
-  const classIds = teacher?.classTeachers.map((ct) => ct.classId) ?? [];
+  const classIds = classIdsForTeacher(teacher);
   const studentCount = classIds.length
     ? await prisma.student.count({ where: { classId: { in: classIds }, status: "ACTIVE" } })
     : 0;
@@ -44,6 +44,21 @@ export default async function TeacherDashboardPage() {
         </p>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <Button asChild>
+          <Link href="/teacher/attendance">Mark attendance</Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/teacher/assessments">Capture marks</Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/teacher/timetable">My timetable</Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/teacher/announcements">Message learners</Link>
+        </Button>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard title={`My ${terms.classes}`} value={classIds.length} icon={GraduationCap} />
         <StatCard title={terms.students} value={studentCount} icon={Users} />
@@ -64,23 +79,51 @@ export default async function TeacherDashboardPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          {!teacher || teacher.classTeachers.length === 0 ? (
+          {!teacher || classIds.length === 0 ? (
             <p className="text-sm text-muted">No classes assigned yet.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {teacher.classTeachers.map((ct) => (
-                <div key={ct.id} className="rounded-lg border border-border p-4">
+                <div key={`homeroom-${ct.id}`} className="rounded-lg border border-border p-4">
                   <p className="font-medium">{ct.class.name}</p>
                   <p className="text-xs text-muted mt-1">
                     {ct.class.grade?.name} · {ct.class._count.students} {terms.students.toLowerCase()}
                   </p>
-                  <div className="flex gap-2 mt-3">
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/teacher/classes/${ct.classId}`}>Open class</Link>
+                    </Button>
                     <Button size="sm" variant="outline" asChild>
                       <Link href={`/teacher/attendance?classId=${ct.classId}`}>Attendance</Link>
+                    </Button>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href="/teacher/assessments">Marks</Link>
                     </Button>
                   </div>
                 </div>
               ))}
+              {teacher.classSubjects
+                .filter((row) => !teacher.classTeachers.some((ct) => ct.classId === row.classId))
+                .map((row) => (
+                  <div key={`subject-${row.id}`} className="rounded-lg border border-border p-4">
+                    <p className="font-medium">{row.class.name}</p>
+                    <p className="text-xs text-muted mt-1">
+                      {row.class.grade?.name} · {row.subject.code} · {row.class._count.students}{" "}
+                      {terms.students.toLowerCase()}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={`/teacher/classes/${row.classId}`}>Open class</Link>
+                      </Button>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href={`/teacher/attendance?classId=${row.classId}`}>Attendance</Link>
+                      </Button>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link href="/teacher/assessments">Marks</Link>
+                      </Button>
+                    </div>
+                  </div>
+                ))}
             </div>
           )}
         </CardContent>

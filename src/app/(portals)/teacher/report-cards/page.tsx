@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getTeacherForSession } from "@/lib/portal-data";
+import { getTeacherForSession, classIdsForTeacher } from "@/lib/portal-data";
 import { getSchoolFilter } from "@/lib/rbac";
 import { ReportCardForm } from "@/components/assessments/report-card-form";
 import { ReportCardBatchForm } from "@/components/assessments/report-card-batch-form";
@@ -17,7 +17,7 @@ export default async function TeacherReportCardsPage() {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
   const teacher = await getTeacherForSession(session!);
-  const classIds = teacher?.classTeachers.map((ct) => ct.classId) ?? [];
+  const classIds = classIdsForTeacher(teacher);
   const schoolId = "schoolId" in filter ? filter.schoolId : session!.schoolId;
   const school = schoolId
     ? await prisma.school.findUnique({
@@ -29,7 +29,7 @@ export default async function TeacherReportCardsPage() {
       : null;
   const labels = getTerminology(school?.institutionType);
 
-  const [reportCards, students, academicYears, terms] = await Promise.all([
+  const [reportCards, students, academicYears, terms, taughtClasses] = await Promise.all([
     classIds.length
       ? prisma.reportCard.findMany({
           where: { student: { ...filter, classId: { in: classIds } } },
@@ -52,6 +52,13 @@ export default async function TeacherReportCardsPage() {
       where: { academicYear: filter, isCurrent: true },
       orderBy: { termNumber: "asc" },
     }),
+    classIds.length
+      ? prisma.class.findMany({
+          where: { id: { in: classIds } },
+          include: { grade: { select: { name: true } } },
+          orderBy: { name: "asc" },
+        })
+      : Promise.resolve([]),
   ]);
   const releaseMap = await getDocumentReleases([...new Set(reportCards.map((rc) => rc.studentId))]);
 
@@ -66,12 +73,10 @@ export default async function TeacherReportCardsPage() {
       </div>
 
       <ReportCardBatchForm
-        classes={
-          teacher?.classTeachers.map((ct) => ({
-            id: ct.classId,
-            name: ct.class.grade?.name ? `${ct.class.grade.name} · ${ct.class.name}` : ct.class.name,
-          })) ?? []
-        }
+        classes={taughtClasses.map((cls) => ({
+          id: cls.id,
+          name: cls.grade?.name ? `${cls.grade.name} · ${cls.name}` : cls.name,
+        }))}
         academicYears={academicYears.map((y) => ({ id: y.id, name: y.name }))}
         terms={terms.map((t) => ({ id: t.id, name: t.name }))}
       />
