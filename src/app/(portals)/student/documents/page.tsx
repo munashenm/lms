@@ -3,13 +3,12 @@ import { getStudentForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { DocumentList } from "@/components/documents/document-list";
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { documentVisibleToLearner } from "@/lib/learner-portal";
 import Link from "next/link";
 import { getDocumentRelease } from "@/lib/fee-clearance";
 import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
+import { OfficialDocumentActions } from "@/components/documents/official-document-actions";
 import { ISSUED_LETTER_LABELS } from "@/lib/letter-labels";
 
 export default async function StudentDocumentsPage() {
@@ -26,25 +25,19 @@ export default async function StudentDocumentsPage() {
           include: { uploader: { select: { firstName: true, lastName: true } } },
           orderBy: { createdAt: "desc" },
         }),
-        release.released
-          ? prisma.certificate.findMany({
-              where: { studentId: student.id },
-              orderBy: { issuedAt: "desc" },
-            })
-          : Promise.resolve([]),
-        release.released
-          ? prisma.reportCard.findMany({
-              where: { studentId: student.id, publishedAt: { not: null } },
-              include: { academicYear: { select: { name: true } }, term: { select: { name: true } } },
-              orderBy: { publishedAt: "desc" },
-            })
-          : Promise.resolve([]),
-        release.released
-          ? prisma.issuedLetter.findMany({
-              where: { studentId: student.id },
-              orderBy: { issuedAt: "desc" },
-            })
-          : Promise.resolve([]),
+        prisma.certificate.findMany({
+          where: { studentId: student.id },
+          orderBy: { issuedAt: "desc" },
+        }),
+        prisma.reportCard.findMany({
+          where: { studentId: student.id, publishedAt: { not: null } },
+          include: { academicYear: { select: { name: true } }, term: { select: { name: true } } },
+          orderBy: { publishedAt: "desc" },
+        }),
+        prisma.issuedLetter.findMany({
+          where: { studentId: student.id },
+          orderBy: { issuedAt: "desc" },
+        }),
       ])
     : [[], [], [], []];
 
@@ -60,6 +53,8 @@ export default async function StudentDocumentsPage() {
       )
     : [];
 
+  const hasOfficial = reportCards.length > 0 || certificates.length > 0 || letters.length > 0;
+
   return (
     <div className="space-y-6">
       <div>
@@ -68,26 +63,30 @@ export default async function StudentDocumentsPage() {
       </div>
       <DocumentList documents={visibleDocs} />
       {!release.released ? (
-        <DocumentsHoldNotice outstandingCents={release.outstandingCents} feesHref="/student/fees" />
+        <DocumentsHoldNotice
+          outstandingCents={release.outstandingCents}
+          feesHref="/student/fees"
+          compact={hasOfficial}
+        />
       ) : null}
-      {release.released && reportCards.length > 0 ? (
+      {reportCards.length > 0 ? (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">Report cards</h2>
           {reportCards.map((rc) => (
             <Card key={rc.id}>
               <CardContent className="p-4 flex items-center justify-between">
                 <p className="text-sm">{rc.academicYear.name}{rc.term ? ` — ${rc.term.name}` : ""}</p>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/api/report-cards/${rc.id}/pdf`}>
-                    <Download className="h-4 w-4" /> PDF
-                  </a>
-                </Button>
+                <OfficialDocumentActions
+                  released={release.released}
+                  href={`/api/report-cards/${rc.id}/pdf`}
+                  feesHref="/student/fees"
+                />
               </CardContent>
             </Card>
           ))}
         </div>
       ) : null}
-      {release.released && certificates.length > 0 ? (
+      {certificates.length > 0 ? (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">Certificates</h2>
           {certificates.map((cert) => (
@@ -97,17 +96,17 @@ export default async function StudentDocumentsPage() {
                   <p className="text-sm font-medium">{cert.title}</p>
                   <p className="text-xs text-muted">{formatDate(cert.issuedAt)}</p>
                 </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/api/certificates/${cert.id}/pdf`}>
-                    <Download className="h-4 w-4" /> PDF
-                  </a>
-                </Button>
+                <OfficialDocumentActions
+                  released={release.released}
+                  href={`/api/certificates/${cert.id}/pdf`}
+                  feesHref="/student/fees"
+                />
               </CardContent>
             </Card>
           ))}
         </div>
       ) : null}
-      {release.released && letters.length > 0 ? (
+      {letters.length > 0 ? (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">Letters & transcripts</h2>
           {letters.map((letter) => (
@@ -119,17 +118,17 @@ export default async function StudentDocumentsPage() {
                     {ISSUED_LETTER_LABELS[letter.type] ?? letter.type} · {formatDate(letter.issuedAt)}
                   </p>
                 </div>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={`/api/letters/${letter.id}/pdf`}>
-                    <Download className="h-4 w-4" /> PDF
-                  </a>
-                </Button>
+                <OfficialDocumentActions
+                  released={release.released}
+                  href={`/api/letters/${letter.id}/pdf`}
+                  feesHref="/student/fees"
+                />
               </CardContent>
             </Card>
           ))}
         </div>
       ) : null}
-      {release.released && reportCards.length === 0 && certificates.length === 0 && letters.length === 0 ? (
+      {!hasOfficial ? (
         <p className="text-sm text-muted">
           Official reports, certificates and letters appear here once the school issues them.{" "}
           <Link href="/student/report-cards" className="text-primary hover:underline">

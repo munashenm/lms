@@ -8,6 +8,8 @@ import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { createStudentLedgerEntry } from "@/lib/student-ledger";
 import { nextCreditNoteNumber } from "@/lib/finance-catalog";
 import { logAudit } from "@/lib/audit";
+import { getDocumentRelease } from "@/lib/fee-clearance";
+import { notifyDocumentsReleasedIfClear } from "@/lib/academic-document-notice";
 import { z } from "zod";
 
 const schema = z.object({
@@ -41,8 +43,12 @@ export async function POST(request: NextRequest) {
   if (denied) return denied;
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ message: "Invalid data" }, { status: 400 });
-  const student = await prisma.student.findFirst({ where: { id: parsed.data.studentId, schoolId } });
+  const student = await prisma.student.findFirst({
+    where: { id: parsed.data.studentId, schoolId },
+    select: { id: true, userId: true },
+  });
   if (!student) return NextResponse.json({ message: "Student not found" }, { status: 404 });
+  const previous = await getDocumentRelease(student.id);
   const number = await nextCreditNoteNumber(schoolId);
   const ledger = await createStudentLedgerEntry({
     schoolId,
@@ -73,6 +79,12 @@ export async function POST(request: NextRequest) {
     entity: "CreditNote",
     entityId: note.id,
     metadata: { number, amount: parsed.data.amount },
+  });
+  await notifyDocumentsReleasedIfClear({
+    studentId: student.id,
+    schoolId,
+    studentUserId: student.userId,
+    previous,
   });
   return NextResponse.json({ creditNote: note }, { status: 201 });
 }
