@@ -349,5 +349,5 @@ export function snapshotCounts(snapshot: BackupSnapshot) {
   };
 }
 
-export const SCHEMA_VERSION = "20260820040000_academic_documents";
+export const SCHEMA_VERSION = "20260820050000_enrolment_letter";
 export const APP_VERSION = process.env.npm_package_version || "0.1.0";

@@ -10,6 +10,7 @@ import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { writeAcademicPdf } from "@/lib/pdf-response";
 import { isLearnerPortalRole } from "@/lib/fee-clearance";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -107,6 +108,15 @@ export async function POST(request: NextRequest) {
       student: { select: { firstName: true, lastName: true } },
       course: { select: { name: true } },
     },
+  });
+
+  await logAudit({
+    schoolId: student.schoolId,
+    userId: session.userId,
+    action: "CREATE",
+    entity: "Certificate",
+    entityId: certificate.id,
+    metadata: { studentId: student.id, type: parsed.data.type, certificateNo },
   });
 
   return NextResponse.json({ certificate }, { status: 201 });

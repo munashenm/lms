@@ -11,6 +11,12 @@ const COLLECTABLE: InvoiceStatus[] = [
   InvoiceStatus.OVERDUE,
 ];
 
+export type DocumentRelease = {
+  released: boolean;
+  outstandingCents: number;
+  requireFees: boolean;
+};
+
 export function isLearnerPortalRole(role: UserRole): boolean {
   return role === UserRole.STUDENT || role === UserRole.PARENT;
 }
@@ -24,6 +30,14 @@ export function outstandingCentsFromInvoices(
   );
 }
 
+export function documentReleaseFrom(requireFees: boolean, outstandingCents: number): DocumentRelease {
+  return {
+    requireFees,
+    outstandingCents,
+    released: !requireFees || outstandingCents === 0,
+  };
+}
+
 export async function getStudentOutstandingCents(studentId: string): Promise<number> {
   const invoices = await prisma.invoice.findMany({
     where: { studentId, status: { in: COLLECTABLE } },
@@ -32,21 +46,60 @@ export async function getStudentOutstandingCents(studentId: string): Promise<num
   return outstandingCentsFromInvoices(invoices);
 }
 
-export async function getDocumentRelease(studentId: string): Promise<{
-  released: boolean;
-  outstandingCents: number;
-  requireFees: boolean;
-}> {
-  const student = await prisma.student.findUnique({
-    where: { id: studentId },
-    select: { school: { select: { requireFeesPaidForDocuments: true } } },
-  });
-  const requireFees = student?.school.requireFeesPaidForDocuments ?? true;
-  const outstandingCents = await getStudentOutstandingCents(studentId);
+export async function getDocumentReleases(
+  studentIds: string[]
+): Promise<Map<string, DocumentRelease>> {
+  const result = new Map<string, DocumentRelease>();
+  if (!studentIds.length) return result;
+
+  const [students, invoices] = await Promise.all([
+    prisma.student.findMany({
+      where: { id: { in: studentIds } },
+      select: { id: true, school: { select: { requireFeesPaidForDocuments: true } } },
+    }),
+    prisma.invoice.findMany({
+      where: { studentId: { in: studentIds }, status: { in: COLLECTABLE } },
+      select: { studentId: true, total: true, amountPaid: true },
+    }),
+  ]);
+
+  const outstandingByStudent = new Map<string, number>();
+  for (const invoice of invoices) {
+    outstandingByStudent.set(
+      invoice.studentId,
+      (outstandingByStudent.get(invoice.studentId) ?? 0) +
+        toCents(outstandingOf(String(invoice.total), String(invoice.amountPaid)))
+    );
+  }
+
+  for (const student of students) {
+    result.set(
+      student.id,
+      documentReleaseFrom(
+        student.school.requireFeesPaidForDocuments,
+        outstandingByStudent.get(student.id) ?? 0
+      )
+    );
+  }
+  return result;
+}
+
+export async function getDocumentRelease(studentId: string): Promise<DocumentRelease> {
+  const releases = await getDocumentReleases([studentId]);
+  return releases.get(studentId) ?? documentReleaseFrom(true, 0);
+}
+
+export function summarizeDocumentReleases(
+  studentIds: string[],
+  releases: Map<string, DocumentRelease>
+) {
+  const rows = studentIds.map((id) => ({
+    id,
+    ...(releases.get(id) ?? documentReleaseFrom(true, 0)),
+  }));
   return {
-    requireFees,
-    outstandingCents,
-    released: !requireFees || outstandingCents === 0,
+    releasedIds: rows.filter((row) => row.released).map((row) => row.id),
+    blocked: rows.find((row) => !row.released),
   };
 }
 

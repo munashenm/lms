@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import { outstandingCentsFromInvoices, feesHoldMessage, isLearnerPortalRole } from "@/lib/fee-clearance";
+import { outstandingCentsFromInvoices, feesHoldMessage, isLearnerPortalRole, documentReleaseFrom, summarizeDocumentReleases } from "@/lib/fee-clearance";
 import { defaultLetterBody, wrapPdfLines } from "@/lib/pdf-letter";
-import { schoolSettingsSchema } from "@/lib/validators";
+import { schoolSettingsSchema, issuedLetterSchema } from "@/lib/validators";
 import { readPublicPdf } from "@/lib/pdf-response";
 import { UserRole } from "@prisma/client";
 
@@ -36,6 +36,23 @@ describe("fee clearance for academic documents", () => {
     expect(isLearnerPortalRole(UserRole.SCHOOL_ADMIN)).toBe(false);
     expect(isLearnerPortalRole(UserRole.FINANCE_OFFICER)).toBe(false);
   });
+
+  it("releases documents when fees are not required or outstanding is zero", () => {
+    expect(documentReleaseFrom(true, 1500).released).toBe(false);
+    expect(documentReleaseFrom(true, 0).released).toBe(true);
+    expect(documentReleaseFrom(false, 1500).released).toBe(true);
+  });
+
+  it("summarises mixed child accounts", () => {
+    const map = new Map([
+      ["a", documentReleaseFrom(true, 0)],
+      ["b", documentReleaseFrom(true, 25000)],
+    ]);
+    const summary = summarizeDocumentReleases(["a", "b"], map);
+    expect(summary.releasedIds).toEqual(["a"]);
+    expect(summary.blocked?.id).toBe("b");
+    expect(summary.blocked?.outstandingCents).toBe(25000);
+  });
 });
 
 describe("official letters", () => {
@@ -54,7 +71,7 @@ describe("official letters", () => {
     expect(body).toContain("Relocation");
   });
 
-  it("writes fee clearance and leaving letters", () => {
+  it("writes fee clearance, leaving and enrolment letters", () => {
     expect(
       defaultLetterBody({
         type: "FEE_CLEARANCE",
@@ -72,6 +89,15 @@ describe("official letters", () => {
         reason: "End of programme",
       })
     ).toContain("End of programme");
+    expect(
+      defaultLetterBody({
+        type: "ENROLMENT",
+        schoolName: "Cape Town High",
+        studentName: "Anele Ndlovu",
+        studentNumber: "CTH0001",
+        grade: "Grade 10",
+      })
+    ).toMatch(/proof of enrolment/i);
   });
 
   it("wraps long letter lines to the page width", async () => {
@@ -98,7 +124,14 @@ describe("academic pdf paths", () => {
 
 describe("school settings document hold", () => {
   it("accepts the fees-paid document release flag", () => {
-    const parsed = schoolSettingsSchema.safeParse({ requireFeesPaidForDocuments: true });
+    expect(schoolSettingsSchema.safeParse({ requireFeesPaidForDocuments: true }).success).toBe(true);
+  });
+
+  it("accepts enrolment confirmation letters", () => {
+    const parsed = issuedLetterSchema.safeParse({
+      studentId: "stu_1",
+      type: "ENROLMENT",
+    });
     expect(parsed.success).toBe(true);
   });
 });

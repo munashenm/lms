@@ -47,6 +47,9 @@ export function defaultLetterBody(opts: {
   if (opts.type === "FEE_CLEARANCE") {
     return `${opts.schoolName} confirms that school fees for ${opts.studentName} (admission no. ${opts.studentNumber}) have been paid in full as at the date of this letter. Official reports, certificates and related documents may be released.`;
   }
+  if (opts.type === "ENROLMENT") {
+    return `${opts.schoolName} confirms that ${opts.studentName} (admission no. ${opts.studentNumber}) is a registered learner${grade}. This letter may be presented as proof of enrolment.`;
+  }
   return `${opts.schoolName} issues this official letter in respect of ${opts.studentName} (admission no. ${opts.studentNumber}).`;
 }
 

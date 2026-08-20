@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getTerminology } from "@/lib/terminology";
-import { getDocumentRelease } from "@/lib/fee-clearance";
+import { getDocumentReleases, summarizeDocumentReleases } from "@/lib/fee-clearance";
 import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
 
 interface PageProps {
@@ -24,9 +24,10 @@ export default async function ParentReportCardsPage({ searchParams }: PageProps)
   const children = guardian?.students.map((sg) => sg.student) ?? [];
   const childIds = children.map((c) => c.id);
   const filterIds = studentId && childIds.includes(studentId) ? [studentId] : childIds;
-  const releases = await Promise.all(filterIds.map(async (id) => ({ id, ...(await getDocumentRelease(id)) })));
-  const releasedIds = releases.filter((row) => row.released).map((row) => row.id);
-  const blocked = releases.find((row) => !row.released);
+  const { releasedIds, blocked } = summarizeDocumentReleases(
+    filterIds,
+    await getDocumentReleases(filterIds)
+  );
 
   const reportCards = releasedIds.length
     ? await prisma.reportCard.findMany({

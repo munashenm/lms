@@ -20,12 +20,15 @@ import {
   FileText,
   Award,
 } from "lucide-react";
+import { getDocumentRelease } from "@/lib/fee-clearance";
+import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
 
 export default async function StudentDashboardPage() {
   const session = await getSession();
   const student = await getStudentForSession(session!);
   const terms = getTerminology(student?.school.institutionType);
   const data = student ? await getLearnerDashboardData(student) : null;
+  const release = student ? await getDocumentRelease(student.id) : null;
   const currentEnrolment =
     student?.enrolments.find((e) => e.academicYear?.isCurrent) ?? student?.enrolments[0];
 
@@ -72,6 +75,10 @@ export default async function StudentDashboardPage() {
             <StudentBarcode value={student.studentNumber} />
           </CardContent>
         </Card>
+      ) : null}
+
+      {release && !release.released ? (
+        <DocumentsHoldNotice outstandingCents={release.outstandingCents} feesHref="/student/fees" />
       ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">

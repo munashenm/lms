@@ -13,6 +13,9 @@ import { getStudentLedger, STUDENT_LEDGER_TYPE_LABELS } from "@/lib/student-ledg
 import { formatZAR, formatDate } from "@/lib/utils";
 import { CreditCard, TrendingDown, Wallet } from "lucide-react";
 import { InstalmentStatus, StudentLedgerType } from "@prisma/client";
+import { getDocumentRelease } from "@/lib/fee-clearance";
+import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
+import Link from "next/link";
 
 export default async function StudentFeesPage() {
   const session = await getSession();
@@ -78,6 +81,8 @@ export default async function StudentFeesPage() {
     amountPaid: Number(i.amountPaid),
   }));
 
+  const release = student ? await getDocumentRelease(student.id) : null;
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -87,6 +92,22 @@ export default async function StudentFeesPage() {
         </div>
         {student ? <FeeStatementButton /> : null}
       </div>
+
+      {release && !release.released ? (
+        <DocumentsHoldNotice outstandingCents={release.outstandingCents} feesHref="/student/fees" />
+      ) : null}
+      {release?.requireFees && release.released ? (
+        <p className="text-sm text-muted">
+          This account is paid in full, so reports, certificates and letters are available.{" "}
+          <Link href="/student/report-cards" className="text-primary hover:underline">
+            View reports
+          </Link>
+          {" · "}
+          <Link href="/student/letters" className="text-primary hover:underline">
+            View letters
+          </Link>
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard title="Current balance" value={formatZAR(ledger?.balance ?? totalOutstanding)} icon={Wallet} />

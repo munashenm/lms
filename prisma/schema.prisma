@@ -184,6 +184,7 @@ enum IssuedLetterType {
   LEAVING
   FEE_CLEARANCE
   TRANSCRIPT
+  ENROLMENT
 }
 
 enum LeaveType {

@@ -12,6 +12,9 @@ import { getTerminology } from "@/lib/terminology";
 import { PayOnlineButton } from "@/components/finance/pay-online-button";
 import { InstalmentStatus } from "@prisma/client";
 import { CreditCard, TrendingDown } from "lucide-react";
+import { getDocumentReleases, summarizeDocumentReleases } from "@/lib/fee-clearance";
+import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
+import Link from "next/link";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
@@ -26,6 +29,13 @@ export default async function ParentFeesPage({ searchParams }: PageProps) {
   const children = guardian?.students.map((sg) => sg.student) ?? [];
   const childIds = children.map((c) => c.id);
   const filterIds = studentId && childIds.includes(studentId) ? [studentId] : childIds;
+  const releaseMap = await getDocumentReleases(filterIds);
+  const { blocked, releasedIds } = summarizeDocumentReleases(filterIds, releaseMap);
+  const showReleasedNote =
+    filterIds.length > 0 &&
+    !blocked &&
+    releasedIds.length === filterIds.length &&
+    filterIds.some((id) => releaseMap.get(id)?.requireFees);
 
   const invoices = filterIds.length
     ? await prisma.invoice.findMany({
@@ -76,6 +86,22 @@ export default async function ParentFeesPage({ searchParams }: PageProps) {
         selectedId={studentId}
         basePath="/parent/fees"
       />
+
+      {blocked ? (
+        <DocumentsHoldNotice outstandingCents={blocked.outstandingCents} feesHref="/parent/fees" />
+      ) : null}
+      {showReleasedNote ? (
+        <p className="text-sm text-muted">
+          Selected accounts are paid in full, so reports, certificates and letters are available.{" "}
+          <Link href="/parent/report-cards" className="text-primary hover:underline">
+            View reports
+          </Link>
+          {" · "}
+          <Link href="/parent/letters" className="text-primary hover:underline">
+            View letters
+          </Link>
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatCard title="Outstanding" value={formatZAR(totalOutstanding)} icon={TrendingDown} />

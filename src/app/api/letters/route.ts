@@ -15,6 +15,7 @@ import { formatDate } from "@/lib/utils";
 import { authorizeAcademicDocument, isLearnerPortalRole } from "@/lib/fee-clearance";
 import { getStudentForSession, getChildStudentIds } from "@/lib/portal-data";
 import { writeAcademicPdf } from "@/lib/pdf-response";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -193,6 +194,15 @@ export async function POST(request: NextRequest) {
       issuedById: session!.userId,
     },
     include: { student: { select: { firstName: true, lastName: true, studentNumber: true } } },
+  });
+
+  await logAudit({
+    schoolId: student.schoolId,
+    userId: session.userId,
+    action: "CREATE",
+    entity: "IssuedLetter",
+    entityId: letter.id,
+    metadata: { type, letterNo, studentId: student.id },
   });
 
   return NextResponse.json({ letter }, { status: 201 });

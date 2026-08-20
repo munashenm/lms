@@ -10,6 +10,7 @@ import { getTerminology } from "@/lib/terminology";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { writeAcademicPdf } from "@/lib/pdf-response";
 import { isLearnerPortalRole } from "@/lib/fee-clearance";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -153,6 +154,15 @@ export async function POST(request: NextRequest) {
       academicYear: true,
       term: true,
     },
+  });
+
+  await logAudit({
+    schoolId: student.schoolId,
+    userId: session.userId,
+    action: "CREATE",
+    entity: "ReportCard",
+    entityId: reportCard.id,
+    metadata: { studentId, academicYearId, termId: termId ?? null },
   });
 
   return NextResponse.json({ reportCard }, { status: 201 });

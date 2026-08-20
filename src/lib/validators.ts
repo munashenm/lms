@@ -510,7 +510,7 @@ export const certificateSchema = z.object({
 
 export const issuedLetterSchema = z.object({
   studentId: z.string().min(1),
-  type: z.enum(["TRANSFER", "TESTIMONIAL", "LEAVING", "FEE_CLEARANCE", "TRANSCRIPT"]),
+  type: z.enum(["TRANSFER", "TESTIMONIAL", "LEAVING", "FEE_CLEARANCE", "TRANSCRIPT", "ENROLMENT"]),
   title: z.string().optional(),
   destinationSchool: z.string().optional(),
   reason: z.string().optional(),

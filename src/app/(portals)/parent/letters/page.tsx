@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { getDocumentRelease } from "@/lib/fee-clearance";
+import { getDocumentReleases, summarizeDocumentReleases } from "@/lib/fee-clearance";
 import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
 import { ISSUED_LETTER_LABELS } from "@/lib/letter-labels";
 
@@ -22,9 +22,10 @@ export default async function ParentLettersPage({ searchParams }: PageProps) {
   const children = guardian?.students.map((sg) => sg.student) ?? [];
   const childIds = children.map((c) => c.id);
   const filterIds = studentId && childIds.includes(studentId) ? [studentId] : childIds;
-  const releases = await Promise.all(filterIds.map(async (id) => ({ id, ...(await getDocumentRelease(id)) })));
-  const releasedIds = releases.filter((row) => row.released).map((row) => row.id);
-  const blocked = releases.find((row) => !row.released);
+  const { releasedIds, blocked } = summarizeDocumentReleases(
+    filterIds,
+    await getDocumentReleases(filterIds)
+  );
 
   const letters = releasedIds.length
     ? await prisma.issuedLetter.findMany({

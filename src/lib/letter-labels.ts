@@ -4,4 +4,5 @@ export const ISSUED_LETTER_LABELS: Record<string, string> = {
   LEAVING: "School leaving letter",
   FEE_CLEARANCE: "Fee clearance",
   TRANSCRIPT: "Academic transcript",
+  ENROLMENT: "Confirmation of enrolment",
 };

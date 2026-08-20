@@ -11,12 +11,18 @@ import { getOutstandingBalance } from "@/lib/finance";
 import { formatZAR } from "@/lib/utils";
 import { getTerminology } from "@/lib/terminology";
 import { ClipboardCheck, CreditCard, FileText, Users } from "lucide-react";
+import { getDocumentReleases, summarizeDocumentReleases } from "@/lib/fee-clearance";
+import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
 
 export default async function ParentDashboardPage() {
   const session = await getSession();
   const guardian = await getGuardianForSession(session!);
   const terms = getTerminology(guardian?.school.institutionType);
   const childIds = guardian?.students.map((sg) => sg.studentId) ?? [];
+  const { blocked } = summarizeDocumentReleases(
+    childIds,
+    await getDocumentReleases(childIds)
+  );
 
   const [invoices, attendanceStats, announcements] = await Promise.all([
     childIds.length > 0
@@ -58,6 +64,10 @@ export default async function ParentDashboardPage() {
           Welcome, {session!.firstName}. View your children&apos;s progress.
         </p>
       </div>
+
+      {blocked ? (
+        <DocumentsHoldNotice outstandingCents={blocked.outstandingCents} feesHref="/parent/fees" />
+      ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
@@ -130,6 +140,12 @@ export default async function ParentDashboardPage() {
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link href="/parent/results">Results</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/parent/report-cards">{terms.reportCards}</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/parent/letters">Letters</Link>
             </Button>
           </CardContent>
         </Card>
