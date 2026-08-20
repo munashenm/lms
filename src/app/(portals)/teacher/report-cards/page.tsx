@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { getTeacherForSession } from "@/lib/portal-data";
 import { getSchoolFilter } from "@/lib/rbac";
 import { ReportCardForm } from "@/components/assessments/report-card-form";
+import { ReportCardBatchForm } from "@/components/assessments/report-card-batch-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,17 @@ export default async function TeacherReportCardsPage() {
           school fees are paid in full.
         </p>
       </div>
+
+      <ReportCardBatchForm
+        classes={
+          teacher?.classTeachers.map((ct) => ({
+            id: ct.classId,
+            name: ct.class.grade?.name ? `${ct.class.grade.name} · ${ct.class.name}` : ct.class.name,
+          })) ?? []
+        }
+        academicYears={academicYears.map((y) => ({ id: y.id, name: y.name }))}
+        terms={terms.map((t) => ({ id: t.id, name: t.name }))}
+      />
 
       <ReportCardForm
         students={students.map((s) => ({

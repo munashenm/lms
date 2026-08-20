@@ -53,7 +53,7 @@ export function defaultLetterBody(opts: {
   return `${opts.schoolName} issues this official letter in respect of ${opts.studentName} (admission no. ${opts.studentNumber}).`;
 }
 
-export async function generateLetterPdf(data: {
+export type LetterPdfData = {
   brand: SchoolBrand;
   title: string;
   letterNo: string;
@@ -65,7 +65,9 @@ export async function generateLetterPdf(data: {
   issuedAt: string;
   effectiveDate: string;
   destinationSchool?: string | null;
-}): Promise<Uint8Array> {
+};
+
+export async function generateLetterPdf(data: LetterPdfData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const page = doc.addPage([595, 842]);
   const font = await doc.embedFont(StandardFonts.Helvetica);

@@ -6,7 +6,7 @@ import {
   type SchoolBrand,
 } from "./pdf-branding";
 
-interface CertificateData {
+export interface CertificatePdfData {
   brand: SchoolBrand;
   studentName: string;
   studentNumber: string;
@@ -20,7 +20,7 @@ interface CertificateData {
   issuedAt: string;
 }
 
-export async function generateCertificatePdf(data: CertificateData): Promise<Uint8Array> {
+export async function generateCertificatePdf(data: CertificatePdfData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const page = doc.addPage([842, 595]); // A4 landscape
   const font = await doc.embedFont(StandardFonts.Helvetica);

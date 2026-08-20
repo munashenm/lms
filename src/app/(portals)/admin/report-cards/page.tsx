@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter } from "@/lib/rbac";
 import { ReportCardForm } from "@/components/assessments/report-card-form";
+import { ReportCardBatchForm } from "@/components/assessments/report-card-batch-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ export default async function ReportCardsPage() {
     : null;
   const labels = getTerminology(school?.institutionType);
 
-  const [reportCards, students, academicYears, terms] = await Promise.all([
+  const [reportCards, students, academicYears, terms, classes] = await Promise.all([
     prisma.reportCard.findMany({
       where: { student: filter },
       include: {
@@ -42,6 +43,11 @@ export default async function ReportCardsPage() {
       where: { academicYear: filter, isCurrent: true },
       orderBy: { termNumber: "asc" },
     }),
+    prisma.class.findMany({
+      where: { ...filter, isActive: true },
+      include: { grade: { select: { name: true } } },
+      orderBy: { name: "asc" },
+    }),
   ]);
   const releaseMap = await getDocumentReleases([...new Set(reportCards.map((rc) => rc.studentId))]);
 
@@ -51,6 +57,15 @@ export default async function ReportCardsPage() {
         <h1 className="text-2xl font-bold">{labels.reportCards}</h1>
         <p className="text-muted text-sm mt-1">Generate CAPS/NSC reports with PDF export</p>
       </div>
+
+      <ReportCardBatchForm
+        classes={classes.map((cls) => ({
+          id: cls.id,
+          name: cls.grade?.name ? `${cls.grade.name} · ${cls.name}` : cls.name,
+        }))}
+        academicYears={academicYears.map((y) => ({ id: y.id, name: y.name }))}
+        terms={terms.map((t) => ({ id: t.id, name: t.name }))}
+      />
 
       <ReportCardForm
         students={students.map((s) => ({

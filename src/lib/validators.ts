@@ -400,6 +400,13 @@ export const reportCardSchema = z.object({
   comments: z.string().optional(),
 });
 
+export const reportCardBatchSchema = z.object({
+  classId: z.string().min(1),
+  academicYearId: z.string().min(1),
+  termId: z.string().optional(),
+  comments: z.string().optional(),
+});
+
 export const applicationSchema = z.object({
   schoolSlug: z.string().min(1),
   firstName: z.string().min(1),

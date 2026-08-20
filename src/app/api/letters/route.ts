@@ -15,6 +15,7 @@ import { formatDate } from "@/lib/utils";
 import { authorizeAcademicDocument, isLearnerPortalRole } from "@/lib/fee-clearance";
 import { getStudentForSession, getChildStudentIds } from "@/lib/portal-data";
 import { writeAcademicPdf } from "@/lib/pdf-response";
+import { academicPdfSnapshotInput, type AcademicPdfSnapshot } from "@/lib/academic-pdf";
 import { logAudit } from "@/lib/audit";
 import { notifyAcademicDocumentFamily } from "@/lib/academic-document-notice";
 
@@ -110,6 +111,7 @@ export async function POST(request: NextRequest) {
   const studentName = `${student.firstName} ${student.lastName}`;
 
   let pdfBytes: Uint8Array;
+  let snapshot: AcademicPdfSnapshot;
   if (type === IssuedLetterType.TRANSCRIPT) {
     const subjectMarks = new Map<string, { name: string; score: number; maxMarks: number }>();
     for (const mark of student.marks) {
@@ -135,7 +137,7 @@ export async function POST(request: NextRequest) {
         weight: m.assessment.weight ? Number(m.assessment.weight) : 1,
       }))
     );
-    pdfBytes = await generateTranscriptPdf({
+    const transcriptData = {
       brand,
       studentName,
       studentNumber: student.studentNumber,
@@ -148,7 +150,9 @@ export async function POST(request: NextRequest) {
       subjects,
       overallAverage,
       overallSymbol: percentageToSymbol(overallAverage),
-    });
+    };
+    snapshot = { kind: "transcript", data: transcriptData };
+    pdfBytes = await generateTranscriptPdf(transcriptData);
   } else {
     const body =
       parsed.data.bodyText?.trim() ||
@@ -161,7 +165,7 @@ export async function POST(request: NextRequest) {
         destinationSchool: parsed.data.destinationSchool,
         reason: parsed.data.reason,
       });
-    pdfBytes = await generateLetterPdf({
+    const letterData = {
       brand,
       title,
       letterNo,
@@ -173,7 +177,9 @@ export async function POST(request: NextRequest) {
       issuedAt: formatDate(issuedAt),
       effectiveDate: formatDate(effectiveDate),
       destinationSchool: parsed.data.destinationSchool,
-    });
+    };
+    snapshot = { kind: "letter", data: letterData };
+    pdfBytes = await generateLetterPdf(letterData);
   }
 
   const filename = `${letterNo.toLowerCase()}.pdf`;
@@ -191,6 +197,7 @@ export async function POST(request: NextRequest) {
       bodyText: parsed.data.bodyText || null,
       effectiveDate,
       pdfUrl,
+      snapshot: academicPdfSnapshotInput(snapshot),
       issuedAt,
       issuedById: session!.userId,
     },

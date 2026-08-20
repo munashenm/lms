@@ -7,7 +7,7 @@ import {
   type SchoolBrand,
 } from "./pdf-branding";
 
-interface ReportCardSubject {
+export interface ReportCardSubject {
   name: string;
   score: number;
   maxMarks: number;
@@ -15,7 +15,7 @@ interface ReportCardSubject {
   symbol: string;
 }
 
-interface ReportCardData {
+export interface ReportCardData {
   brand: SchoolBrand;
   studentName: string;
   studentNumber: string;

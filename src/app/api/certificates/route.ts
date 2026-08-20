@@ -9,6 +9,7 @@ import { getTerminology } from "@/lib/terminology";
 import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { writeAcademicPdf } from "@/lib/pdf-response";
+import { academicPdfSnapshotInput } from "@/lib/academic-pdf";
 import { isLearnerPortalRole } from "@/lib/fee-clearance";
 import { logAudit } from "@/lib/audit";
 import { notifyAcademicDocumentFamily } from "@/lib/academic-document-notice";
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
   const certificateNo = `CERT-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
   const issuedAt = new Date();
 
-  const pdfBytes = await generateCertificatePdf({
+  const pdfData = {
     brand: toSchoolBrand(student.school),
     studentName: `${student.firstName} ${student.lastName}`,
     studentNumber: student.studentNumber,
@@ -87,7 +88,8 @@ export async function POST(request: NextRequest) {
     description: parsed.data.description,
     certificateNo,
     issuedAt: issuedAt.toLocaleDateString("en-ZA"),
-  });
+  };
+  const pdfBytes = await generateCertificatePdf(pdfData);
 
   const filename = `cert-${student.studentNumber}-${Date.now()}.pdf`;
   const pdfUrl = await writeAcademicPdf("certificates", filename, pdfBytes);
@@ -103,6 +105,7 @@ export async function POST(request: NextRequest) {
       title: parsed.data.title,
       description: parsed.data.description ?? null,
       pdfUrl,
+      snapshot: academicPdfSnapshotInput({ kind: "certificate", data: pdfData }),
       issuedById: session!.userId,
     },
     include: {

@@ -1255,6 +1255,7 @@ model ReportCard {
   overallAverage Decimal? @db.Decimal(5, 2)
   comments       String?
   pdfUrl         String?
+  snapshot       Json?
   publishedAt    DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -1505,6 +1506,7 @@ model Certificate {
   description    String?
   issuedAt       DateTime        @default(now())
   pdfUrl         String?
+  snapshot       Json?
   issuedById     String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -1532,6 +1534,7 @@ model IssuedLetter {
   bodyText           String?          @db.Text
   effectiveDate      DateTime         @default(now())
   pdfUrl             String?
+  snapshot           Json?
   issuedAt           DateTime         @default(now())
   issuedById         String?
   createdAt          DateTime         @default(now())

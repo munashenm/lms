@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { authorizeAcademicDocument } from "@/lib/fee-clearance";
-import { pdfFileResponse, readPublicPdf } from "@/lib/pdf-response";
+import { pdfFileResponse } from "@/lib/pdf-response";
+import { resolveAcademicPdf } from "@/lib/academic-pdf";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -21,7 +22,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
   });
   if (!access.ok) return NextResponse.json({ message: access.message }, { status: access.status });
 
-  const file = await readPublicPdf(letter.pdfUrl);
+  const file = await resolveAcademicPdf({ pdfUrl: letter.pdfUrl, snapshot: letter.snapshot });
   if (!file) return NextResponse.json({ message: "PDF not found" }, { status: 404 });
   return pdfFileResponse(file, `${letter.letterNo}.pdf`);
 }

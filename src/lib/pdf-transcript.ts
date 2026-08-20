@@ -7,7 +7,7 @@ import {
   type SchoolBrand,
 } from "./pdf-branding";
 
-export async function generateTranscriptPdf(data: {
+export type TranscriptPdfData = {
   brand: SchoolBrand;
   studentName: string;
   studentNumber: string;
@@ -20,7 +20,9 @@ export async function generateTranscriptPdf(data: {
   subjects: Array<{ name: string; score: number; maxMarks: number; percentage: number; symbol: string }>;
   overallAverage: number;
   overallSymbol: string;
-}): Promise<Uint8Array> {
+};
+
+export async function generateTranscriptPdf(data: TranscriptPdfData): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const page = doc.addPage([595, 842]);
   const font = await doc.embedFont(StandardFonts.Helvetica);

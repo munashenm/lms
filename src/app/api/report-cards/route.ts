@@ -5,15 +5,9 @@ import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { getTeacherForSession } from "@/lib/portal-data";
 import { UserRole } from "@prisma/client";
 import { reportCardSchema } from "@/lib/validators";
-import { calculatePercentage, calculateWeightedAverage, percentageToSymbol } from "@/lib/grading";
-import { generateReportCardPdf } from "@/lib/pdf-report-card";
-import { toSchoolBrand } from "@/lib/pdf-branding";
-import { getTerminology } from "@/lib/terminology";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
-import { writeAcademicPdf } from "@/lib/pdf-response";
 import { isLearnerPortalRole } from "@/lib/fee-clearance";
-import { logAudit } from "@/lib/audit";
-import { notifyAcademicDocumentFamily } from "@/lib/academic-document-notice";
+import { issueReportCard } from "@/lib/issue-report-card";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -49,6 +43,19 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ reportCards });
 }
 
+const reportStudentInclude = {
+  grade: true,
+  class: true,
+  school: true,
+  marks: {
+    include: {
+      assessment: {
+        include: { subject: true },
+      },
+    },
+  },
+} as const;
+
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!requirePermission(session, "marks:write")) {
@@ -66,16 +73,10 @@ export async function POST(request: NextRequest) {
   const student = await prisma.student.findFirst({
     where: { id: studentId, ...getSchoolFilter(session!) },
     include: {
-      grade: true,
-      class: true,
-      school: true,
+      ...reportStudentInclude,
       marks: {
         where: termId ? { assessment: { termId } } : {},
-        include: {
-          assessment: {
-            include: { subject: true },
-          },
-        },
+        include: reportStudentInclude.marks.include,
       },
     },
   });
@@ -110,94 +111,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Term not found" }, { status: 404 });
   }
 
-  const subjectMarks = new Map<string, { name: string; score: number; maxMarks: number; weight: number }>();
-
-  for (const mark of student.marks) {
-    const subjectName = mark.assessment.subject?.name ?? mark.assessment.title;
-    const existing = subjectMarks.get(subjectName);
-    const score = Number(mark.score);
-    const max = Number(mark.assessment.maxMarks);
-    const weight = Number(mark.assessment.weight ?? 1);
-
-    if (existing) {
-      existing.score += score;
-      existing.maxMarks += max;
-      existing.weight += weight;
-    } else {
-      subjectMarks.set(subjectName, { name: subjectName, score, maxMarks: max, weight });
-    }
-  }
-
-  const subjects = Array.from(subjectMarks.values()).map((s) => {
-    const percentage = calculatePercentage(s.score, s.maxMarks);
-    return {
-      name: s.name,
-      score: s.score,
-      maxMarks: s.maxMarks,
-      percentage,
-      symbol: percentageToSymbol(percentage),
-    };
-  });
-
-  const overallAverage = calculateWeightedAverage(
-    student.marks.map((m) => ({
-      score: Number(m.score),
-      maxMarks: Number(m.assessment.maxMarks),
-      weight: m.assessment.weight ? Number(m.assessment.weight) : 1,
-    }))
-  );
-
-  const overallSymbol = percentageToSymbol(overallAverage);
-
-  const pdfBytes = await generateReportCardPdf({
-    brand: toSchoolBrand(student.school),
-    studentName: `${student.firstName} ${student.lastName}`,
-    studentNumber: student.studentNumber,
-    studentNumberLabel: getTerminology(student.school.institutionType).admissionNumber,
-    learnerLabel: getTerminology(student.school.institutionType).student,
-    grade: student.grade?.name ?? "—",
-    className: student.class?.name ?? "—",
-    academicYear: academicYear?.name ?? "—",
-    term: term?.name ?? "Annual",
-    subjects,
-    overallAverage,
-    overallSymbol,
-    comments: comments ?? undefined,
-  });
-
-  const filename = `report-${student.studentNumber}-${Date.now()}.pdf`;
-  const pdfUrl = await writeAcademicPdf("report-cards", filename, pdfBytes);
-
-  const reportCard = await prisma.reportCard.create({
-    data: {
-      studentId,
-      academicYearId,
-      termId: termId ?? null,
-      overallAverage,
-      comments: comments ?? null,
-      pdfUrl,
-      publishedAt: new Date(),
-    },
-    include: {
-      student: { select: { firstName: true, lastName: true } },
-      academicYear: true,
-      term: true,
-    },
-  });
-
-  await logAudit({
-    schoolId: student.schoolId,
+  const reportCard = await issueReportCard({
+    student,
+    academicYear,
+    term,
+    comments,
     userId: session.userId,
-    action: "CREATE",
-    entity: "ReportCard",
-    entityId: reportCard.id,
-    metadata: { studentId, academicYearId, termId: termId ?? null },
-  });
-  await notifyAcademicDocumentFamily({
-    studentId,
-    schoolId: student.schoolId,
-    kind: "report",
-    title: `${academicYear?.name ?? "Report"}${term?.name ? ` — ${term.name}` : ""}`,
   });
 
   return NextResponse.json({ reportCard }, { status: 201 });
