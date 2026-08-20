@@ -164,6 +164,8 @@ describe("other portal groups", () => {
     expect(getStudentNav().find((item) => item.href === "/student/letters")?.section).toBe("Examinations");
     expect(getTeacherNav().find((item) => item.href === "/staff/payslips")?.section).toBe("My work");
     expect(getTeacherNav().find((item) => item.href === "/teacher/classes")?.group).toBe("Classwork");
+    expect(getTeacherNav().find((item) => item.href === "/teacher/report-cards")?.group).toBe("Classwork");
+    expect(getTeacherNav().find((item) => item.href === "/teacher/report-cards")?.section).toBe("Teaching");
   });
 
   it("splits finance officer tools into Fees, Collections and Books", () => {

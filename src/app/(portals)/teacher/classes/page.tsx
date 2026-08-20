@@ -57,6 +57,9 @@ export default async function TeacherClassesPage() {
                 <Button size="sm" asChild>
                   <Link href={`/teacher/attendance?classId=${cls.id}`}>Take Attendance</Link>
                 </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <Link href="/teacher/report-cards">Reports</Link>
+                </Button>
               </div>
             </CardContent>
           </Card>

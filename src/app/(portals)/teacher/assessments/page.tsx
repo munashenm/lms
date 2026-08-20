@@ -38,10 +38,15 @@ export default async function TeacherAssessmentsPage() {
           <h1 className="text-2xl font-bold">Assessments</h1>
           <p className="text-muted text-sm mt-1">Create tests and capture marks</p>
         </div>
-        <AssessmentForm
-          subjects={subjects.map((s) => ({ id: s.id, name: s.name, code: s.code }))}
-          terms={terms.map((t) => ({ id: t.id, name: t.name }))}
-        />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/teacher/report-cards">Report cards</Link>
+          </Button>
+          <AssessmentForm
+            subjects={subjects.map((s) => ({ id: s.id, name: s.name, code: s.code }))}
+            terms={terms.map((t) => ({ id: t.id, name: t.name }))}
+          />
+        </div>
       </div>
 
       <Card className="overflow-hidden">

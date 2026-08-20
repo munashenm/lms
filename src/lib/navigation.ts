@@ -249,6 +249,7 @@ export function getTeacherNav(terms?: Terminology): NavItem[] {
       ...cluster("Classwork", [
         { label: `My ${t.classes}`, href: "/teacher/classes", icon: "GraduationCap" },
         { label: "Assessments", href: "/teacher/assessments", icon: "FileText" },
+        { label: t.reportCards, href: "/teacher/report-cards", icon: "Award" },
         { label: "Timetable", href: "/teacher/timetable", icon: "Calendar" },
         { label: "Attendance", href: "/teacher/attendance", icon: "ClipboardCheck" },
         { label: "Materials", href: "/teacher/materials", icon: "Upload" },

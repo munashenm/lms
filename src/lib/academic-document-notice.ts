@@ -1,4 +1,4 @@
-import { notifyStudentGuardians, notifyUser } from "./notifications";
+import { notifyStudentGuardians, notifyUser, sendOutboundMessage } from "./notifications";
 import { getDocumentRelease, type DocumentRelease } from "./fee-clearance";
 import { prisma } from "./db";
 
@@ -9,6 +9,85 @@ const LINKS: Record<AcademicDocumentKind, { student: string; parent: string; lab
   certificate: { student: "/student/certificates", parent: "/parent/certificates", label: "Certificate" },
   letter: { student: "/student/letters", parent: "/parent/letters", label: "Letter" },
 };
+
+export const DOCUMENTS_RELEASED_NOTICE = {
+  title: "Reports and letters are available",
+  message:
+    "School fees are paid in full. Report cards, certificates and letters are available to download.",
+  studentLink: "/student/report-cards",
+  parentLink: "/parent/report-cards",
+} as const;
+
+export type FamilyEmailRecipient = {
+  email: string;
+  audience: "student" | "parent";
+};
+
+type FamilyEmailSource = {
+  email?: string | null;
+  user?: { email?: string | null } | null;
+  guardians?: Array<{
+    guardian: {
+      email?: string | null;
+      user?: { email?: string | null } | null;
+    };
+  }>;
+};
+
+export function appBaseUrl(appUrl?: string) {
+  return (appUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
+export function absolutePortalUrl(path: string, appUrl?: string) {
+  const suffix = path.startsWith("/") ? path : `/${path}`;
+  return `${appBaseUrl(appUrl)}${suffix}`;
+}
+
+export function emailBodyWithLink(message: string, path: string, appUrl?: string) {
+  return `${message}\n\nOpen: ${absolutePortalUrl(path, appUrl)}`;
+}
+
+function pushUniqueEmail(
+  out: FamilyEmailRecipient[],
+  seen: Set<string>,
+  email: string | null | undefined,
+  audience: "student" | "parent"
+) {
+  const trimmed = email?.trim();
+  if (!trimmed || !trimmed.includes("@")) return;
+  const key = trimmed.toLowerCase();
+  if (seen.has(key)) return;
+  seen.add(key);
+  out.push({ email: trimmed, audience });
+}
+
+export function familyEmailsFrom(student: FamilyEmailSource): FamilyEmailRecipient[] {
+  const seen = new Set<string>();
+  const out: FamilyEmailRecipient[] = [];
+  pushUniqueEmail(out, seen, student.user?.email, "student");
+  pushUniqueEmail(out, seen, student.email, "student");
+  for (const link of student.guardians ?? []) {
+    pushUniqueEmail(out, seen, link.guardian.user?.email, "parent");
+    pushUniqueEmail(out, seen, link.guardian.email, "parent");
+  }
+  return out;
+}
+
+const familyEmailSelect = {
+  userId: true,
+  email: true,
+  user: { select: { email: true } },
+  guardians: {
+    select: {
+      guardian: {
+        select: {
+          email: true,
+          user: { select: { email: true } },
+        },
+      },
+    },
+  },
+} as const;
 
 export function academicDocumentNotice(opts: {
   kind: AcademicDocumentKind;
@@ -34,6 +113,31 @@ export function academicDocumentNotice(opts: {
   };
 }
 
+async function emailFamily(opts: {
+  schoolId: string;
+  recipients: FamilyEmailRecipient[];
+  title: string;
+  studentMessage: string;
+  parentMessage: string;
+  studentLink: string;
+  parentLink: string;
+}) {
+  await Promise.all(
+    opts.recipients.map((recipient) =>
+      sendOutboundMessage(
+        opts.schoolId,
+        "email",
+        recipient.email,
+        opts.title,
+        emailBodyWithLink(
+          recipient.audience === "student" ? opts.studentMessage : opts.parentMessage,
+          recipient.audience === "student" ? opts.studentLink : opts.parentLink
+        )
+      )
+    )
+  );
+}
+
 export async function notifyAcademicDocumentFamily(opts: {
   studentId: string;
   schoolId: string;
@@ -43,7 +147,7 @@ export async function notifyAcademicDocumentFamily(opts: {
   const [student, release] = await Promise.all([
     prisma.student.findUnique({
       where: { id: opts.studentId },
-      select: { userId: true },
+      select: familyEmailSelect,
     }),
     getDocumentRelease(opts.studentId),
   ]);
@@ -70,6 +174,17 @@ export async function notifyAcademicDocumentFamily(opts: {
     type: "ACADEMIC",
     link: notice.parentLink,
   });
+  if (student) {
+    await emailFamily({
+      schoolId: opts.schoolId,
+      recipients: familyEmailsFrom(student),
+      title: notice.title,
+      studentMessage: notice.studentMessage,
+      parentMessage: notice.parentMessage,
+      studentLink: notice.studentLink,
+      parentLink: notice.parentLink,
+    });
+  }
 }
 
 export function shouldNotifyDocumentsReleased(previous: DocumentRelease, current: DocumentRelease) {
@@ -85,26 +200,40 @@ export async function notifyDocumentsReleasedIfClear(opts: {
   const release = await getDocumentRelease(opts.studentId);
   if (!shouldNotifyDocumentsReleased(opts.previous, release)) return false;
 
-  const title = "Reports and letters are available";
-  const message =
-    "School fees are paid in full. Report cards, certificates and letters are available to download.";
+  const notice = DOCUMENTS_RELEASED_NOTICE;
   if (opts.studentUserId) {
     await notifyUser({
       userId: opts.studentUserId,
       schoolId: opts.schoolId,
-      title,
-      message,
+      title: notice.title,
+      message: notice.message,
       type: "ACADEMIC",
-      link: "/student/report-cards",
+      link: notice.studentLink,
     });
   }
   await notifyStudentGuardians({
     studentId: opts.studentId,
     schoolId: opts.schoolId,
-    title,
-    message,
+    title: notice.title,
+    message: notice.message,
     type: "ACADEMIC",
-    link: "/parent/report-cards",
+    link: notice.parentLink,
   });
+
+  const student = await prisma.student.findUnique({
+    where: { id: opts.studentId },
+    select: familyEmailSelect,
+  });
+  if (student) {
+    await emailFamily({
+      schoolId: opts.schoolId,
+      recipients: familyEmailsFrom(student),
+      title: notice.title,
+      studentMessage: notice.message,
+      parentMessage: notice.message,
+      studentLink: notice.studentLink,
+      parentLink: notice.parentLink,
+    });
+  }
   return true;
 }

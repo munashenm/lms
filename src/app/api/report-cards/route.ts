@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { getTeacherForSession } from "@/lib/portal-data";
+import { UserRole } from "@prisma/client";
 import { reportCardSchema } from "@/lib/validators";
 import { calculatePercentage, calculateWeightedAverage, percentageToSymbol } from "@/lib/grading";
 import { generateReportCardPdf } from "@/lib/pdf-report-card";
@@ -24,11 +26,17 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const studentId = searchParams.get("studentId");
+  const teacher =
+    session!.role === UserRole.TEACHER ? await getTeacherForSession(session!) : null;
+  const classIds = teacher?.classTeachers.map((ct) => ct.classId) ?? [];
 
   const reportCards = await prisma.reportCard.findMany({
     where: {
       ...(studentId && { studentId }),
-      student: getSchoolFilter(session!),
+      student: {
+        ...getSchoolFilter(session!),
+        ...(teacher ? { classId: { in: classIds } } : {}),
+      },
     },
     include: {
       student: { select: { firstName: true, lastName: true, studentNumber: true } },
@@ -55,8 +63,8 @@ export async function POST(request: NextRequest) {
 
   const { studentId, academicYearId, termId, comments } = parsed.data;
 
-  const student = await prisma.student.findUnique({
-    where: { id: studentId },
+  const student = await prisma.student.findFirst({
+    where: { id: studentId, ...getSchoolFilter(session!) },
     include: {
       grade: true,
       class: true,
@@ -76,11 +84,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Student not found" }, { status: 404 });
   }
 
+  if (session.role === UserRole.TEACHER) {
+    const teacher = await getTeacherForSession(session);
+    const classIds = teacher?.classTeachers.map((ct) => ct.classId) ?? [];
+    if (!student.classId || !classIds.includes(student.classId)) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+    }
+  }
+
   const denied = await requireLicenseWrite(student.schoolId, { feature: "assessments" });
   if (denied) return denied;
 
-  const academicYear = await prisma.academicYear.findUnique({ where: { id: academicYearId } });
-  const term = termId ? await prisma.term.findUnique({ where: { id: termId } }) : null;
+  const academicYear = await prisma.academicYear.findFirst({
+    where: { id: academicYearId, schoolId: student.schoolId },
+  });
+  if (!academicYear) {
+    return NextResponse.json({ message: "Academic year not found" }, { status: 404 });
+  }
+  const term = termId
+    ? await prisma.term.findFirst({
+        where: { id: termId, academicYear: { schoolId: student.schoolId } },
+      })
+    : null;
+  if (termId && !term) {
+    return NextResponse.json({ message: "Term not found" }, { status: 404 });
+  }
 
   const subjectMarks = new Map<string, { name: string; score: number; maxMarks: number; weight: number }>();
 

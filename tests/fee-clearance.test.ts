@@ -5,7 +5,7 @@ import { defaultLetterBody, wrapPdfLines } from "@/lib/pdf-letter";
 import { schoolSettingsSchema, issuedLetterSchema } from "@/lib/validators";
 import { readPublicPdf } from "@/lib/pdf-response";
 import { UserRole } from "@prisma/client";
-import { academicDocumentNotice, shouldNotifyDocumentsReleased } from "@/lib/academic-document-notice";
+import { academicDocumentNotice, shouldNotifyDocumentsReleased, familyEmailsFrom, emailBodyWithLink } from "@/lib/academic-document-notice";
 
 describe("fee clearance for academic documents", () => {
   it("sums outstanding cents on collectable invoices", () => {
@@ -169,5 +169,28 @@ describe("academic document notices", () => {
     expect(shouldNotifyDocumentsReleased(clear, clear)).toBe(false);
     expect(shouldNotifyDocumentsReleased(held, held)).toBe(false);
     expect(shouldNotifyDocumentsReleased(off, documentReleaseFrom(false, 0))).toBe(false);
+  });
+
+  it("collects unique learner and guardian emails", () => {
+    const recipients = familyEmailsFrom({
+      email: "learner@school.test",
+      user: { email: "learner@school.test" },
+      guardians: [
+        { guardian: { email: " parent@home.test ", user: { email: "parent@home.test" } } },
+        { guardian: { email: "not-an-email", user: { email: null } } },
+        { guardian: { email: null, user: { email: "second@home.test" } } },
+      ],
+    });
+    expect(recipients).toEqual([
+      { email: "learner@school.test", audience: "student" },
+      { email: "parent@home.test", audience: "parent" },
+      { email: "second@home.test", audience: "parent" },
+    ]);
+  });
+
+  it("puts an absolute portal link in family emails", () => {
+    const body = emailBodyWithLink("The report is available to download.", "/student/report-cards", "https://lms.example");
+    expect(body).toContain("The report is available to download.");
+    expect(body).toContain("https://lms.example/student/report-cards");
   });
 });

@@ -246,6 +246,7 @@ describe("portal feature flags", () => {
     expect(navHrefFeature("/admin/letters")).toBe("assessments");
     expect(navHrefFeature("/student/letters")).toBe("assessments");
     expect(navHrefFeature("/parent/letters")).toBe("assessments");
+    expect(navHrefFeature("/teacher/report-cards")).toBe("assessments");
   });
 
   it("includes payroll and employees in Human Resource by default", () => {
