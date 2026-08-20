@@ -101,6 +101,14 @@ describe("admin nav groups", () => {
     expect(nav.find((item) => item.href === "/admin/staff")?.section).not.toBe("Settings");
   });
 
+  it("labels outbound notices as Email & SMS, not Communications", () => {
+    const nav = getAdminNav();
+    const item = nav.find((entry) => entry.href === "/admin/communications");
+    expect(item?.label).toBe("Email & SMS");
+    expect(item?.section).toBe("Communication");
+    expect(nav.find((entry) => entry.href === "/admin/announcements")?.label).toBe("Announcements");
+  });
+
   it("lists finance tools in Fees, Collections and Books groups", () => {
     const nav = getAdminNav();
     const finance = nav.filter((item) => item.section === "Finance");

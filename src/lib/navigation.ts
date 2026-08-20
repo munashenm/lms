@@ -208,7 +208,7 @@ export function getAdminNav(
     ...grouped("Finance", "CreditCard", getAdminFinanceNavItems()),
     ...grouped("Communication", "Megaphone", [
       { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
-      { label: "Communications", href: "/admin/communications", icon: "Megaphone" },
+      { label: "Email & SMS", href: "/admin/communications", icon: "Megaphone" },
     ]),
     ...grouped("School", "FolderOpen", [
       { label: "Visitor Book", href: "/admin/visitors", icon: "NotebookPen" },

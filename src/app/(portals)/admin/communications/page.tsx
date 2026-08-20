@@ -73,7 +73,7 @@ export default async function CommunicationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Communications</h1>
+        <h1 className="text-2xl font-bold">Email & SMS</h1>
         <p className="text-muted text-sm mt-1">
           Send email or SMS notices, and review delivery history (absence alerts, fee notices, and more)
         </p>
@@ -113,7 +113,7 @@ export default async function CommunicationsPage() {
           <div className="divide-y divide-border">
             {logs.length === 0 && (
               <p className="px-4 py-10 text-center text-sm text-muted">
-                No communications logged yet. Compose a notice, or enable absence SMS in Settings.
+                No email or SMS logged yet. Compose a notice, or enable absence SMS in Settings.
               </p>
             )}
             {logs.map((log) => (
