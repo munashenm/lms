@@ -8,6 +8,7 @@ import {
   rgb,
   type RGB,
 } from "pdf-lib";
+import { hexToPdfRgb, DEFAULT_PRIMARY_COLOR } from "./school-branding";
 
 export type SchoolBrand = {
   name: string;
@@ -20,11 +21,17 @@ export type SchoolBrand = {
   postalCode?: string | null;
   logoUrl?: string | null;
   registrationNo?: string | null;
+  primaryColor?: string | null;
+  accentColor?: string | null;
 };
 
-const BRAND_BLUE = rgb(0.11, 0.3, 0.43);
 const WHITE = rgb(1, 1, 1);
 const MUTED = rgb(0.45, 0.45, 0.5);
+
+export function brandPrimaryRgb(brand: Pick<SchoolBrand, "primaryColor">): RGB {
+  const { r, g, b } = hexToPdfRgb(brand.primaryColor || DEFAULT_PRIMARY_COLOR);
+  return rgb(r, g, b);
+}
 
 export function toSchoolBrand(school: {
   name: string;
@@ -37,6 +44,8 @@ export function toSchoolBrand(school: {
   postalCode?: string | null;
   logoUrl?: string | null;
   registrationNo?: string | null;
+  primaryColor?: string | null;
+  accentColor?: string | null;
 }): SchoolBrand {
   return {
     name: school.name,
@@ -49,6 +58,8 @@ export function toSchoolBrand(school: {
     postalCode: school.postalCode,
     logoUrl: school.logoUrl,
     registrationNo: school.registrationNo,
+    primaryColor: school.primaryColor,
+    accentColor: school.accentColor,
   };
 }
 
@@ -71,7 +82,7 @@ async function resolveLogoBytes(logoUrl: string): Promise<Uint8Array | null> {
     }
 
     const relative = logoUrl.startsWith("/") ? logoUrl.slice(1) : logoUrl;
-    const filePath = path.join(process.cwd(), "public", relative);
+    const filePath = path.join(/* turbopackIgnore: true */ process.cwd(), "public", relative);
     const buf = await readFile(filePath);
     return new Uint8Array(buf);
   } catch {
@@ -122,7 +133,7 @@ export async function drawBrandedBannerHeader(params: {
     y: height - headerHeight,
     width,
     height: headerHeight,
-    color: BRAND_BLUE,
+    color: brandPrimaryRgb(brand),
   });
 
   const logo = await embedSchoolLogo(doc, brand.logoUrl);
@@ -215,7 +226,7 @@ export async function drawCenteredBrandMark(params: {
   const { doc, page, brand, fontBold } = params;
   const { width } = page.getSize();
   let y = params.y;
-  const nameColor = params.nameColor ?? BRAND_BLUE;
+  const nameColor = params.nameColor ?? brandPrimaryRgb(brand);
   const nameSize = params.nameSize ?? 20;
 
   const logo = await embedSchoolLogo(doc, brand.logoUrl);

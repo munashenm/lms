@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
   drawBrandedBannerHeader,
   drawBrandedFooter,
+  brandPrimaryRgb,
   type SchoolBrand,
 } from "./pdf-branding";
 
@@ -71,7 +72,7 @@ export async function generatePaymentReceiptPdf(
     width: 495,
     height: 62,
     color: rgb(0.94, 0.96, 0.97),
-    borderColor: rgb(0.11, 0.3, 0.43),
+    borderColor: brandPrimaryRgb(data.brand),
     borderWidth: 1,
   });
   page.drawText("AMOUNT RECEIVED", {
@@ -86,7 +87,7 @@ export async function generatePaymentReceiptPdf(
     y: y - 44,
     size: 22,
     font: fontBold,
-    color: rgb(0.11, 0.3, 0.43),
+    color: brandPrimaryRgb(data.brand),
   });
   y -= 78;
 

@@ -32,6 +32,7 @@ export default async function StudentLayout({
       sessions={ctx.sessions}
       viewSessionId={ctx.viewSessionId}
       license={ctx.license}
+      branding={ctx.branding}
     >
       {session.role === UserRole.STUDENT && !isFeatureEnabled(ctx.license, "student_portal") ? (
         <PortalUnavailable moduleName={`The ${(terms?.portal ?? "learner portal").toLowerCase()}`} />

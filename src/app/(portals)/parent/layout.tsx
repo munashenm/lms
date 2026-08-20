@@ -30,6 +30,7 @@ export default async function ParentLayout({
       sessions={ctx.sessions}
       viewSessionId={ctx.viewSessionId}
       license={ctx.license}
+      branding={ctx.branding}
     >
       {session.role === UserRole.PARENT && !isFeatureEnabled(ctx.license, "parent_portal") ? (
         <PortalUnavailable moduleName="The parent portal" />

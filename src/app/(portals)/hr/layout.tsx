@@ -28,6 +28,7 @@ export default async function HrLayout({
       viewSessionId={ctx.viewSessionId}
       license={ctx.license}
       canManageLicense
+      branding={ctx.branding}
     >
       {!isFeatureEnabled(ctx.license, "hr_payroll") ? (
         <PortalUnavailable moduleName="HR & Payroll" />

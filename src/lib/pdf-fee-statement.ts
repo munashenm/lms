@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
   drawBrandedBannerHeader,
   drawBrandedFooter,
+  brandPrimaryRgb,
   type SchoolBrand,
 } from "./pdf-branding";
 
@@ -70,10 +71,10 @@ export async function generateFeeStatementPdf(data: FeeStatementData): Promise<U
   line(`Current balance: ${money(data.balance)}`, true, 12);
   y -= 10;
 
-  page.drawText("Date", { x: 50, y, size: 9, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
-  page.drawText("Description", { x: 120, y, size: 9, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
-  page.drawText("Type", { x: 360, y, size: 9, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
-  page.drawText("Amount", { x: 460, y, size: 9, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
+  page.drawText("Date", { x: 50, y, size: 9, font: fontBold, color: brandPrimaryRgb(brand) });
+  page.drawText("Description", { x: 120, y, size: 9, font: fontBold, color: brandPrimaryRgb(brand) });
+  page.drawText("Type", { x: 360, y, size: 9, font: fontBold, color: brandPrimaryRgb(brand) });
+  page.drawText("Amount", { x: 460, y, size: 9, font: fontBold, color: brandPrimaryRgb(brand) });
   y -= 14;
 
   for (const row of data.lines.slice(0, 35)) {

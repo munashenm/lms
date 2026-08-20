@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Building2, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { BrandMark } from "@/components/layout/brand-mark";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { APP_NAME } from "@/lib/constants";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -17,16 +17,21 @@ const NAV_LINKS = [
   { href: "/apply/status", label: "Track Application" },
 ];
 
-export function PublicHeader() {
+export function PublicHeader({
+  schoolName,
+  logoUrl,
+}: {
+  schoolName?: string;
+  logoUrl?: string | null;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-surface/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 lg:px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <Building2 className="h-7 w-7 text-primary" />
-          <span className="font-bold text-primary">{APP_NAME}</span>
+        <Link href="/" className="flex items-center gap-2 min-w-0">
+          <BrandMark logoUrl={logoUrl} name={schoolName} />
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">

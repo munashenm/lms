@@ -37,6 +37,7 @@ export default async function TeacherLayout({
       sessions={ctx.sessions}
       viewSessionId={ctx.viewSessionId}
       license={ctx.license}
+      branding={ctx.branding}
     >
       {session.role === UserRole.TEACHER && !isFeatureEnabled(ctx.license, "teacher_portal") ? (
         <PortalUnavailable moduleName={terms?.teacher ? `The ${terms.teacher.toLowerCase()} portal` : "The educator portal"} />

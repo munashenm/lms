@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
   drawBrandedBannerHeader,
   drawBrandedFooter,
+  brandPrimaryRgb,
   type SchoolBrand,
 } from "./pdf-branding";
 
@@ -94,10 +95,10 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
 
   y -= 12;
   const cols = [50, 300, 360, 430, 500];
-  page.drawText("Description", { x: cols[0], y, size: 9, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
-  page.drawText("Qty", { x: cols[1], y, size: 9, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
-  page.drawText("Unit", { x: cols[2], y, size: 9, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
-  page.drawText("Amount", { x: cols[3], y, size: 9, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
+  page.drawText("Description", { x: cols[0], y, size: 9, font: fontBold, color: brandPrimaryRgb(data.brand) });
+  page.drawText("Qty", { x: cols[1], y, size: 9, font: fontBold, color: brandPrimaryRgb(data.brand) });
+  page.drawText("Unit", { x: cols[2], y, size: 9, font: fontBold, color: brandPrimaryRgb(data.brand) });
+  page.drawText("Amount", { x: cols[3], y, size: 9, font: fontBold, color: brandPrimaryRgb(data.brand) });
   y -= 6;
   page.drawLine({
     start: { x: 50, y },
@@ -175,7 +176,7 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
       y,
       size: bold ? 11 : 10,
       font: bold ? fontBold : font,
-      color: rgb(0.11, 0.3, 0.43),
+      color: brandPrimaryRgb(data.brand),
     });
     y -= bold ? 16 : 14;
   }
@@ -184,10 +185,10 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
   if (collections.length > 0 && y > 160) {
     y -= 10;
     line("Fees collected", true, 11);
-    page.drawText("Date / time", { x: 50, y, size: 8, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
-    page.drawText("Method", { x: 200, y, size: 8, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
-    page.drawText("Receipt", { x: 320, y, size: 8, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
-    page.drawText("Amount", { x: 430, y, size: 8, font: fontBold, color: rgb(0.11, 0.3, 0.43) });
+    page.drawText("Date / time", { x: 50, y, size: 8, font: fontBold, color: brandPrimaryRgb(data.brand) });
+    page.drawText("Method", { x: 200, y, size: 8, font: fontBold, color: brandPrimaryRgb(data.brand) });
+    page.drawText("Receipt", { x: 320, y, size: 8, font: fontBold, color: brandPrimaryRgb(data.brand) });
+    page.drawText("Amount", { x: 430, y, size: 8, font: fontBold, color: brandPrimaryRgb(data.brand) });
     y -= 12;
     for (const row of collections.slice(0, 12)) {
       if (y < 70) break;

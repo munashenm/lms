@@ -5,9 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Building2, ChevronDown, ChevronsLeft, ChevronsRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { APP_NAME } from "@/lib/constants";
 import { isNavHrefActive, navClusters, type NavItem } from "@/lib/navigation";
 import { NavIcon } from "./nav-icon";
+import { BrandMark } from "./brand-mark";
 
 interface SidebarProps {
   open: boolean;
@@ -16,6 +16,8 @@ interface SidebarProps {
   portalLabel: string;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
+  schoolName?: string | null;
+  logoUrl?: string | null;
 }
 
 function groupNav(items: NavItem[]) {
@@ -116,6 +118,8 @@ export function Sidebar({
   portalLabel,
   collapsed = false,
   onToggleCollapsed,
+  schoolName,
+  logoUrl,
 }: SidebarProps) {
   const pathname = usePathname();
   const groups = groupNav(navItems);
@@ -154,10 +158,16 @@ export function Sidebar({
       >
         <div className={cn("flex h-16 items-center border-b border-white/10", collapsed ? "justify-center px-2" : "justify-between px-5")}>
           <div className={cn("flex items-center gap-2 min-w-0", collapsed && "lg:justify-center")}>
-            <Building2 className="h-7 w-7 text-accent shrink-0" />
+            {collapsed ? (
+              logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="" className="h-8 w-8 object-contain rounded bg-white/90 hidden lg:block" />
+              ) : (
+                <Building2 className="h-7 w-7 text-accent shrink-0 hidden lg:block" />
+              )
+            ) : null}
             <div className={cn(collapsed && "lg:hidden")}>
-              <p className="text-sm font-bold leading-tight">{APP_NAME}</p>
-              <p className="text-[10px] text-white/60 truncate">{portalLabel}</p>
+              <BrandMark logoUrl={logoUrl} name={schoolName} subtitle={portalLabel} inverted />
             </div>
           </div>
           <button onClick={onClose} className="lg:hidden text-white/70 hover:text-white">

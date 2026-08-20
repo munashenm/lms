@@ -9,6 +9,7 @@ import type { SessionOption } from "@/lib/academic-session-shared";
 import type { EvaluatedLicense } from "@/lib/licensing/types";
 import { LicenseStatusBanner } from "@/components/enterprise/license-banner";
 import { NavGroupTabs } from "./nav-group-tabs";
+import { schoolThemeCssVars, type SchoolPortalBrand } from "@/lib/school-branding";
 
 const COLLAPSE_KEY = "schoolhub-sidebar-collapsed";
 
@@ -21,6 +22,7 @@ interface PortalShellProps {
   viewSessionId?: string | null;
   license?: EvaluatedLicense | null;
   canManageLicense?: boolean;
+  branding?: SchoolPortalBrand | null;
   children: React.ReactNode;
 }
 
@@ -33,6 +35,7 @@ export function PortalShell({
   viewSessionId = null,
   license = null,
   canManageLicense = false,
+  branding = null,
   children,
 }: PortalShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -51,7 +54,10 @@ export function PortalShell({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div
+      className="flex h-screen overflow-hidden bg-background"
+      style={schoolThemeCssVars(branding?.primaryColor, branding?.accentColor)}
+    >
       <Sidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -59,6 +65,8 @@ export function PortalShell({
         portalLabel={portalLabel}
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}
+        schoolName={branding?.schoolName}
+        logoUrl={branding?.logoUrl}
       />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header

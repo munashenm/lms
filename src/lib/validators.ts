@@ -508,6 +508,18 @@ export const schoolSettingsSchema = z.object({
     z.union([z.literal(""), z.string().url("Enter a valid website URL")]).optional()
   ),
   logoUrl: z.string().optional().or(z.literal("")),
+  primaryColor: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^#[0-9A-Fa-f]{6}$/.test(val), {
+      message: "Use a hex colour like #1B4D6E",
+    }),
+  accentColor: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^#[0-9A-Fa-f]{6}$/.test(val), {
+      message: "Use a hex colour like #E8A317",
+    }),
   address: z.string().optional(),
   city: z.string().optional(),
   province: z.string().optional(),

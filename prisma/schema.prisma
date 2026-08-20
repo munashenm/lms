@@ -427,6 +427,8 @@ model School {
   phone           String?
   website         String?
   logoUrl         String?
+  primaryColor    String?
+  accentColor     String?
   address         String?
   city            String?
   province        String?

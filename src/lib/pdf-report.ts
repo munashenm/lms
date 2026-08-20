@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
   drawBrandedBannerHeader,
   drawBrandedFooter,
+  brandPrimaryRgb,
   type SchoolBrand,
 } from "./pdf-branding";
 
@@ -105,7 +106,7 @@ export async function generateTableReportPdf(options: ReportPdfOptions): Promise
         y,
         size: 9,
         font: fontBold,
-        color: rgb(0.11, 0.3, 0.43),
+        color: brandPrimaryRgb(brand),
       });
       x += colWidths[i]!;
     });

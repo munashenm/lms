@@ -12,6 +12,9 @@ export const invoiceDetailInclude = {
       province: true,
       postalCode: true,
       registrationNo: true,
+      logoUrl: true,
+      primaryColor: true,
+      accentColor: true,
     },
   },
   student: {

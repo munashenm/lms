@@ -3,6 +3,7 @@ import { symbolLabel } from "./grading";
 import {
   drawBrandedBannerHeader,
   drawBrandedFooter,
+  brandPrimaryRgb,
   type SchoolBrand,
 } from "./pdf-branding";
 
@@ -64,10 +65,10 @@ export async function generateReportCardPdf(data: ReportCardData): Promise<Uint8
 
   y -= 10;
   const cols = [50, 220, 320, 380, 450];
-  page.drawText("Subject", { x: cols[0], y, size: 10, font: fontBold, color: rgb(0.1, 0.3, 0.43) });
-  page.drawText("Score", { x: cols[1], y, size: 10, font: fontBold, color: rgb(0.1, 0.3, 0.43) });
-  page.drawText("%", { x: cols[2], y, size: 10, font: fontBold, color: rgb(0.1, 0.3, 0.43) });
-  page.drawText("Symbol", { x: cols[3], y, size: 10, font: fontBold, color: rgb(0.1, 0.3, 0.43) });
+  page.drawText("Subject", { x: cols[0], y, size: 10, font: fontBold, color: brandPrimaryRgb(data.brand) });
+  page.drawText("Score", { x: cols[1], y, size: 10, font: fontBold, color: brandPrimaryRgb(data.brand) });
+  page.drawText("%", { x: cols[2], y, size: 10, font: fontBold, color: brandPrimaryRgb(data.brand) });
+  page.drawText("Symbol", { x: cols[3], y, size: 10, font: fontBold, color: brandPrimaryRgb(data.brand) });
   y -= 5;
   page.drawLine({ start: { x: 50, y }, end: { x: width - 50, y }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
   y -= 15;

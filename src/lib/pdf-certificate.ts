@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
   drawBrandedFooter,
   drawCenteredBrandMark,
+  brandPrimaryRgb,
   type SchoolBrand,
 } from "./pdf-branding";
 
@@ -31,7 +32,7 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
     y: 30,
     width: width - 60,
     height: height - 60,
-    borderColor: rgb(0.11, 0.3, 0.43),
+    borderColor: brandPrimaryRgb(data.brand),
     borderWidth: 3,
   });
   page.drawRectangle({
@@ -69,7 +70,7 @@ export async function generateCertificatePdf(data: CertificateData): Promise<Uin
   y -= 12;
   drawCentered("This is to certify that", 12);
   y -= 8;
-  drawCentered(data.studentName, 28, true, rgb(0.11, 0.3, 0.43));
+  drawCentered(data.studentName, 28, true, brandPrimaryRgb(data.brand));
   drawCentered(`${data.studentNumberLabel ?? "Admission No"}: ${data.studentNumber}`, 10, false, rgb(0.4, 0.4, 0.4));
   y -= 16;
   drawCentered(`has been awarded`, 12);

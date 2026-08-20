@@ -20,5 +20,14 @@ export default async function PublicLayout({
   children: React.ReactNode;
 }) {
   const school = await getFeaturedSchool();
-  return <PublicShell schoolName={school?.name}>{children}</PublicShell>;
+  return (
+    <PublicShell
+      schoolName={school?.name}
+      logoUrl={school?.logoUrl}
+      primaryColor={school?.primaryColor}
+      accentColor={school?.accentColor}
+    >
+      {children}
+    </PublicShell>
+  );
 }

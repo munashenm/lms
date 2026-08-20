@@ -11,6 +11,7 @@ import { getTerminology, type Terminology } from "./terminology";
 import { requireSchoolId } from "./portal-data";
 import { evaluateStoredLicense } from "@/lib/licensing/service";
 import type { EvaluatedLicense } from "@/lib/licensing/types";
+import { emptySchoolPortalBrand, toSchoolPortalBrand, type SchoolPortalBrand } from "./school-branding";
 
 export async function getPortalSessionContext(session: SessionPayload): Promise<{
   schoolId: string | null;
@@ -19,6 +20,7 @@ export async function getPortalSessionContext(session: SessionPayload): Promise<
   terminology: Terminology | null;
   institutionType: InstitutionType | null;
   license: EvaluatedLicense | null;
+  branding: SchoolPortalBrand;
 }> {
   let schoolId = session.schoolId;
   if (!schoolId) {
@@ -32,6 +34,7 @@ export async function getPortalSessionContext(session: SessionPayload): Promise<
         terminology: null,
         institutionType: null,
         license: null,
+        branding: emptySchoolPortalBrand(),
       };
     }
   }
@@ -42,7 +45,7 @@ export async function getPortalSessionContext(session: SessionPayload): Promise<
     resolveViewSession(schoolId, cookieId),
     prisma.school.findUnique({
       where: { id: schoolId },
-      select: { institutionType: true },
+      select: { name: true, institutionType: true, logoUrl: true, primaryColor: true, accentColor: true },
     }),
     evaluateStoredLicense(schoolId).catch(() => null),
   ]);
@@ -54,5 +57,6 @@ export async function getPortalSessionContext(session: SessionPayload): Promise<
     terminology: school ? getTerminology(school.institutionType) : null,
     institutionType: school?.institutionType ?? null,
     license,
+    branding: toSchoolPortalBrand(school),
   };
 }

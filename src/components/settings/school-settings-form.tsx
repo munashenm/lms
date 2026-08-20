@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   CURRICULUM_TYPE_LABELS,
   INSTITUTION_TYPE_LABELS,
@@ -17,6 +18,15 @@ import {
   getTerminology,
 } from "@/lib/terminology";
 import type { InstitutionType } from "@prisma/client";
+import {
+  DEFAULT_ACCENT_COLOR,
+  DEFAULT_PRIMARY_COLOR,
+  PORTAL_THEMES,
+  isHexColor,
+  matchPortalThemeId,
+  normalizeHexColor,
+  schoolThemeCssVars,
+} from "@/lib/school-branding";
 
 interface SchoolData {
   id: string;
@@ -25,6 +35,8 @@ interface SchoolData {
   phone: string | null;
   website: string | null;
   logoUrl: string | null;
+  primaryColor: string | null;
+  accentColor: string | null;
   address: string | null;
   city: string | null;
   province: string | null;
@@ -50,6 +62,14 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoPreview, setLogoPreview] = useState(school.logoUrl);
   const [institutionType, setInstitutionType] = useState(school.institutionType);
+  const [primaryColor, setPrimaryColor] = useState(
+    normalizeHexColor(school.primaryColor, DEFAULT_PRIMARY_COLOR)
+  );
+  const [accentColor, setAccentColor] = useState(
+    normalizeHexColor(school.accentColor, DEFAULT_ACCENT_COLOR)
+  );
+
+  const selectedTheme = matchPortalThemeId(primaryColor, accentColor);
 
   const typeOptions = Array.from(
     new Set([...INSTITUTION_TYPE_OPTIONS, school.institutionType as InstitutionType])
@@ -58,6 +78,11 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!isHexColor(primaryColor) || !isHexColor(accentColor)) {
+      toast.error("Choose valid hex colours, e.g. #1B4D6E");
+      return;
+    }
+
     setLoading(true);
     const form = new FormData(e.currentTarget);
 
@@ -76,6 +101,8 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             phone: form.get("phone") || undefined,
             website: form.get("website") || "",
             logoUrl: logoPreview || form.get("logoUrl") || "",
+            primaryColor,
+            accentColor,
             address: form.get("address") || undefined,
             city: form.get("city") || undefined,
             province: form.get("province") || undefined,
@@ -204,8 +231,9 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
           <div className="space-y-2 sm:col-span-2">
             <Label>School Logo</Label>
             <p className="text-xs text-muted">
-              Appears on student cards, report cards, certificates, fee statements and reports.
-              Prefer PNG/JPEG under 2MB.
+              Appears on staff, learner and parent portals, the public site, login, student
+              cards, report cards, certificates, fee statements and reports. Prefer PNG/JPEG
+              under 2MB.
             </p>
             <div className="flex flex-wrap items-center gap-4">
               {logoPreview ? (
@@ -234,6 +262,121 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
               placeholder="Or paste logo URL /uploads/..."
               className="mt-2"
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Portal appearance</CardTitle>
+          <p className="text-sm text-muted">
+            Choose a colour theme for your school or college portal. Colours apply to navigation,
+            buttons, the public site, login, and PDF headers.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div
+            className="overflow-hidden rounded-xl border border-border"
+            style={schoolThemeCssVars(primaryColor, accentColor)}
+          >
+            <div className="flex items-center gap-3 bg-primary px-4 py-3 text-white">
+              {logoPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoPreview}
+                  alt=""
+                  className="h-9 w-9 rounded bg-white/90 object-contain"
+                />
+              ) : (
+                <div className="h-9 w-9 rounded bg-white/15" />
+              )}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold">{school.name}</p>
+                <p className="text-[10px] text-white/60">Admin Portal</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 bg-background p-4">
+              <span className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white">
+                Primary
+              </span>
+              <span className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-primary">
+                Accent
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {PORTAL_THEMES.map((theme) => (
+              <button
+                key={theme.id}
+                type="button"
+                onClick={() => {
+                  setPrimaryColor(theme.primary);
+                  setAccentColor(theme.accent);
+                }}
+                className={cn(
+                  "rounded-xl border p-3 text-left transition-colors",
+                  selectedTheme === theme.id
+                    ? "border-primary ring-2 ring-primary/20"
+                    : "border-border hover:border-primary/40"
+                )}
+              >
+                <span className="flex h-8 overflow-hidden rounded-md">
+                  <span className="flex-1" style={{ background: theme.primary }} />
+                  <span className="w-8" style={{ background: theme.accent }} />
+                </span>
+                <p className="mt-2 text-sm font-medium">{theme.name}</p>
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="primaryColor">Primary colour</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="primaryColor"
+                  type="color"
+                  value={isHexColor(primaryColor) ? primaryColor : DEFAULT_PRIMARY_COLOR}
+                  onChange={(e) => setPrimaryColor(e.target.value.toUpperCase())}
+                  className="h-10 w-12 shrink-0 cursor-pointer rounded-lg border border-border bg-surface p-1"
+                />
+                <Input
+                  value={primaryColor}
+                  maxLength={7}
+                  onChange={(e) => {
+                    const next = e.target.value.startsWith("#")
+                      ? e.target.value
+                      : `#${e.target.value}`;
+                    setPrimaryColor(next.toUpperCase());
+                  }}
+                  placeholder="#1B4D6E"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="accentColor">Accent colour</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="accentColor"
+                  type="color"
+                  value={isHexColor(accentColor) ? accentColor : DEFAULT_ACCENT_COLOR}
+                  onChange={(e) => setAccentColor(e.target.value.toUpperCase())}
+                  className="h-10 w-12 shrink-0 cursor-pointer rounded-lg border border-border bg-surface p-1"
+                />
+                <Input
+                  value={accentColor}
+                  maxLength={7}
+                  onChange={(e) => {
+                    const next = e.target.value.startsWith("#")
+                      ? e.target.value
+                      : `#${e.target.value}`;
+                    setAccentColor(next.toUpperCase());
+                  }}
+                  placeholder="#E8A317"
+                />
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFPage } from "pdf-lib";
 import {
   drawBrandedFooter,
   embedSchoolLogo,
+  brandPrimaryRgb,
   type SchoolBrand,
 } from "./pdf-branding";
 import { encodeCode39 } from "./code39";
@@ -34,6 +35,7 @@ export async function generateStudentCardPdf(
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
   const { width, height } = page.getSize();
   const brand = data.brand;
+  const ink = brandPrimaryRgb(brand);
 
   page.drawRectangle({
     x: 0,
@@ -47,7 +49,7 @@ export async function generateStudentCardPdf(
     y: 12,
     width: width - 24,
     height: height - 24,
-    borderColor: rgb(0.11, 0.3, 0.43),
+    borderColor: ink,
     borderWidth: 2,
   });
   page.drawRectangle({
@@ -55,7 +57,7 @@ export async function generateStudentCardPdf(
     y: height - 70,
     width: width - 24,
     height: 58,
-    color: rgb(0.11, 0.3, 0.43),
+    color: ink,
   });
 
   const logo = await embedSchoolLogo(doc, brand.logoUrl);
@@ -121,7 +123,7 @@ export async function generateStudentCardPdf(
       y: photoBox.y + photoBox.h / 2 - 8,
       size: 22,
       font: fontBold,
-      color: rgb(0.11, 0.3, 0.43),
+      color: ink,
     });
   }
 
@@ -140,7 +142,7 @@ export async function generateStudentCardPdf(
     y,
     size: 11,
     font: fontBold,
-    color: rgb(0.11, 0.3, 0.43),
+    color: ink,
   });
   y -= 18;
   if (data.gradeOrProgramme) {

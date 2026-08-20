@@ -28,6 +28,7 @@ export default async function FinanceLayout({
       viewSessionId={ctx.viewSessionId}
       license={ctx.license}
       canManageLicense
+      branding={ctx.branding}
     >
       {!isFeatureEnabled(ctx.license, "finance") ? (
         <PortalUnavailable moduleName="Finance" />

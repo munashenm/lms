@@ -28,6 +28,7 @@ export default async function StaffLayout({
       sessions={ctx.sessions}
       viewSessionId={ctx.viewSessionId}
       license={ctx.license}
+      branding={ctx.branding}
     >
       <div className="mb-6">
         <Link

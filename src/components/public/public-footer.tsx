@@ -11,7 +11,7 @@ export function PublicFooter({ schoolName }: PublicFooterProps) {
       <div className="mx-auto max-w-6xl px-4 py-12 lg:px-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
-            <p className="font-bold text-lg">{APP_NAME}</p>
+            <p className="font-bold text-lg">{schoolName ?? APP_NAME}</p>
             <p className="text-sm text-white/70 mt-2">
               Modern school management for South African institutions.
             </p>

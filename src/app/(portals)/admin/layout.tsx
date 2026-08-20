@@ -34,6 +34,7 @@ export default async function AdminLayout({
       viewSessionId={ctx.viewSessionId}
       license={ctx.license}
       canManageLicense
+      branding={ctx.branding}
     >
       {children}
     </PortalShell>

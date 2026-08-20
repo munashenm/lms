@@ -69,6 +69,12 @@ export async function PATCH(request: NextRequest) {
     ...(parsed.data.logoUrl !== undefined && {
       logoUrl: parsed.data.logoUrl || null,
     }),
+    ...(parsed.data.primaryColor !== undefined && {
+      primaryColor: parsed.data.primaryColor || null,
+    }),
+    ...(parsed.data.accentColor !== undefined && {
+      accentColor: parsed.data.accentColor || null,
+    }),
     ...(parsed.data.website !== undefined && {
       website: parsed.data.website || null,
     }),

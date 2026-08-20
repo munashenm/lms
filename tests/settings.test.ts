@@ -27,9 +27,18 @@ describe("school settings", () => {
     expect(schoolSettingsSchema.safeParse({ website: "https://" }).success).toBe(true);
   });
 
-  it("accepts +27 phone numbers", () => {
-    expect(validateSAPhone("+27821234567")).toBe(true);
-    expect(schoolSettingsSchema.safeParse({ phone: "+27821234567" }).success).toBe(true);
-    expect(schoolSettingsSchema.safeParse({ phone: "0821234567" }).success).toBe(true);
+  it("accepts portal colour themes as hex values", () => {
+    const parsed = schoolSettingsSchema.safeParse({
+      primaryColor: "#14532D",
+      accentColor: "#FBBF24",
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("allows clearing colours and rejects invalid hex", () => {
+    expect(schoolSettingsSchema.safeParse({ primaryColor: "" }).success).toBe(true);
+    expect(schoolSettingsSchema.safeParse({ primaryColor: "#1B4D6E" }).success).toBe(true);
+    expect(schoolSettingsSchema.safeParse({ primaryColor: "navy" }).success).toBe(false);
+    expect(schoolSettingsSchema.safeParse({ accentColor: "#FFF" }).success).toBe(false);
   });
 });

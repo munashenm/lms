@@ -3,9 +3,12 @@ import { LoginForm } from "@/components/auth/login-form";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ROLE_DASHBOARD } from "@/lib/constants";
-import { Building2, Database, ArrowLeft } from "lucide-react";
-import { APP_NAME, APP_TAGLINE, COMPANY_NAME } from "@/lib/constants";
+import { Database, ArrowLeft } from "lucide-react";
+import { APP_TAGLINE, COMPANY_NAME } from "@/lib/constants";
 import { isDatabaseReachable } from "@/lib/db-health";
+import { getFeaturedSchool } from "@/lib/public-site";
+import { BrandMark } from "@/components/layout/brand-mark";
+import { schoolThemeCssVars, toSchoolPortalBrand } from "@/lib/school-branding";
 
 export const dynamic = "force-dynamic";
 
@@ -15,18 +18,21 @@ export default async function LoginPage() {
     redirect(ROLE_DASHBOARD[session.role]);
   }
 
-  const dbOk = await isDatabaseReachable();
+  const [dbOk, school] = await Promise.all([isDatabaseReachable(), getFeaturedSchool()]);
+  const branding = toSchoolPortalBrand(school);
 
   return (
-    <div className="flex min-h-screen">
+    <div
+      className="flex min-h-screen"
+      style={schoolThemeCssVars(branding.primaryColor, branding.accentColor)}
+    >
       <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-between p-12 text-white">
-        <div className="flex items-center gap-3">
-          <Building2 className="h-10 w-10 text-accent" />
-          <div>
-            <p className="text-xl font-bold">{APP_NAME}</p>
-            <p className="text-sm text-white/70">{APP_TAGLINE}</p>
-          </div>
-        </div>
+        <BrandMark
+          logoUrl={branding.logoUrl}
+          name={branding.schoolName}
+          subtitle={APP_TAGLINE}
+          inverted
+        />
 
         <div className="space-y-6">
           <h2 className="text-3xl font-bold leading-tight">
@@ -50,10 +56,12 @@ export default async function LoginPage() {
 
       <div className="flex flex-1 items-center justify-center p-6 bg-background">
         <div className="w-full max-w-md space-y-8">
-          <div className="lg:hidden text-center space-y-2">
-            <Building2 className="h-10 w-10 text-primary mx-auto" />
-            <h1 className="text-2xl font-bold text-foreground">{APP_NAME}</h1>
-            <p className="text-muted text-sm">{APP_TAGLINE}</p>
+          <div className="lg:hidden flex justify-center">
+            <BrandMark
+              logoUrl={branding.logoUrl}
+              name={branding.schoolName}
+              subtitle={APP_TAGLINE}
+            />
           </div>
           {!dbOk && (
             <div className="rounded-lg border border-danger/30 bg-red-50 p-4 text-sm text-red-900 space-y-2">

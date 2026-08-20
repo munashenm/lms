@@ -330,5 +330,5 @@ export function snapshotCounts(snapshot: BackupSnapshot) {
   };
 }
 
-export const SCHEMA_VERSION = "20260820010000_student_registration_documents";
+export const SCHEMA_VERSION = "20260820020000_school_portal_branding";
 export const APP_VERSION = process.env.npm_package_version || "0.1.0";

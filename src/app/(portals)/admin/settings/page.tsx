@@ -78,7 +78,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
         )}
         <h1 className="text-2xl font-bold mt-2">Settings</h1>
         <p className="text-muted text-sm mt-1">
-          {school.name} — institution type, academic structure, POPIA and integrations
+          {school.name} — institution profile, portal appearance, POPIA and integrations
         </p>
       </div>
 
@@ -90,6 +90,8 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           phone: school.phone,
           website: school.website,
           logoUrl: school.logoUrl,
+          primaryColor: school.primaryColor,
+          accentColor: school.accentColor,
           address: school.address,
           city: school.city,
           province: school.province,
