@@ -24,7 +24,7 @@ export function PublicShell({
     >
       <PublicHeader schoolName={schoolName} logoUrl={logoUrl} />
       <main className="flex-1">{children}</main>
-      <PublicFooter schoolName={schoolName} />
+      <PublicFooter schoolName={schoolName} logoUrl={logoUrl} />
     </div>
   );
 }

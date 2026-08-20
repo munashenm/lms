@@ -1,10 +1,14 @@
 import { getFeaturedSchool } from "@/lib/public-site";
 import { publicPageMetadata } from "@/lib/site-metadata";
-
-export const metadata = publicPageMetadata("About Us", "Learn about our institution, mission and campus.");
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Mail, Phone } from "lucide-react";
+import { SchoolLogo } from "@/components/layout/brand-mark";
+
+export const metadata = publicPageMetadata(
+  "About Us",
+  "Learn about our institution, mission and campus."
+);
 
 export const dynamic = "force-dynamic";
 
@@ -14,13 +18,16 @@ export default async function AboutPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 lg:px-6 space-y-10">
-      <div>
-        <h1 className="text-3xl font-bold">About {school?.name ?? "Our Institution"}</h1>
-        <p className="text-muted mt-3 max-w-2xl leading-relaxed">
-          We are a leading {school?.institutionType.toLowerCase().replace("_", " ")} in{" "}
-          {school?.province ?? "South Africa"}, committed to delivering quality education
-          that prepares learners for the workplace and further study.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+        <SchoolLogo src={school?.logoUrl} name={school?.name} size="lg" />
+        <div>
+          <h1 className="text-3xl font-bold">About {school?.name ?? "Our Institution"}</h1>
+          <p className="text-muted mt-3 max-w-2xl leading-relaxed">
+            We are a leading {school?.institutionType.toLowerCase().replace("_", " ")} in{" "}
+            {school?.province ?? "South Africa"}, committed to delivering quality education
+            that prepares learners for the workplace and further study.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

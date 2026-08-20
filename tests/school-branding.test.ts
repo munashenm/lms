@@ -62,4 +62,11 @@ describe("school branding", () => {
       accentColor: "#F4C430",
     });
   });
+
+  it("builds an accessible logo alt label", async () => {
+    const { schoolLogoAlt } = await import("@/lib/school-branding");
+    expect(schoolLogoAlt("Cyber College")).toBe("Cyber College logo");
+    expect(schoolLogoAlt("  ")).toBe("School logo");
+    expect(schoolLogoAlt(null)).toBe("School logo");
+  });
 });

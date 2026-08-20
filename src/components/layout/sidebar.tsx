@@ -167,7 +167,7 @@ export function Sidebar({
               )
             ) : null}
             <div className={cn(collapsed && "lg:hidden")}>
-              <BrandMark logoUrl={logoUrl} name={schoolName} subtitle={portalLabel} inverted />
+              <BrandMark logoUrl={logoUrl} name={schoolName} subtitle={portalLabel} inverted size="md" />
             </div>
           </div>
           <button onClick={onClose} className="lg:hidden text-white/70 hover:text-white">

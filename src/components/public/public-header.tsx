@@ -30,8 +30,8 @@ export function PublicHeader({
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-surface/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 lg:px-6">
-        <Link href="/" className="flex items-center gap-2 min-w-0">
-          <BrandMark logoUrl={logoUrl} name={schoolName} />
+        <Link href="/" className="flex min-w-0 items-center">
+          <BrandMark logoUrl={logoUrl} name={schoolName} size="md" />
         </Link>
 
         <nav className="hidden md:flex items-center gap-1">

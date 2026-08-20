@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 import { ArrowLeft } from "lucide-react";
 import { getFeaturedSchool } from "@/lib/public-site";
-import { BrandMark } from "@/components/layout/brand-mark";
+import { BrandMark, SchoolLogo } from "@/components/layout/brand-mark";
 import { schoolThemeCssVars, toSchoolPortalBrand } from "@/lib/school-branding";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +16,17 @@ export default async function ForgotPasswordPage() {
       style={schoolThemeCssVars(branding.primaryColor, branding.accentColor)}
     >
       <div className="w-full max-w-md space-y-6">
-        <div className="flex justify-center">
-          <BrandMark logoUrl={branding.logoUrl} name={branding.schoolName} />
+        <div className="flex flex-col items-center text-center gap-3">
+          {branding.logoUrl ? (
+            <>
+              <SchoolLogo src={branding.logoUrl} name={branding.schoolName} size="xl" />
+              {branding.schoolName ? (
+                <p className="text-lg font-bold">{branding.schoolName}</p>
+              ) : null}
+            </>
+          ) : (
+            <BrandMark logoUrl={branding.logoUrl} name={branding.schoolName} size="lg" stacked />
+          )}
         </div>
         <ForgotPasswordForm />
         <p className="text-center text-sm text-muted">

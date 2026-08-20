@@ -4,10 +4,10 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { Database, ArrowLeft } from "lucide-react";
-import { APP_TAGLINE, COMPANY_NAME } from "@/lib/constants";
+import { APP_NAME, APP_TAGLINE, COMPANY_NAME } from "@/lib/constants";
 import { isDatabaseReachable } from "@/lib/db-health";
 import { getFeaturedSchool } from "@/lib/public-site";
-import { BrandMark } from "@/components/layout/brand-mark";
+import { BrandMark, SchoolLogo } from "@/components/layout/brand-mark";
 import { schoolThemeCssVars, toSchoolPortalBrand } from "@/lib/school-branding";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +20,7 @@ export default async function LoginPage() {
 
   const [dbOk, school] = await Promise.all([isDatabaseReachable(), getFeaturedSchool()]);
   const branding = toSchoolPortalBrand(school);
+  const displayName = branding.schoolName || APP_NAME;
 
   return (
     <div
@@ -29,9 +30,11 @@ export default async function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-between p-12 text-white">
         <BrandMark
           logoUrl={branding.logoUrl}
-          name={branding.schoolName}
+          name={displayName}
           subtitle={APP_TAGLINE}
           inverted
+          size="xl"
+          stacked
         />
 
         <div className="space-y-6">
@@ -56,12 +59,18 @@ export default async function LoginPage() {
 
       <div className="flex flex-1 items-center justify-center p-6 bg-background">
         <div className="w-full max-w-md space-y-8">
-          <div className="lg:hidden flex justify-center">
-            <BrandMark
-              logoUrl={branding.logoUrl}
-              name={branding.schoolName}
-              subtitle={APP_TAGLINE}
-            />
+          <div className="flex flex-col items-center text-center gap-3">
+            {branding.logoUrl ? (
+              <SchoolLogo src={branding.logoUrl} name={displayName} size="xl" />
+            ) : (
+              <BrandMark name={displayName} subtitle={APP_TAGLINE} size="lg" stacked />
+            )}
+            {branding.logoUrl ? (
+              <div>
+                <h1 className="text-xl font-bold text-foreground">{displayName}</h1>
+                <p className="text-muted text-sm">{APP_TAGLINE}</p>
+              </div>
+            ) : null}
           </div>
           {!dbOk && (
             <div className="rounded-lg border border-danger/30 bg-red-50 p-4 text-sm text-red-900 space-y-2">

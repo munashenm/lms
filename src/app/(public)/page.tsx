@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { getFeaturedSchool } from "@/lib/public-site";
 import { getTerminology } from "@/lib/terminology";
-import { Button } from "@/components/ui/button";
+import { SchoolLogo } from "@/components/layout/brand-mark";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   GraduationCap,
@@ -31,6 +31,15 @@ export default async function HomePage() {
       <section className="bg-primary text-white">
         <div className="mx-auto max-w-6xl px-4 py-20 lg:px-6 lg:py-28">
           <div className="max-w-2xl">
+            {school?.logoUrl ? (
+              <SchoolLogo
+                src={school.logoUrl}
+                name={school.name}
+                size="xl"
+                framed
+                className="mb-6"
+              />
+            ) : null}
             <p className="text-accent font-semibold text-sm uppercase tracking-wide mb-3">
               {school?.institutionType.replace("_", " ") ?? "School"} · {school?.city ?? "South Africa"}
             </p>

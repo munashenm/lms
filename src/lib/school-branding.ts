@@ -56,6 +56,11 @@ export function emptySchoolPortalBrand(): SchoolPortalBrand {
   return { schoolName: null, logoUrl: null, primaryColor: null, accentColor: null };
 }
 
+export function schoolLogoAlt(name?: string | null): string {
+  const trimmed = name?.trim();
+  return trimmed ? `${trimmed} logo` : "School logo";
+}
+
 export function toSchoolPortalBrand(
   school:
     | {
