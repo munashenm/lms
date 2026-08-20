@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getSessionFromRequest } from "@/lib/auth";
 import { canAccessAdmin, canAccessFinance, canAccessHr } from "@/lib/rbac";
 import { ROLE_DASHBOARD } from "@/lib/constants";
-import { canApplyForLeave } from "@/lib/staff-leave";
+import { canApplyForLeave } from "@/lib/staff-leave-access";
 import { UserRole } from "@prisma/client";
 
 const PUBLIC_PATHS = [

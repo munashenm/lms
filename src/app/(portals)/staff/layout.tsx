@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { PortalShell } from "@/components/layout/portal-shell";
-import { canApplyForLeave } from "@/lib/staff-leave";
+import { canApplyForLeave } from "@/lib/staff-leave-access";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { staffNav } from "@/lib/navigation";
 import { getPortalSessionContext } from "@/lib/portal-session";
