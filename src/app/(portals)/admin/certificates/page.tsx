@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
+import { getDocumentReleases } from "@/lib/fee-clearance";
+import { DocumentsFeeHoldBadge } from "@/components/documents/documents-fee-hold-badge";
 
 export default async function CertificatesPage() {
   const session = await getSession();
@@ -30,6 +32,7 @@ export default async function CertificatesPage() {
     prisma.course.findMany({ where: { ...filter, isActive: true }, orderBy: { name: "asc" } }),
     prisma.academicYear.findMany({ where: filter, orderBy: { name: "desc" } }),
   ]);
+  const releaseMap = await getDocumentReleases([...new Set(certificates.map((cert) => cert.studentId))]);
 
   return (
     <div className="space-y-6">
@@ -66,6 +69,7 @@ export default async function CertificatesPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant="secondary">{CERTIFICATE_TYPE_LABELS[cert.type] ?? cert.type}</Badge>
+                    <DocumentsFeeHoldBadge released={releaseMap.get(cert.studentId)?.released ?? true} />
                     {cert.pdfUrl && (
                       <Button variant="outline" size="sm" asChild>
                         <a href={`/api/certificates/${cert.id}/pdf`}>

@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { symbolLabel } from "@/lib/grading";
 import { formatDate } from "@/lib/utils";
+import { getDocumentRelease } from "@/lib/fee-clearance";
+import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
 
 export default async function StudentResultsPage() {
   const session = await getSession();
@@ -21,13 +23,20 @@ export default async function StudentResultsPage() {
         orderBy: { recordedAt: "desc" },
       })
     : [];
+  const release = student ? await getDocumentRelease(student.id) : null;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">My Results</h1>
-        <p className="text-muted text-sm mt-1">Published marks and grades</p>
+        <p className="text-muted text-sm mt-1">
+          Classroom marks. Official report cards are released when school fees are paid in full.
+        </p>
       </div>
+
+      {release && !release.released ? (
+        <DocumentsHoldNotice outstandingCents={release.outstandingCents} feesHref="/student/fees" />
+      ) : null}
 
       <Card>
         <CardContent className="p-0">

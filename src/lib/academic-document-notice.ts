@@ -1,5 +1,5 @@
 import { notifyStudentGuardians, notifyUser } from "./notifications";
-import { getDocumentRelease } from "./fee-clearance";
+import { getDocumentRelease, type DocumentRelease } from "./fee-clearance";
 import { prisma } from "./db";
 
 export type AcademicDocumentKind = "report" | "certificate" | "letter";
@@ -72,13 +72,18 @@ export async function notifyAcademicDocumentFamily(opts: {
   });
 }
 
+export function shouldNotifyDocumentsReleased(previous: DocumentRelease, current: DocumentRelease) {
+  return Boolean(current.requireFees && current.released && !previous.released);
+}
+
 export async function notifyDocumentsReleasedIfClear(opts: {
   studentId: string;
   schoolId: string;
   studentUserId?: string | null;
+  previous: DocumentRelease;
 }) {
   const release = await getDocumentRelease(opts.studentId);
-  if (!release.requireFees || !release.released) return false;
+  if (!shouldNotifyDocumentsReleased(opts.previous, release)) return false;
 
   const title = "Reports and letters are available";
   const message =

@@ -5,7 +5,7 @@ import { defaultLetterBody, wrapPdfLines } from "@/lib/pdf-letter";
 import { schoolSettingsSchema, issuedLetterSchema } from "@/lib/validators";
 import { readPublicPdf } from "@/lib/pdf-response";
 import { UserRole } from "@prisma/client";
-import { academicDocumentNotice } from "@/lib/academic-document-notice";
+import { academicDocumentNotice, shouldNotifyDocumentsReleased } from "@/lib/academic-document-notice";
 
 describe("fee clearance for academic documents", () => {
   it("sums outstanding cents on collectable invoices", () => {
@@ -159,5 +159,15 @@ describe("academic document notices", () => {
     expect(notice.studentLink).toBe("/student/fees");
     expect(notice.parentLink).toBe("/parent/fees");
     expect(notice.studentMessage).toMatch(/paid in full/i);
+  });
+
+  it("notifies only when an unpaid account becomes clear", () => {
+    const held = documentReleaseFrom(true, 5000);
+    const clear = documentReleaseFrom(true, 0);
+    const off = documentReleaseFrom(false, 5000);
+    expect(shouldNotifyDocumentsReleased(held, clear)).toBe(true);
+    expect(shouldNotifyDocumentsReleased(clear, clear)).toBe(false);
+    expect(shouldNotifyDocumentsReleased(held, held)).toBe(false);
+    expect(shouldNotifyDocumentsReleased(off, documentReleaseFrom(false, 0))).toBe(false);
   });
 });

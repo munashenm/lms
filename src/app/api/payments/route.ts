@@ -7,6 +7,7 @@ import { deriveInvoiceStatus } from "@/lib/finance";
 import { logAudit } from "@/lib/audit";
 import { notifyUser, notifyStudentGuardians } from "@/lib/notifications";
 import { notifyDocumentsReleasedIfClear } from "@/lib/academic-document-notice";
+import { getDocumentRelease } from "@/lib/fee-clearance";
 import { postPaymentToStudentLedger } from "@/lib/student-ledger";
 import { nextReceiptNumber } from "@/lib/finance-catalog";
 import { allocatePaymentManual, allocatePaymentToOldest } from "@/lib/payment-allocation";
@@ -79,6 +80,8 @@ export async function POST(request: NextRequest) {
 
   const denied = await requireLicenseWrite(invoice.schoolId, { feature: "finance" });
   if (denied) return denied;
+
+  const previousRelease = await getDocumentRelease(invoice.studentId);
 
   const newAmountPaid = Number(invoice.amountPaid) + amount;
   const total = Number(invoice.total);
@@ -191,6 +194,7 @@ export async function POST(request: NextRequest) {
     studentId: invoice.studentId,
     schoolId: invoice.schoolId,
     studentUserId: invoice.student.userId,
+    previous: previousRelease,
   });
 
   return NextResponse.json({ payment, amountPaid: newAmountPaid, status: newStatus }, { status: 201 });

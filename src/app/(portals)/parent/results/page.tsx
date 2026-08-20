@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { symbolLabel } from "@/lib/grading";
 import { formatDate } from "@/lib/utils";
 import { getTerminology } from "@/lib/terminology";
+import { getDocumentReleases, summarizeDocumentReleases } from "@/lib/fee-clearance";
+import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
@@ -21,6 +23,10 @@ export default async function ParentResultsPage({ searchParams }: PageProps) {
   const children = guardian?.students.map((sg) => sg.student) ?? [];
   const childIds = children.map((c) => c.id);
   const filterIds = studentId && childIds.includes(studentId) ? [studentId] : childIds;
+  const { blocked } = summarizeDocumentReleases(
+    filterIds,
+    await getDocumentReleases(filterIds)
+  );
 
   const marks = filterIds.length
     ? await prisma.mark.findMany({
@@ -42,7 +48,9 @@ export default async function ParentResultsPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Results</h1>
-        <p className="text-muted text-sm mt-1">Published marks and grades for your children</p>
+        <p className="text-muted text-sm mt-1">
+          Classroom marks. Official report cards are released when school fees are paid in full.
+        </p>
       </div>
 
       <ChildFilter
@@ -50,6 +58,10 @@ export default async function ParentResultsPage({ searchParams }: PageProps) {
         selectedId={studentId}
         basePath="/parent/results"
       />
+
+      {blocked ? (
+        <DocumentsHoldNotice outstandingCents={blocked.outstandingCents} feesHref="/parent/fees" />
+      ) : null}
 
       <Card>
         <CardContent className="p-0">

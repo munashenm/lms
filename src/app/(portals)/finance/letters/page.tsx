@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ISSUED_LETTER_LABELS } from "@/lib/letter-labels";
+import { getDocumentReleases } from "@/lib/fee-clearance";
+import { DocumentsFeeHoldBadge } from "@/components/documents/documents-fee-hold-badge";
 
 export default async function FinanceLettersPage() {
   const session = await getSession();
@@ -25,6 +27,7 @@ export default async function FinanceLettersPage() {
       orderBy: { lastName: "asc" },
     }),
   ]);
+  const releaseMap = await getDocumentReleases([...new Set(letters.map((letter) => letter.studentId))]);
 
   return (
     <div className="space-y-6">
@@ -61,6 +64,7 @@ export default async function FinanceLettersPage() {
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <Badge variant="secondary">{ISSUED_LETTER_LABELS[letter.type] ?? letter.type}</Badge>
+                    <DocumentsFeeHoldBadge released={releaseMap.get(letter.studentId)?.released ?? true} />
                     <Button variant="outline" size="sm" asChild>
                       <a href={`/api/letters/${letter.id}/pdf`}>
                         <Download className="h-4 w-4" />

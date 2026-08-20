@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getTerminology } from "@/lib/terminology";
+import { getDocumentReleases } from "@/lib/fee-clearance";
+import { DocumentsFeeHoldBadge } from "@/components/documents/documents-fee-hold-badge";
 
 export default async function ReportCardsPage() {
   const session = await getSession();
@@ -41,6 +43,7 @@ export default async function ReportCardsPage() {
       orderBy: { termNumber: "asc" },
     }),
   ]);
+  const releaseMap = await getDocumentReleases([...new Set(reportCards.map((rc) => rc.studentId))]);
 
   return (
     <div className="space-y-6">
@@ -84,6 +87,7 @@ export default async function ReportCardsPage() {
                     {rc.overallAverage && (
                       <Badge variant="default">{Number(rc.overallAverage)}%</Badge>
                     )}
+                    <DocumentsFeeHoldBadge released={releaseMap.get(rc.studentId)?.released ?? true} />
                     {rc.pdfUrl && (
                       <Button variant="outline" size="sm" asChild>
                         <a href={`/api/report-cards/${rc.id}/pdf`}>

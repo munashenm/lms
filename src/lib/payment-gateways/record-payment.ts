@@ -3,6 +3,7 @@ import { prisma } from "../db";
 import { deriveInvoiceStatus } from "../finance";
 import { notifyUser, notifySchoolRoles } from "../notifications";
 import { notifyDocumentsReleasedIfClear } from "../academic-document-notice";
+import { getDocumentRelease } from "../fee-clearance";
 import { nextReceiptNumber } from "../finance-catalog";
 import { postPaymentToStudentLedger } from "../student-ledger";
 import { allocatePaymentToOldest } from "../payment-allocation";
@@ -34,6 +35,8 @@ export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
   if (existing) {
     return { ok: true as const, duplicate: true };
   }
+
+  const previousRelease = await getDocumentRelease(invoice.studentId);
 
   const newAmountPaid = Number(invoice.amountPaid) + params.amount;
   const total = Number(invoice.total);
@@ -116,6 +119,7 @@ export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
     studentId: invoice.studentId,
     schoolId: invoice.schoolId,
     studentUserId: invoice.student.userId,
+    previous: previousRelease,
   });
 
   return { ok: true as const, duplicate: false };
