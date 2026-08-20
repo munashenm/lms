@@ -23,7 +23,7 @@ export default async function ApplicationsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Admissions</h1>
+          <h1 className="text-2xl font-bold">Online applications</h1>
           <p className="text-muted text-sm mt-1">
             {applications.length} applications · {pending} pending review
           </p>

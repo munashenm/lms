@@ -18,9 +18,9 @@ export default async function AdminLearnerLeavePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Learner Leave</h1>
+        <h1 className="text-2xl font-bold">Student absent request</h1>
         <p className="text-muted text-sm mt-1">
-          {requests.filter((r) => r.status === "PENDING").length} pending learner absence requests
+          {requests.filter((r) => r.status === "PENDING").length} pending student absent requests
         </p>
       </div>
       <Card>

@@ -60,10 +60,10 @@ describe("admin nav groups", () => {
     const nav = getAdminNav();
     const students = nav.filter((item) => item.section === "Students");
     expect(students.map((item) => item.label)).toEqual([
-      "Applications",
+      "Online applications",
       "Registration",
       "Student details",
-      "Student Leave",
+      "Student absent request",
     ]);
     expect(navClusters(students).map((cluster) => cluster.group)).toEqual(["Admission", "Records"]);
     expect(nav.find((item) => item.href === "/admin/applications")?.group).toBe("Admission");
@@ -241,12 +241,12 @@ describe("page tabs", () => {
 
   it("shows Admission and Records tabs on student screens", () => {
     expect(navPageTabs("/admin/applications", nav).map((tab) => tab.label)).toEqual([
-      "Applications",
+      "Online applications",
       "Registration",
     ]);
     expect(navPageTabs("/admin/students", nav).map((tab) => tab.label)).toEqual([
       "Student details",
-      "Student Leave",
+      "Student absent request",
     ]);
   });
 });

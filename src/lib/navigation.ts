@@ -142,17 +142,16 @@ export function getAdminFinanceNavItems(): Array<Omit<NavItem, "section" | "sect
 
 /** Admin Students dropdown — applications, registration and records. */
 export function getAdminStudentNavItems(
-  terms?: Terminology
+  _terms?: Terminology
 ): Array<Omit<NavItem, "section" | "sectionIcon">> {
-  const student = terms?.student ?? "Student";
   return [
     ...cluster("Admission", [
-      { label: "Applications", href: "/admin/applications", icon: "ClipboardList" },
+      { label: "Online applications", href: "/admin/applications", icon: "ClipboardList" },
       { label: "Registration", href: "/admin/students/new", icon: "UserCheck" },
     ]),
     ...cluster("Records", [
       { label: "Student details", href: "/admin/students", icon: "Users" },
-      { label: `${student} Leave`, href: "/admin/learner-leave", icon: "Palmtree" },
+      { label: "Student absent request", href: "/admin/learner-leave", icon: "Palmtree" },
     ]),
   ];
 }
