@@ -8,6 +8,7 @@ import { PublishButton } from "@/components/assessments/publish-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExamQuestionForm } from "@/components/assessments/exam-question-form";
+import { ExamAttemptList } from "@/components/assessments/exam-attempt-list";
 import { ArrowLeft } from "lucide-react";
 
 interface PageProps {
@@ -21,7 +22,15 @@ export default async function TeacherAssessmentDetailPage({ params }: PageProps)
 
   const assessment = await prisma.assessment.findUnique({
     where: { id },
-    include: { subject: true, marks: true, questions: { orderBy: { sortOrder: "asc" } } },
+    include: {
+      subject: true,
+      marks: true,
+      questions: { orderBy: { sortOrder: "asc" } },
+      attempts: {
+        include: { student: { select: { firstName: true, lastName: true, studentNumber: true } } },
+        orderBy: { startedAt: "desc" },
+      },
+    },
   });
 
   if (!assessment || (teacher && assessment.teacherId !== teacher.id)) {
@@ -49,17 +58,30 @@ export default async function TeacherAssessmentDetailPage({ params }: PageProps)
         <PublishButton assessmentId={id} isPublished={assessment.isPublished} />
       </div>
       {assessment.type === "EXAM" ? (
-        <ExamQuestionForm
-          assessmentId={id}
-          questions={assessment.questions.map((q) => ({
-            id: q.id,
-            prompt: q.prompt,
-            type: q.type,
-            options: q.options,
-            points: Number(q.points),
-            correctAnswer: q.correctAnswer,
-          }))}
-        />
+        <>
+          <ExamQuestionForm
+            assessmentId={id}
+            questions={assessment.questions.map((q) => ({
+              id: q.id,
+              prompt: q.prompt,
+              type: q.type,
+              options: q.options,
+              points: Number(q.points),
+              correctAnswer: q.correctAnswer,
+            }))}
+          />
+          <ExamAttemptList
+            maxMarks={Number(assessment.maxMarks)}
+            attempts={assessment.attempts.map((attempt) => ({
+              studentName: `${attempt.student.firstName} ${attempt.student.lastName}`,
+              studentNumber: attempt.student.studentNumber,
+              status: attempt.status,
+              score: attempt.score != null ? Number(attempt.score) : null,
+              startedAt: attempt.startedAt,
+              submittedAt: attempt.submittedAt,
+            }))}
+          />
+        </>
       ) : null}
       <MarksEntry
         assessmentId={id}

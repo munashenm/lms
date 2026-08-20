@@ -18,6 +18,7 @@ export default async function ParentExamsPage({ searchParams }: PageProps) {
   const { studentId } = await searchParams;
   const children = guardian?.students.map((sg) => sg.student) ?? [];
   const childIds = children.map((c) => c.id);
+  const filterIds = studentId && childIds.includes(studentId) ? [studentId] : childIds;
   const schoolId = session?.schoolId ?? guardian?.schoolId;
   const now = new Date();
 
@@ -34,6 +35,10 @@ export default async function ParentExamsPage({ searchParams }: PageProps) {
         include: {
           subject: { select: { name: true } },
           teacher: { select: { firstName: true, lastName: true } },
+          attempts: {
+            where: { studentId: { in: filterIds.length ? filterIds : ["__none__"] } },
+            include: { student: { select: { firstName: true, lastName: true } } },
+          },
         },
         orderBy: { dueDate: "asc" },
       })
@@ -45,10 +50,13 @@ export default async function ParentExamsPage({ searchParams }: PageProps) {
     COMPLETED: [] as typeof exams,
   };
   for (const exam of exams) {
+    const allSubmitted =
+      filterIds.length > 0 &&
+      filterIds.every((id) => exam.attempts.some((attempt) => attempt.studentId === id && attempt.status === "SUBMITTED"));
     const window = examWindow({
       availableFrom: exam.availableFrom,
       dueDate: exam.dueDate,
-      completed: Boolean(exam.dueDate && exam.dueDate < now),
+      completed: allSubmitted || Boolean(exam.dueDate && exam.dueDate < now),
       now,
     });
     grouped[window].push(exam);
@@ -112,6 +120,20 @@ export default async function ParentExamsPage({ searchParams }: PageProps) {
                       This sitting has closed. Results appear under Results once published.
                     </p>
                   )}
+                  {exam.attempts.length > 0 ? (
+                    <ul className="text-muted space-y-1 pt-1">
+                      {exam.attempts.map((attempt) => (
+                        <li key={attempt.id}>
+                          {attempt.student.firstName} {attempt.student.lastName}:{" "}
+                          {attempt.status === "SUBMITTED" && attempt.score != null
+                            ? `submitted, score ${Number(attempt.score)} / ${Number(exam.maxMarks)}`
+                            : attempt.status === "SUBMITTED"
+                              ? "submitted"
+                              : "in progress"}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </CardContent>
               </Card>
             ))

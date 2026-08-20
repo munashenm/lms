@@ -42,7 +42,7 @@ export default async function TeacherAnnouncementsPage() {
           { value: "STAFF", label: "Staff" },
         ]}
       />
-      <AnnouncementList announcements={announcements} />
+      <AnnouncementList announcements={announcements} canManagePublic />
     </div>
   );
 }

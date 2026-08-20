@@ -22,7 +22,7 @@ export default async function AnnouncementsPage() {
       </div>
 
       <AnnouncementForm />
-      <AnnouncementList announcements={announcements} />
+      <AnnouncementList announcements={announcements} canManagePublic />
     </div>
   );
 }

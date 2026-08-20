@@ -376,6 +376,8 @@ export const schoolEventSchema = z.object({
   isPublic: z.boolean().optional(),
 });
 
+export const schoolEventUpdateSchema = schoolEventSchema.partial();
+
 export const marksBulkSchema = z.object({
   marks: z.array(
     z.object({
