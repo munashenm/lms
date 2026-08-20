@@ -104,6 +104,11 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           absenceNotifyEnabled: school.absenceNotifyEnabled,
           teacherReviewsAnonymous: school.teacherReviewsAnonymous,
           studentLeaveRequiresGuardian: school.studentLeaveRequiresGuardian,
+          heroHeadline: school.heroHeadline,
+          heroSubtitle: school.heroSubtitle,
+          aboutText: school.aboutText,
+          missionText: school.missionText,
+          admissionsText: school.admissionsText,
         }}
         manageSchoolId={isSuperAdminView ? school.id : undefined}
       />

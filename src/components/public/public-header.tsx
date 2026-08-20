@@ -13,6 +13,8 @@ const NAV_LINKS = [
   { href: "/about", label: "About" },
   { href: "/programmes", label: "Programmes" },
   { href: "/fees", label: "Fees" },
+  { href: "/news", label: "News" },
+  { href: "/calendar", label: "Calendar" },
   { href: "/contact", label: "Contact" },
   { href: "/apply/status", label: "Track Application" },
 ];

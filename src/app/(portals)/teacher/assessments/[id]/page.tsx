@@ -7,6 +7,7 @@ import { MarksEntry } from "@/components/assessments/marks-entry";
 import { PublishButton } from "@/components/assessments/publish-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ExamQuestionForm } from "@/components/assessments/exam-question-form";
 import { ArrowLeft } from "lucide-react";
 
 interface PageProps {
@@ -20,7 +21,7 @@ export default async function TeacherAssessmentDetailPage({ params }: PageProps)
 
   const assessment = await prisma.assessment.findUnique({
     where: { id },
-    include: { subject: true, marks: true },
+    include: { subject: true, marks: true, questions: { orderBy: { sortOrder: "asc" } } },
   });
 
   if (!assessment || (teacher && assessment.teacherId !== teacher.id)) {
@@ -47,6 +48,19 @@ export default async function TeacherAssessmentDetailPage({ params }: PageProps)
         </div>
         <PublishButton assessmentId={id} isPublished={assessment.isPublished} />
       </div>
+      {assessment.type === "EXAM" ? (
+        <ExamQuestionForm
+          assessmentId={id}
+          questions={assessment.questions.map((q) => ({
+            id: q.id,
+            prompt: q.prompt,
+            type: q.type,
+            options: q.options,
+            points: Number(q.points),
+            correctAnswer: q.correctAnswer,
+          }))}
+        />
+      ) : null}
       <MarksEntry
         assessmentId={id}
         maxMarks={Number(assessment.maxMarks)}

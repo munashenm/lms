@@ -23,9 +23,10 @@ export default async function AboutPage() {
         <div>
           <h1 className="text-3xl font-bold">About {school?.name ?? "Our Institution"}</h1>
           <p className="text-muted mt-3 max-w-2xl leading-relaxed">
-            We are a leading {school?.institutionType.toLowerCase().replace("_", " ")} in{" "}
-            {school?.province ?? "South Africa"}, committed to delivering quality education
-            that prepares learners for the workplace and further study.
+            {school?.aboutText ||
+              `We are a leading ${school?.institutionType.toLowerCase().replace("_", " ")} in ${
+                school?.province ?? "South Africa"
+              }, committed to delivering quality education that prepares learners for the workplace and further study.`}
           </p>
         </div>
       </div>
@@ -55,9 +56,8 @@ export default async function AboutPage() {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Our Mission</h2>
           <p className="text-muted leading-relaxed">
-            To provide accessible, high-quality education that empowers South African
-            youth with the skills, knowledge and values needed to succeed in a changing
-            economy — from foundation learning through to NQF qualifications.
+            {school?.missionText ||
+              "To provide accessible, high-quality education that empowers South African youth with the skills, knowledge and values needed to succeed in a changing economy — from foundation learning through to NQF qualifications."}
           </p>
           <h2 className="text-xl font-semibold pt-4">What we offer</h2>
           <div className="flex flex-wrap gap-2">

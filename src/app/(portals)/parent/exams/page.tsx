@@ -59,8 +59,8 @@ export default async function ParentExamsPage({ searchParams }: PageProps) {
       <div>
         <h1 className="text-2xl font-bold">Examinations</h1>
         <p className="text-muted text-sm mt-1">
-          Published examinations for linked children: dates, venues and office instructions. Sitting a
-          paper online is a future module — questions are not shown here.
+          Published examinations for linked children: dates, venues and office instructions. Learners
+          sit papers in the student portal when the school has opened an online sitting.
         </p>
       </div>
 

@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import type { ResolvedIntegrations } from "../school-integrations";
 import { isPayFastReady } from "../school-integrations";
+import { UserRole } from "@prisma/client";
+import { paymentReturnUrls } from "./return-url";
 
 interface PayFastPaymentParams {
   invoiceId: string;
@@ -8,6 +10,7 @@ interface PayFastPaymentParams {
   amount: number;
   studentEmail?: string;
   studentName: string;
+  role?: UserRole;
 }
 
 export function isPayFastConfigured(config: ResolvedIntegrations) {
@@ -21,8 +24,8 @@ export function createPayFastPayment(
   const merchantId = config.payfast.merchantId;
   const merchantKey = config.payfast.merchantKey;
   const passphrase = config.payfast.passphrase;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const sandbox = config.payfast.sandbox;
+  const returns = paymentReturnUrls(params.role ?? UserRole.STUDENT, params.invoiceId);
 
   if (!merchantId || !merchantKey || !passphrase) {
     return { configured: false as const };
@@ -31,9 +34,9 @@ export function createPayFastPayment(
   const data: Record<string, string> = {
     merchant_id: merchantId,
     merchant_key: merchantKey,
-    return_url: `${appUrl}/student/fees/${params.invoiceId}?paid=1`,
-    cancel_url: `${appUrl}/student/fees/${params.invoiceId}?cancelled=1`,
-    notify_url: `${appUrl}/api/webhooks/payfast`,
+    return_url: returns.successUrl,
+    cancel_url: returns.cancelUrl,
+    notify_url: `${returns.appUrl}/api/webhooks/payfast`,
     name_first: params.studentName.split(" ")[0] ?? "Student",
     name_last: params.studentName.split(" ").slice(1).join(" ") || "User",
     email_address: params.studentEmail ?? "student@college.co.za",

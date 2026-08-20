@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
       content: parsed.data.content,
       audience: parsed.data.audience,
       isPinned: parsed.data.isPinned ?? false,
+      isPublic: parsed.data.isPublic ?? false,
     },
   });
 

@@ -45,11 +45,11 @@ export default async function HomePage() {
               {school?.institutionType.replace("_", " ") ?? "School"} · {school?.city ?? "South Africa"}
             </p>
             <h1 className="text-4xl lg:text-5xl font-bold leading-tight">
-              {school?.name ?? "Your Future Starts Here"}
+              {school?.heroHeadline || school?.name || "Your Future Starts Here"}
             </h1>
             <p className="mt-4 text-lg text-white/80 leading-relaxed">
-              Quality education for South African learners. CAPS, NSC and TVET programmes
-              with modern facilities, expert lecturers, and a path to your career.
+              {school?.heroSubtitle ||
+                "Quality education for South African learners. CAPS, NSC and TVET programmes with modern facilities, expert lecturers, and a path to your career."}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button size="lg" className="bg-accent text-primary hover:bg-accent/90" asChild>
@@ -111,8 +111,8 @@ export default async function HomePage() {
           <div>
             <h2 className="text-2xl font-bold">Admissions open</h2>
             <p className="text-muted mt-3 leading-relaxed">
-              Apply online in minutes. Upload your documents, track your application status,
-              and receive updates by email or SMS.
+              {school?.admissionsText ||
+                "Apply online in minutes. Upload your documents, track your application status, and receive updates by email or SMS."}
             </p>
             <ul className="mt-6 space-y-3">
               {["Free online application", "Track status with your reference number", "Response within 5–10 working days"].map((t) => (

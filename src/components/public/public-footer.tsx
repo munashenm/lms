@@ -29,6 +29,8 @@ export function PublicFooter({ schoolName, logoUrl }: PublicFooterProps) {
               <li><Link href="/about" className="hover:text-white">About</Link></li>
               <li><Link href="/programmes" className="hover:text-white">Programmes</Link></li>
               <li><Link href="/fees" className="hover:text-white">Fees</Link></li>
+              <li><Link href="/news" className="hover:text-white">News</Link></li>
+              <li><Link href="/calendar" className="hover:text-white">Calendar</Link></li>
               <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
             </ul>
           </div>

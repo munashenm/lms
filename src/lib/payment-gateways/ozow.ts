@@ -1,11 +1,14 @@
 import crypto from "crypto";
 import type { ResolvedIntegrations } from "../school-integrations";
 import { isOzowReady } from "../school-integrations";
+import { UserRole } from "@prisma/client";
+import { paymentReturnUrls } from "./return-url";
 
 interface OzowPaymentParams {
   invoiceId: string;
   invoiceNumber: string;
   amount: number;
+  role?: UserRole;
 }
 
 export function isOzowConfigured(config: ResolvedIntegrations) {
@@ -20,9 +23,9 @@ function ozowHash(values: string[], privateKey: string) {
 export function createOzowPayment(config: ResolvedIntegrations, params: OzowPaymentParams) {
   const siteCode = config.ozow.siteCode;
   const privateKey = config.ozow.privateKey;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const sandbox = config.ozow.sandbox;
   const baseUrl = "https://pay.ozow.com";
+  const returns = paymentReturnUrls(params.role ?? UserRole.STUDENT, params.invoiceId);
 
   if (!siteCode || !privateKey) {
     return { configured: false as const };
@@ -33,10 +36,10 @@ export function createOzowPayment(config: ResolvedIntegrations, params: OzowPaym
   const bankReference = params.invoiceNumber.slice(0, 20);
   const isTest = sandbox ? "true" : "false";
 
-  const cancelUrl = `${appUrl}/student/fees/${params.invoiceId}?cancelled=1`;
-  const errorUrl = `${appUrl}/student/fees/${params.invoiceId}?error=1`;
-  const successUrl = `${appUrl}/student/fees/${params.invoiceId}?paid=1`;
-  const notifyUrl = `${appUrl}/api/webhooks/ozow`;
+  const cancelUrl = returns.cancelUrl;
+  const errorUrl = returns.failureUrl;
+  const successUrl = returns.successUrl;
+  const notifyUrl = `${returns.appUrl}/api/webhooks/ozow`;
 
   const hashCheck = ozowHash(
     [

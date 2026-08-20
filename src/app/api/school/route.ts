@@ -78,6 +78,21 @@ export async function PATCH(request: NextRequest) {
     ...(parsed.data.website !== undefined && {
       website: parsed.data.website || null,
     }),
+    ...(parsed.data.heroHeadline !== undefined && {
+      heroHeadline: parsed.data.heroHeadline || null,
+    }),
+    ...(parsed.data.heroSubtitle !== undefined && {
+      heroSubtitle: parsed.data.heroSubtitle || null,
+    }),
+    ...(parsed.data.aboutText !== undefined && {
+      aboutText: parsed.data.aboutText || null,
+    }),
+    ...(parsed.data.missionText !== undefined && {
+      missionText: parsed.data.missionText || null,
+    }),
+    ...(parsed.data.admissionsText !== undefined && {
+      admissionsText: parsed.data.admissionsText || null,
+    }),
     ...(parsed.data.email !== undefined && {
       email: parsed.data.email || null,
     }),

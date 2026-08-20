@@ -73,8 +73,11 @@ export async function POST(request: NextRequest) {
       teacherId: teacher?.id ?? null,
       maxMarks: data.maxMarks,
       weight: data.weight ?? null,
-      dueDate: data.dueDate ? new Date(data.dueDate) : null,
-      isPublished: false,
+            dueDate: data.dueDate ? new Date(data.dueDate) : null,
+            venue: data.venue || null,
+            durationMinutes: data.durationMinutes ?? null,
+            availableFrom: data.availableFrom ? new Date(data.availableFrom) : null,
+            isPublished: false,
       ...(data.isAssignment || data.type === "ASSIGNMENT"
         ? {
             assignment: {

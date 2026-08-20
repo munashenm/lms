@@ -18,6 +18,8 @@ const PUBLIC_PATHS = [
   "/programmes",
   "/fees",
   "/contact",
+  "/news",
+  "/calendar",
   "/uploads",
   "/api/webhooks",
   "/api/cron",

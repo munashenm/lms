@@ -130,6 +130,17 @@ enum AssessmentType {
   ORAL
 }
 
+enum ExamQuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+enum ExamAttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+}
+
 enum ApplicationStatus {
   SUBMITTED
   UNDER_REVIEW
@@ -436,6 +447,11 @@ model School {
   timezone        String          @default("Africa/Johannesburg")
   currency        String          @default("ZAR")
   popiaConsentText String?
+  heroHeadline    String?
+  heroSubtitle    String?
+  aboutText       String?         @db.Text
+  missionText     String?         @db.Text
+  admissionsText  String?         @db.Text
   absenceNotifyEnabled Boolean    @default(false)
   teacherReviewsAnonymous Boolean @default(true)
   studentLeaveRequiresGuardian Boolean @default(false)
@@ -455,6 +471,7 @@ model School {
   guardians       Guardian[]
   applications    Application[]
   announcements   Announcement[]
+  events          SchoolEvent[]
   auditLogs       AuditLog[]
   documents       Document[]
   invoices        Invoice[]
@@ -854,6 +871,7 @@ model Student {
   absenceRequests StudentAbsenceRequest[]
   teacherReviews  TeacherReview[]
   documents       StudentDocument[]
+  examAttempts    ExamAttempt[]
 
   @@unique([schoolId, studentNumber])
   @@index([schoolId])
@@ -1101,6 +1119,8 @@ model Assessment {
   teacher     Teacher?  @relation("AssessmentCreator", fields: [teacherId], references: [id])
   marks       Mark[]
   assignment  Assignment?
+  questions   ExamQuestion[]
+  attempts    ExamAttempt[]
 
   @@index([subjectId])
   @@index([moduleId])
@@ -1139,6 +1159,60 @@ model AssignmentSubmission {
 
   @@unique([assignmentId, studentId])
   @@map("assignment_submissions")
+}
+
+model ExamQuestion {
+  id            String           @id @default(cuid())
+  assessmentId  String
+  prompt        String
+  type          ExamQuestionType @default(MULTIPLE_CHOICE)
+  options       Json?
+  correctAnswer String?
+  points        Decimal          @default(1) @db.Decimal(6, 2)
+  sortOrder     Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  assessment    Assessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  answers       ExamAnswer[]
+
+  @@index([assessmentId])
+  @@map("exam_questions")
+}
+
+model ExamAttempt {
+  id           String            @id @default(cuid())
+  assessmentId String
+  studentId    String
+  status       ExamAttemptStatus @default(IN_PROGRESS)
+  startedAt    DateTime          @default(now())
+  submittedAt  DateTime?
+  score        Decimal?          @db.Decimal(6, 2)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  assessment   Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student      Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers      ExamAnswer[]
+
+  @@unique([assessmentId, studentId])
+  @@index([studentId])
+  @@map("exam_attempts")
+}
+
+model ExamAnswer {
+  id            String       @id @default(cuid())
+  attemptId     String
+  questionId    String
+  response      String
+  isCorrect     Boolean?
+  pointsAwarded Decimal      @default(0) @db.Decimal(6, 2)
+
+  attempt       ExamAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question      ExamQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@map("exam_answers")
 }
 
 model Mark {
@@ -1353,6 +1427,7 @@ model Announcement {
   content   String
   audience  AnnouncementAudience @default(ALL)
   isPinned  Boolean              @default(false)
+  isPublic  Boolean              @default(false)
   publishAt DateTime             @default(now())
   expiresAt DateTime?
   createdAt DateTime             @default(now())
@@ -1363,6 +1438,23 @@ model Announcement {
 
   @@index([schoolId, publishAt])
   @@map("announcements")
+}
+
+model SchoolEvent {
+  id          String   @id @default(cuid())
+  schoolId    String
+  title       String
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, startsAt])
+  @@map("school_events")
 }
 
 // ─── Notifications ───────────────────────────────────────────────────────────

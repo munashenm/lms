@@ -9,8 +9,9 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { getOutstandingBalance } from "@/lib/finance";
 import { formatZAR } from "@/lib/utils";
 import { getTerminology } from "@/lib/terminology";
-import { CreditCard, TrendingDown } from "lucide-react";
+import { PayOnlineButton } from "@/components/finance/pay-online-button";
 import { InstalmentStatus } from "@prisma/client";
+import { CreditCard, TrendingDown } from "lucide-react";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
@@ -52,6 +53,7 @@ export default async function ParentFeesPage({ searchParams }: PageProps) {
     0
   );
   const totalPaid = invoices.reduce((s, i) => s + Number(i.amountPaid), 0);
+  const payInvoice = invoices.find((i) => getOutstandingBalance(Number(i.total), Number(i.amountPaid)) > 0);
 
   const mapped = invoices.map((i) => ({
     ...i,
@@ -64,7 +66,7 @@ export default async function ParentFeesPage({ searchParams }: PageProps) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{terms.fees}</h1>
-          <p className="text-muted text-sm mt-1">View fee statements for your children</p>
+          <p className="text-muted text-sm mt-1">View statements and pay outstanding invoices online</p>
         </div>
         {filterIds.length === 1 ? <FeeStatementButton studentId={filterIds[0]} /> : null}
       </div>
@@ -79,6 +81,12 @@ export default async function ParentFeesPage({ searchParams }: PageProps) {
         <StatCard title="Outstanding" value={formatZAR(totalOutstanding)} icon={TrendingDown} />
         <StatCard title="Paid to Date" value={formatZAR(totalPaid)} icon={CreditCard} />
       </div>
+      {payInvoice ? (
+        <PayOnlineButton
+          invoiceId={payInvoice.id}
+          outstanding={getOutstandingBalance(Number(payInvoice.total), Number(payInvoice.amountPaid))}
+        />
+      ) : null}
 
       <InstalmentSchedule
         title="Upcoming instalments"

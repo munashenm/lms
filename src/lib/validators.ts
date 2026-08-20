@@ -265,6 +265,7 @@ export const announcementSchema = z.object({
   content: z.string().min(1, "Content is required"),
   audience: z.enum(["ALL", "STUDENTS", "PARENTS", "STAFF", "TEACHERS", "FINANCE"]).default("ALL"),
   isPinned: z.boolean().optional(),
+  isPublic: z.boolean().optional(),
 });
 
 export const noticeComposeSchema = z.object({
@@ -339,8 +340,40 @@ export const assessmentSchema = z.object({
   maxMarks: z.coerce.number().positive("Max marks must be positive"),
   weight: z.coerce.number().positive().optional(),
   dueDate: z.string().optional(),
+  venue: z.string().optional(),
+  durationMinutes: z.preprocess(
+    (val) => (val === "" || val == null ? undefined : val),
+    z.coerce.number().int().positive().optional()
+  ),
+  availableFrom: z.string().optional(),
   isAssignment: z.boolean().optional(),
   instructions: z.string().optional(),
+});
+
+export const examQuestionSchema = z.object({
+  prompt: z.string().min(1, "Question is required"),
+  type: z.enum(["MULTIPLE_CHOICE", "TRUE_FALSE", "SHORT_ANSWER"]).default("MULTIPLE_CHOICE"),
+  options: z.array(z.string()).optional(),
+  correctAnswer: z.string().optional().nullable(),
+  points: z.coerce.number().positive().optional(),
+  sortOrder: z.coerce.number().int().optional(),
+});
+
+export const examSubmitSchema = z.object({
+  answers: z.array(
+    z.object({
+      questionId: z.string().min(1),
+      response: z.string(),
+    })
+  ),
+});
+
+export const schoolEventSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  startsAt: z.string().min(1, "Start date is required"),
+  endsAt: z.string().optional(),
+  isPublic: z.boolean().optional(),
 });
 
 export const marksBulkSchema = z.object({
@@ -543,6 +576,11 @@ export const schoolSettingsSchema = z.object({
   absenceNotifyEnabled: z.coerce.boolean().optional(),
   teacherReviewsAnonymous: z.coerce.boolean().optional(),
   studentLeaveRequiresGuardian: z.coerce.boolean().optional(),
+  heroHeadline: z.string().optional(),
+  heroSubtitle: z.string().optional(),
+  aboutText: z.string().optional(),
+  missionText: z.string().optional(),
+  admissionsText: z.string().optional(),
 });
 
 export const studentLedgerEntrySchema = z.object({

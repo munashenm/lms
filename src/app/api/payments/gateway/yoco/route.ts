@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       amount: auth.outstanding,
       studentEmail: auth.invoice.student.email ?? undefined,
       studentName: `${auth.invoice.student.firstName} ${auth.invoice.student.lastName}`,
+      role: auth.session.role,
     });
     return NextResponse.json(result);
   } catch (err) {

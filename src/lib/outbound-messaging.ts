@@ -5,10 +5,18 @@ export async function sendEmailViaSendGrid(
   to: string,
   subject: string,
   body: string,
-  attachments?: { filename: string; type: string; contentBase64: string }[]
+  attachments?: { filename: string; type: string; contentBase64: string }[],
+  html?: string
 ) {
   const apiKey = config.sendgrid.apiKey;
   if (!apiKey) return { sent: false as const, reason: "not_configured" };
+
+  const content = html
+    ? [
+        { type: "text/plain", value: body },
+        { type: "text/html", value: html },
+      ]
+    : [{ type: "text/plain", value: body }];
 
   const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
     method: "POST",
@@ -23,7 +31,7 @@ export async function sendEmailViaSendGrid(
         name: config.sendgrid.fromName,
       },
       subject,
-      content: [{ type: "text/plain", value: body }],
+      content,
       ...(attachments?.length
         ? {
             attachments: attachments.map((a) => ({

@@ -75,14 +75,13 @@ export const DEFAULT_LICENSE_FEATURES: Record<LicenseFeatureKey, boolean> = {
   student_leave: true,
   visitor_management: true,
   messaging: false,
-  online_exams: false,
+  online_exams: true,
 };
 
-export const FUTURE_LICENSE_FEATURES: readonly LicenseFeatureKey[] = ["online_exams"];
+export const FUTURE_LICENSE_FEATURES: readonly LicenseFeatureKey[] = [];
 
 export const LICENSE_FEATURE_NOTES: Partial<Record<LicenseFeatureKey, string>> = {
-  online_exams:
-    "Future module. Exam dates, venues and instructions are available now. Sitting a paper in the portal is not built yet.",
+  online_exams: "Learners can sit published online papers when questions have been added.",
 };
 
 export function isFutureLicenseFeature(key: string): boolean {

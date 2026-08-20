@@ -106,7 +106,13 @@ export async function sendOutboundMessage(
 
   try {
     if (channel === "email" && isSendGridReady(config)) {
-      const result = await sendEmailViaSendGrid(config, to, subject, body);
+      const { htmlForSchoolEmail } = await import("./email-brand");
+      const html = await htmlForSchoolEmail({
+        schoolId,
+        title: subject,
+        bodyText: body,
+      });
+      const result = await sendEmailViaSendGrid(config, to, subject, body, undefined, html);
       if (result.sent) console.info(`[outbound:email] delivered to ${to}`);
       return;
     }

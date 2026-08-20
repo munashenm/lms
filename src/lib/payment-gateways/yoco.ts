@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import type { ResolvedIntegrations } from "../school-integrations";
 import { isYocoReady } from "../school-integrations";
+import { UserRole } from "@prisma/client";
+import { amountToCents, paymentReturnUrls } from "./return-url";
 
 interface YocoPaymentParams {
   invoiceId: string;
@@ -8,6 +10,7 @@ interface YocoPaymentParams {
   amount: number;
   studentEmail?: string;
   studentName: string;
+  role?: UserRole;
 }
 
 export function isYocoConfigured(config: ResolvedIntegrations) {
@@ -19,16 +22,16 @@ export async function createYocoCheckout(
   params: YocoPaymentParams
 ) {
   const secretKey = config.yoco.secretKey;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
   if (!secretKey) {
     return { configured: false as const };
   }
 
-  const amountInCents = Math.round(params.amount * 100);
-  const successUrl = `${appUrl}/student/fees/${params.invoiceId}?paid=1`;
-  const cancelUrl = `${appUrl}/student/fees/${params.invoiceId}?cancelled=1`;
-  const failureUrl = `${appUrl}/student/fees/${params.invoiceId}?error=1`;
+  const amountInCents = amountToCents(params.amount);
+  const returns = paymentReturnUrls(params.role ?? UserRole.STUDENT, params.invoiceId);
+  const successUrl = returns.successUrl;
+  const cancelUrl = returns.cancelUrl;
+  const failureUrl = returns.failureUrl;
 
   const res = await fetch("https://payments.yoco.com/api/checkouts", {
     method: "POST",

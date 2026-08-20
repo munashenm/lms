@@ -41,4 +41,15 @@ describe("school settings", () => {
     expect(schoolSettingsSchema.safeParse({ primaryColor: "navy" }).success).toBe(false);
     expect(schoolSettingsSchema.safeParse({ accentColor: "#FFF" }).success).toBe(false);
   });
+
+  it("accepts public website copy fields", () => {
+    const parsed = schoolSettingsSchema.safeParse({
+      heroHeadline: "Learn with us",
+      heroSubtitle: "A Cape Town school",
+      aboutText: "About the school",
+      missionText: "Our mission",
+      admissionsText: "How to apply",
+    });
+    expect(parsed.success).toBe(true);
+  });
 });

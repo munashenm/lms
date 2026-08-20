@@ -49,6 +49,11 @@ interface SchoolData {
   absenceNotifyEnabled?: boolean;
   teacherReviewsAnonymous?: boolean;
   studentLeaveRequiresGuardian?: boolean;
+  heroHeadline?: string | null;
+  heroSubtitle?: string | null;
+  aboutText?: string | null;
+  missionText?: string | null;
+  admissionsText?: string | null;
 }
 
 interface SchoolSettingsFormProps {
@@ -115,6 +120,11 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             absenceNotifyEnabled: form.get("absenceNotifyEnabled") === "on",
             teacherReviewsAnonymous: form.get("teacherReviewsAnonymous") === "on",
             studentLeaveRequiresGuardian: form.get("studentLeaveRequiresGuardian") === "on",
+            heroHeadline: form.get("heroHeadline") || "",
+            heroSubtitle: form.get("heroSubtitle") || "",
+            aboutText: form.get("aboutText") || "",
+            missionText: form.get("missionText") || "",
+            admissionsText: form.get("admissionsText") || "",
           }),
         }
       );
@@ -377,6 +387,58 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
                 />
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Public website</CardTitle>
+          <p className="text-sm text-muted">
+            These words appear on your public homepage and About page. Leave blank to use the default copy.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Homepage headline</Label>
+            <Input name="heroHeadline" defaultValue={school.heroHeadline ?? ""} placeholder={school.name} />
+          </div>
+          <div className="space-y-2">
+            <Label>Homepage introduction</Label>
+            <textarea
+              name="heroSubtitle"
+              defaultValue={school.heroSubtitle ?? ""}
+              rows={3}
+              className="flex w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+              placeholder="Quality education for South African learners..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>About the institution</Label>
+            <textarea
+              name="aboutText"
+              defaultValue={school.aboutText ?? ""}
+              rows={4}
+              className="flex w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Mission</Label>
+            <textarea
+              name="missionText"
+              defaultValue={school.missionText ?? ""}
+              rows={3}
+              className="flex w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Admissions blurb</Label>
+            <textarea
+              name="admissionsText"
+              defaultValue={school.admissionsText ?? ""}
+              rows={3}
+              className="flex w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+            />
           </div>
         </CardContent>
       </Card>

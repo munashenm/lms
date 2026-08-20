@@ -267,12 +267,31 @@ async function replaceSchoolData(
     await tx.invoice.deleteMany({ where: { schoolId } });
     await tx.feeReminderRule.deleteMany({ where: { schoolId } });
     await tx.feeScheduleItem.deleteMany({ where: { schoolId } });
+    await tx.examAnswer.deleteMany({ where: { attempt: { student: { schoolId } } } });
+    await tx.examAttempt.deleteMany({ where: { student: { schoolId } } });
+    await tx.examQuestion.deleteMany({
+      where: {
+        OR: [
+          { assessment: { subject: { schoolId } } },
+          { assessment: { module: { course: { schoolId } } } },
+        ],
+      },
+    });
+    await tx.schoolEvent.deleteMany({ where: { schoolId } });
     await tx.assignmentSubmission.deleteMany({ where: { student: { schoolId } } });
     await tx.mark.deleteMany({ where: { student: { schoolId } } });
     await tx.assignment.deleteMany({
-      where: { assessment: { subject: { schoolId } } },
+      where: {
+        assessment: {
+          OR: [{ subject: { schoolId } }, { module: { course: { schoolId } } }],
+        },
+      },
     });
-    await tx.assessment.deleteMany({ where: { subject: { schoolId } } });
+    await tx.assessment.deleteMany({
+      where: {
+        OR: [{ subject: { schoolId } }, { module: { course: { schoolId } } }],
+      },
+    });
     await tx.attendanceRecord.deleteMany({ where: { student: { schoolId } } });
     await tx.reportCard.deleteMany({ where: { student: { schoolId } } });
     await tx.certificate.deleteMany({ where: { schoolId } });
@@ -320,6 +339,14 @@ async function replaceSchoolData(
         province: (school.province as string | null) ?? null,
         postalCode: (school.postalCode as string | null) ?? null,
         popiaConsentText: (school.popiaConsentText as string | null) ?? null,
+        logoUrl: (school.logoUrl as string | null) ?? null,
+        primaryColor: (school.primaryColor as string | null) ?? null,
+        accentColor: (school.accentColor as string | null) ?? null,
+        heroHeadline: (school.heroHeadline as string | null) ?? null,
+        heroSubtitle: (school.heroSubtitle as string | null) ?? null,
+        aboutText: (school.aboutText as string | null) ?? null,
+        missionText: (school.missionText as string | null) ?? null,
+        admissionsText: (school.admissionsText as string | null) ?? null,
       },
     });
 
@@ -362,6 +389,17 @@ async function replaceSchoolData(
     await createManyIgnore(tx.attendanceRecord, snapshot.attendanceRecords);
     await createManyIgnore(tx.timetableSlot, snapshot.timetableSlots);
     await createManyIgnore(tx.assessment, snapshot.assessments);
+    await createManyIgnore(
+      tx.examQuestion,
+      (snapshot.examQuestions ?? []).map((row) => ({
+        ...row,
+        ...(row.options !== undefined && row.options !== null
+          ? { options: asInputJson(row.options) }
+          : {}),
+      }))
+    );
+    await createManyIgnore(tx.examAttempt, snapshot.examAttempts ?? []);
+    await createManyIgnore(tx.examAnswer, snapshot.examAnswers ?? []);
     await createManyIgnore(tx.assignment, snapshot.assignments);
     await createManyIgnore(tx.assignmentSubmission, snapshot.assignmentSubmissions);
     await createManyIgnore(tx.mark, snapshot.marks);
@@ -373,6 +411,7 @@ async function replaceSchoolData(
     await createManyIgnore(tx.feeReminderRule, snapshot.feeReminderRules);
     await createManyIgnore(tx.document, snapshot.documents);
     await createManyIgnore(tx.announcement, snapshot.announcements);
+    await createManyIgnore(tx.schoolEvent, snapshot.schoolEvents ?? []);
     await createManyIgnore(tx.certificate, snapshot.certificates);
     await createManyIgnore(tx.leavePolicy, snapshot.leavePolicies ?? []);
     await createManyIgnore(tx.employee, snapshot.employees ?? []);

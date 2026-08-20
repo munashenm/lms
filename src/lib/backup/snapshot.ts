@@ -160,6 +160,16 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     }),
   ]);
 
+  const assessmentIds = assessments.map((a) => a.id);
+  const examScope = {
+    assessmentId: { in: assessmentIds.length ? assessmentIds : ["__none__"] },
+  };
+  const [examQuestions, examAttempts, schoolEvents] = await Promise.all([
+    prisma.examQuestion.findMany({ where: examScope }),
+    prisma.examAttempt.findMany({ where: examScope, include: { answers: true } }),
+    prisma.schoolEvent.findMany({ where: { schoolId } }),
+  ]);
+
   const reportCards = await prisma.reportCard.findMany({
     where: { studentId: { in: studentIds.length ? studentIds : ["__none__"] } },
   });
@@ -316,6 +326,12 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     curriculumTopics: jsonSafe(curriculumTopics),
     visitorEntries: jsonSafe(visitorEntries),
     studentDocuments: jsonSafe(studentDocuments),
+    schoolEvents: jsonSafe(schoolEvents),
+    examQuestions: jsonSafe(examQuestions),
+    examAttempts: jsonSafe(
+      examAttempts.map((a) => omitKey(a as unknown as Record<string, unknown>, "answers"))
+    ),
+    examAnswers: jsonSafe(examAttempts.flatMap((a) => a.answers)),
     files,
   };
 
@@ -330,5 +346,5 @@ export function snapshotCounts(snapshot: BackupSnapshot) {
   };
 }
 
-export const SCHEMA_VERSION = "20260820020000_school_portal_branding";
+export const SCHEMA_VERSION = "20260820030000_school_experience";
 export const APP_VERSION = process.env.npm_package_version || "0.1.0";

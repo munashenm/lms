@@ -119,12 +119,19 @@ export async function sendLoggedEmail(params: {
   }
 
   try {
+    const { htmlForSchoolEmail } = await import("./email-brand");
+    const html = await htmlForSchoolEmail({
+      schoolId: params.schoolId,
+      title: params.subject,
+      bodyText: params.message,
+    });
     const result = await sendEmailViaSendGrid(
       config,
       params.recipientContact,
       params.subject,
       params.message,
-      params.attachments
+      params.attachments,
+      html
     );
     return logCommunication({
       ...params,

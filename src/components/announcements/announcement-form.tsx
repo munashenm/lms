@@ -40,6 +40,7 @@ export function AnnouncementForm({
           content: form.get("content"),
           audience: form.get("audience"),
           isPinned: form.get("isPinned") === "on",
+          isPublic: form.get("isPublic") === "on",
         }),
       });
       if (!res.ok) throw new Error();
@@ -83,10 +84,14 @@ export function AnnouncementForm({
                 ))}
               </Select>
             </div>
-            <div className="flex items-end pb-1">
+            <div className="flex items-end pb-1 gap-4 flex-wrap">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" name="isPinned" className="h-4 w-4 rounded" />
                 Pin to top
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="isPublic" className="h-4 w-4 rounded" />
+                Show on public website
               </label>
             </div>
           </div>

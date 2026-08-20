@@ -98,6 +98,10 @@ export interface BackupSnapshot {
   curriculumTopics?: Record<string, unknown>[];
   visitorEntries?: Record<string, unknown>[];
   studentDocuments?: Record<string, unknown>[];
+  schoolEvents?: Record<string, unknown>[];
+  examQuestions?: Record<string, unknown>[];
+  examAttempts?: Record<string, unknown>[];
+  examAnswers?: Record<string, unknown>[];
   files: { relativePath: string; contentBase64: string; mimeType?: string }[];
 }
 

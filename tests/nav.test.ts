@@ -107,6 +107,8 @@ describe("admin nav groups", () => {
     expect(item?.label).toBe("Email & SMS");
     expect(item?.section).toBe("Communication");
     expect(nav.find((entry) => entry.href === "/admin/announcements")?.label).toBe("Announcements");
+    expect(nav.find((entry) => entry.href === "/admin/calendar")?.label).toBe("Calendar");
+    expect(nav.find((entry) => entry.href === "/admin/calendar")?.section).toBe("Communication");
   });
 
   it("lists finance tools in Fees, Collections and Books groups", () => {

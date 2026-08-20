@@ -42,6 +42,9 @@ export function AssessmentForm({ subjects, terms, apiBase = "/api/assessments" }
           maxMarks: form.get("maxMarks"),
           weight: form.get("weight") || undefined,
           dueDate: form.get("dueDate") || undefined,
+          availableFrom: form.get("availableFrom") || undefined,
+          durationMinutes: form.get("durationMinutes") || undefined,
+          venue: form.get("venue") || undefined,
           isAssignment: type === "ASSIGNMENT",
           instructions: form.get("instructions") || undefined,
         }),
@@ -107,6 +110,18 @@ export function AssessmentForm({ subjects, terms, apiBase = "/api/assessments" }
           <div className="space-y-2">
             <Label>Due Date</Label>
             <Input name="dueDate" type="date" />
+          </div>
+          <div className="space-y-2">
+            <Label>Available from</Label>
+            <Input name="availableFrom" type="datetime-local" />
+          </div>
+          <div className="space-y-2">
+            <Label>Duration (minutes)</Label>
+            <Input name="durationMinutes" type="number" min="1" placeholder="60" />
+          </div>
+          <div className="space-y-2">
+            <Label>Venue</Label>
+            <Input name="venue" placeholder="Hall A / Online" />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>Instructions</Label>

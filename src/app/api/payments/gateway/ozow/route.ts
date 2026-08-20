@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
     invoiceId: auth.invoice.id,
     invoiceNumber: auth.invoice.invoiceNumber,
     amount: auth.outstanding,
+    role: auth.session.role,
   });
 
   return NextResponse.json(result);

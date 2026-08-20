@@ -285,10 +285,10 @@ describe("portal feature flags", () => {
     expect(nav.some((item) => item.href === "/admin/payroll")).toBe(true);
   });
 
-  it("reserves online examinations as a future module without hiding exam listings", () => {
+  it("enables online examinations without hiding exam listings when the feature is off", () => {
     expect(LICENSE_FEATURE_KEYS).toContain("online_exams");
-    expect(DEFAULT_LICENSE_FEATURES.online_exams).toBe(false);
-    expect(isFutureLicenseFeature("online_exams")).toBe(true);
+    expect(DEFAULT_LICENSE_FEATURES.online_exams).toBe(true);
+    expect(isFutureLicenseFeature("online_exams")).toBe(false);
     expect(isFutureLicenseFeature("assessments")).toBe(false);
     expect(navHrefFeature("/student/exams")).toBe("assessments");
     expect(navHrefFeature("/parent/exams")).toBe("assessments");
