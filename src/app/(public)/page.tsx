@@ -4,6 +4,7 @@ import { ROLE_DASHBOARD } from "@/lib/constants";
 import { getFeaturedSchool } from "@/lib/public-site";
 import { getTerminology } from "@/lib/terminology";
 import { SchoolLogo } from "@/components/layout/brand-mark";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   GraduationCap,
