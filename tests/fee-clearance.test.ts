@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import { outstandingCentsFromInvoices, feesHoldMessage, isLearnerPortalRole, documentReleaseFrom, summarizeDocumentReleases } from "@/lib/fee-clearance";
+import { outstandingCentsFromInvoices, feesHoldMessage, isLearnerPortalRole, documentReleaseFrom, summarizeDocumentReleases, outstandingCentsForDocuments } from "@/lib/fee-clearance";
 import { defaultLetterBody, wrapPdfLines } from "@/lib/pdf-letter";
 import { schoolSettingsSchema, issuedLetterSchema } from "@/lib/validators";
 import { readPublicPdf } from "@/lib/pdf-response";
@@ -53,6 +53,14 @@ describe("fee clearance for academic documents", () => {
     expect(summary.releasedIds).toEqual(["a"]);
     expect(summary.blocked?.id).toBe("b");
     expect(summary.blocked?.outstandingCents).toBe(25000);
+  });
+
+  it("lets a ledger credit clear an unpaid invoice hold", () => {
+    expect(outstandingCentsForDocuments(150000, null)).toBe(150000);
+    expect(outstandingCentsForDocuments(150000, 150000)).toBe(150000);
+    expect(outstandingCentsForDocuments(150000, 0)).toBe(0);
+    expect(outstandingCentsForDocuments(150000, -25000)).toBe(0);
+    expect(outstandingCentsForDocuments(150000, 40000)).toBe(40000);
   });
 });
 
