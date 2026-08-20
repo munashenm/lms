@@ -140,6 +140,23 @@ export function getAdminFinanceNavItems(): Array<Omit<NavItem, "section" | "sect
   ];
 }
 
+/** Admin Students dropdown — applications, registration and records. */
+export function getAdminStudentNavItems(
+  terms?: Terminology
+): Array<Omit<NavItem, "section" | "sectionIcon">> {
+  const student = terms?.student ?? "Student";
+  return [
+    ...cluster("Admission", [
+      { label: "Applications", href: "/admin/applications", icon: "ClipboardList" },
+      { label: "Registration", href: "/admin/students/new", icon: "UserCheck" },
+    ]),
+    ...cluster("Records", [
+      { label: "Student details", href: "/admin/students", icon: "Users" },
+      { label: `${student} Leave`, href: "/admin/learner-leave", icon: "Palmtree" },
+    ]),
+  ];
+}
+
 /** Admin Human Resource dropdown — staff, time and payroll. Stays on /admin paths. */
 export function getAdminHrNavItems(): Array<Omit<NavItem, "section" | "sectionIcon">> {
   return [
@@ -167,7 +184,7 @@ export function getAdminNav(
   const t = terms;
   return [
     { label: "Dashboard", href: "/admin/dashboard", icon: "LayoutDashboard" },
-    { label: t?.students ?? "Learners", href: "/admin/students", icon: "Users" },
+    ...grouped("Students", "Users", getAdminStudentNavItems(t)),
     ...grouped("Human Resource", "Briefcase", getAdminHrNavItems()),
     ...grouped("Academics", "BookOpen", [
       ...cluster("Setup", [
@@ -189,16 +206,12 @@ export function getAdminNav(
         { label: "Certificates", href: "/admin/certificates", icon: "Award" },
       ]),
     ]),
-    ...grouped("Admissions", "ClipboardList", [
-      { label: "Applications", href: "/admin/applications", icon: "ClipboardList" },
-    ]),
     ...grouped("Finance", "CreditCard", getAdminFinanceNavItems()),
     ...grouped("Communication", "Megaphone", [
       { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
       { label: "Communications", href: "/admin/communications", icon: "Megaphone" },
     ]),
     ...grouped("School", "FolderOpen", [
-      { label: `${t?.student ?? "Learner"} Leave`, href: "/admin/learner-leave", icon: "Palmtree" },
       { label: "Visitor Book", href: "/admin/visitors", icon: "NotebookPen" },
       { label: "Documents", href: "/admin/documents", icon: "FolderOpen" },
     ]),

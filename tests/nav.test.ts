@@ -3,6 +3,7 @@ import {
   getAdminNav,
   getAdminFinanceNavItems,
   getAdminHrNavItems,
+  getAdminStudentNavItems,
   getParentNav,
   getStudentNav,
   getTeacherNav,
@@ -41,10 +42,10 @@ describe("admin nav groups", () => {
     ).toBe(true);
   });
 
-  it("groups learners, academics and human resource together", () => {
+  it("groups students, academics and human resource together", () => {
     const nav = getAdminNav();
-    expect(nav.find((item) => item.href === "/admin/students")?.label).toBe("Learners");
-    expect(nav.find((item) => item.href === "/admin/students")?.section).toBeUndefined();
+    expect(nav.find((item) => item.href === "/admin/students")?.section).toBe("Students");
+    expect(nav.find((item) => item.href === "/admin/students")?.label).toBe("Student details");
     expect(nav.find((item) => item.href === "/admin/classes")?.section).toBe("Academics");
     expect(nav.find((item) => item.href === "/admin/classes")?.group).toBe("Setup");
     expect(nav.find((item) => item.href === "/admin/assessments")?.group).toBe("Classroom");
@@ -52,6 +53,24 @@ describe("admin nav groups", () => {
     expect(nav.find((item) => item.href === "/admin/visitors")?.section).toBe("School");
     expect(nav.some((item) => item.section === "Organisation")).toBe(false);
     expect(nav.some((item) => item.section === "People")).toBe(false);
+    expect(nav.some((item) => item.section === "Admissions")).toBe(false);
+  });
+
+  it("puts applications, registration and student details under Students", () => {
+    const nav = getAdminNav();
+    const students = nav.filter((item) => item.section === "Students");
+    expect(students.map((item) => item.label)).toEqual([
+      "Applications",
+      "Registration",
+      "Student details",
+      "Student Leave",
+    ]);
+    expect(navClusters(students).map((cluster) => cluster.group)).toEqual(["Admission", "Records"]);
+    expect(nav.find((item) => item.href === "/admin/applications")?.group).toBe("Admission");
+    expect(nav.find((item) => item.href === "/admin/students/new")?.group).toBe("Admission");
+    expect(nav.find((item) => item.href === "/admin/students")?.group).toBe("Records");
+    expect(nav.find((item) => item.href === "/admin/learner-leave")?.section).toBe("Students");
+    expect(getAdminStudentNavItems().every((item) => item.href.startsWith("/admin"))).toBe(true);
   });
 
   it("puts staff, attendance, leave and payroll under Human Resource", () => {
@@ -172,6 +191,13 @@ describe("nav active matching", () => {
       true
     );
   });
+
+  it("does not mark student details active on the registration page", () => {
+    const studentHrefs = getAdminStudentNavItems().map((item) => item.href);
+    expect(isNavHrefActive("/admin/students/new", "/admin/students", studentHrefs)).toBe(false);
+    expect(isNavHrefActive("/admin/students/new", "/admin/students/new", studentHrefs)).toBe(true);
+    expect(isNavHrefActive("/admin/students", "/admin/students", studentHrefs)).toBe(true);
+  });
 });
 
 describe("page tabs", () => {
@@ -210,6 +236,17 @@ describe("page tabs", () => {
       "Payroll",
       "Leave policies",
       "HR Reports",
+    ]);
+  });
+
+  it("shows Admission and Records tabs on student screens", () => {
+    expect(navPageTabs("/admin/applications", nav).map((tab) => tab.label)).toEqual([
+      "Applications",
+      "Registration",
+    ]);
+    expect(navPageTabs("/admin/students", nav).map((tab) => tab.label)).toEqual([
+      "Student details",
+      "Student Leave",
     ]);
   });
 });
