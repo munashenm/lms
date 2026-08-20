@@ -18,8 +18,17 @@ export function validateSAIdNumber(id: string): boolean {
 }
 
 export function validateSAPhone(phone: string): boolean {
-  const cleaned = phone.replace(/\s/g, "");
-  return /^0\d{9}$/.test(cleaned);
+  const digits = phone.replace(/\D/g, "");
+  if (/^0\d{9}$/.test(digits)) return true;
+  if (/^27\d{9}$/.test(digits)) return true;
+  return false;
+}
+
+export function normalizeWebsiteUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "http://" || trimmed === "https://") return "";
+  if (!/^https?:\/\//i.test(trimmed)) return `https://${trimmed}`;
+  return trimmed;
 }
 
 export function formatSAPhone(phone: string): string {

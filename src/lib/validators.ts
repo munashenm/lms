@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { validateSAIdNumber, validateSAPhone } from "./sa-validation";
+import { validateSAIdNumber, validateSAPhone, normalizeWebsiteUrl } from "./sa-validation";
 
 export const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -501,9 +501,12 @@ export const schoolSettingsSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || validateSAPhone(val), {
-      message: "Phone must be 10 digits starting with 0",
+      message: "Phone must be a South African number, e.g. 0821234567",
     }),
-  website: z.string().url().optional().or(z.literal("")),
+  website: z.preprocess(
+    (val) => (typeof val === "string" ? normalizeWebsiteUrl(val) : val),
+    z.union([z.literal(""), z.string().url("Enter a valid website URL")]).optional()
+  ),
   logoUrl: z.string().optional().or(z.literal("")),
   address: z.string().optional(),
   city: z.string().optional(),

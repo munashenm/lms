@@ -75,7 +75,7 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             email: form.get("email") || "",
             phone: form.get("phone") || undefined,
             website: form.get("website") || "",
-            logoUrl: form.get("logoUrl") || "",
+            logoUrl: logoPreview || form.get("logoUrl") || "",
             address: form.get("address") || undefined,
             city: form.get("city") || undefined,
             province: form.get("province") || undefined,
@@ -91,11 +91,15 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
           }),
         }
       );
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const firstIssue = Array.isArray(data.errors) ? data.errors[0]?.message : null;
+        throw new Error(firstIssue || data.message || "Failed to save settings");
+      }
       toast.success("Settings saved");
       router.refresh();
-    } catch {
-      toast.error("Failed to save settings");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save settings");
     } finally {
       setLoading(false);
     }
@@ -225,7 +229,8 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             </div>
             <Input
               name="logoUrl"
-              defaultValue={school.logoUrl ?? ""}
+              value={logoPreview ?? ""}
+              onChange={(e) => setLogoPreview(e.target.value || null)}
               placeholder="Or paste logo URL /uploads/..."
               className="mt-2"
             />

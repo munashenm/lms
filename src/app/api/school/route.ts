@@ -5,7 +5,6 @@ import { requirePermission } from "@/lib/rbac";
 import { schoolSettingsSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { resolveSettingsSchoolId } from "@/lib/school-integrations";
-import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -54,12 +53,15 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ message: "School context required" }, { status: 400 });
   }
 
-  const denied = await requireLicenseWrite(schoolId);
-  if (denied) return denied;
-
   const parsed = schoolSettingsSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ message: "Invalid data", errors: parsed.error.issues }, { status: 400 });
+    return NextResponse.json(
+      {
+        message: parsed.error.issues[0]?.message ?? "Invalid data",
+        errors: parsed.error.issues,
+      },
+      { status: 400 }
+    );
   }
 
   const data = {
@@ -75,19 +77,23 @@ export async function PATCH(request: NextRequest) {
     }),
   };
 
-  const school = await prisma.school.update({
-    where: { id: schoolId },
-    data,
-  });
+  try {
+    const school = await prisma.school.update({
+      where: { id: schoolId },
+      data,
+    });
 
-  await logAudit({
-    schoolId,
-    userId: session!.userId,
-    action: "UPDATE",
-    entity: "School",
-    entityId: school.id,
-    metadata: { fields: Object.keys(parsed.data) },
-  });
+    await logAudit({
+      schoolId,
+      userId: session!.userId,
+      action: "UPDATE",
+      entity: "School",
+      entityId: school.id,
+      metadata: { fields: Object.keys(parsed.data) },
+    });
 
-  return NextResponse.json({ school });
+    return NextResponse.json({ school });
+  } catch {
+    return NextResponse.json({ message: "Could not save settings" }, { status: 500 });
+  }
 }
