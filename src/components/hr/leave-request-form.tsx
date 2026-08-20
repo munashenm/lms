@@ -84,7 +84,7 @@ export function LeaveRequestForm() {
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="leave-evidence">
               {leaveType === "SICK"
-                ? "Sick note / doctor&apos;s certificate *"
+                ? "Sick note / doctor's certificate *"
                 : "Supporting evidence (optional)"}
             </Label>
             <Input
