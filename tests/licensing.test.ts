@@ -262,7 +262,7 @@ describe("portal feature flags", () => {
     expect(nav.some((item) => item.href === "/admin/hr")).toBe(true);
   });
 
-  it("hides payroll when HR & Payroll is explicitly turned off", () => {
+  it("keeps the Human Resource menu when HR & Payroll was issued off", () => {
     const off = evaluateLicense({
       now: new Date("2026-06-15T00:00:00Z"),
       claims: claims({ features: { ...DEFAULT_LICENSE_FEATURES, hr_payroll: false } }),
@@ -274,10 +274,15 @@ describe("portal feature flags", () => {
     const nav = filterNavByLicense(getAdminNav(), off);
     expect(nav.filter((item) => item.section === "Human Resource").map((item) => item.label)).toEqual([
       "Staff",
+      "Employees",
       "Staff Attendance",
       "Staff Leave",
+      "Timesheets",
+      "Payroll",
+      "Leave policies",
+      "HR Reports",
     ]);
-    expect(nav.some((item) => item.href === "/admin/payroll")).toBe(false);
+    expect(nav.some((item) => item.href === "/admin/payroll")).toBe(true);
   });
 
   it("reserves online examinations as a future module without hiding exam listings", () => {

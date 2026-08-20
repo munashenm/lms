@@ -62,6 +62,8 @@ export function filterNavByLicense(
   return items.filter((item) => {
     const feature = navHrefFeature(item.href);
     if (!feature) return true;
+    // HR screens stay in the menu even when the module flag was issued off.
+    if (feature === "hr_payroll") return true;
     return isFeatureEnabled(evaluation, feature);
   });
 }

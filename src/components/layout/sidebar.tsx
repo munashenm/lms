@@ -129,6 +129,7 @@ export function Sidebar({
 
   function isSectionOpen(section: string, items: NavItem[]) {
     if (section in manualOpen) return manualOpen[section];
+    if (section === "Human Resource") return true;
     return groupContainsActive(items);
   }
 
@@ -167,7 +168,7 @@ export function Sidebar({
         <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
           {groups.map((group, index) => {
             const key = `${group.section ?? "root"}-${index}`;
-            if (!group.section || group.items.length === 1) {
+            if (!group.section || (group.items.length === 1 && group.section !== "Human Resource")) {
               return (
                 <div key={key} className="space-y-0.5">
                   {group.items.map((item) => (
