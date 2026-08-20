@@ -29,7 +29,7 @@ describe("school branding", () => {
   });
 
   it("exposes CSS variables for the portal theme", () => {
-    const vars = schoolThemeCssVars("#14532D", "#FBBF24");
+    const vars = schoolThemeCssVars("#14532D", "#FBBF24") as Record<string, string>;
     expect(vars["--primary"]).toBe("#14532D");
     expect(vars["--accent"]).toBe("#FBBF24");
     expect(vars["--color-primary"]).toBe("#14532D");
