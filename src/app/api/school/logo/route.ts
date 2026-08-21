@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { getSession } from "@/lib/auth";
 import { requirePermission } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { resolveSettingsSchoolId } from "@/lib/school-integrations";
 import { logAudit } from "@/lib/audit";
+import { saveRuntimeUpload } from "@/lib/runtime-uploads";
 
 const ALLOWED = new Set(["image/png", "image/jpeg", "image/jpg"]);
 
@@ -43,19 +42,14 @@ export async function POST(request: NextRequest) {
   }
 
   const ext = file.type === "image/png" ? "png" : "jpg";
-
-  const uploadsDir = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    schoolId,
-    "branding"
-  );
-  await mkdir(uploadsDir, { recursive: true });
   const filename = `logo-${Date.now()}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(uploadsDir, filename), buffer);
-  const logoUrl = `/uploads/${schoolId}/branding/${filename}`;
+  const logoUrl = await saveRuntimeUpload({
+    schoolId,
+    folder: "branding",
+    filename,
+    bytes: buffer,
+  });
 
   const school = await prisma.school.update({
     where: { id: schoolId },

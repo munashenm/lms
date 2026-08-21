@@ -9,6 +9,7 @@ import {
   type RGB,
 } from "pdf-lib";
 import { hexToPdfRgb, DEFAULT_PRIMARY_COLOR } from "./school-branding";
+import { readRuntimeUpload } from "./runtime-uploads";
 
 export type SchoolBrand = {
   name: string;
@@ -100,6 +101,9 @@ export function formatSchoolContactLine(brand: SchoolBrand): string {
 
 async function resolveLogoBytes(logoUrl: string): Promise<Uint8Array | null> {
   try {
+    const local = await readRuntimeUpload(logoUrl);
+    if (local) return new Uint8Array(local.bytes);
+
     if (logoUrl.startsWith("http://") || logoUrl.startsWith("https://")) {
       const res = await fetch(logoUrl);
       if (!res.ok) return null;
@@ -109,6 +113,7 @@ async function resolveLogoBytes(logoUrl: string): Promise<Uint8Array | null> {
     const relative = logoUrl.startsWith("/") ? logoUrl.slice(1) : logoUrl;
     const candidates = [
       path.join(/* turbopackIgnore: true */ process.cwd(), "public", relative),
+      path.join(/* turbopackIgnore: true */ process.cwd(), "data", relative),
       path.join(/* turbopackIgnore: true */ process.cwd(), relative),
     ];
     for (const filePath of candidates) {

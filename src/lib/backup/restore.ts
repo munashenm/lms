@@ -217,9 +217,15 @@ export async function executeRestore(opts: {
 async function restoreFiles(snapshot: BackupSnapshot) {
   for (const file of snapshot.files) {
     if (!file.relativePath.startsWith("uploads/")) continue;
-    const dest = path.join(process.cwd(), "public", file.relativePath);
-    await mkdir(path.dirname(dest), { recursive: true });
-    await writeFile(dest, Buffer.from(file.contentBase64, "base64"));
+    const body = Buffer.from(file.contentBase64, "base64");
+    for (const root of [
+      path.join(process.cwd(), "data"),
+      path.join(process.cwd(), "public"),
+    ]) {
+      const dest = path.join(root, file.relativePath);
+      await mkdir(path.dirname(dest), { recursive: true });
+      await writeFile(dest, body);
+    }
   }
 }
 

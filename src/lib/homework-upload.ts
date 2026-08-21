@@ -1,5 +1,5 @@
-import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { saveRuntimeUpload } from "./runtime-uploads";
 
 export const HOMEWORK_MAX_BYTES = 10 * 1024 * 1024;
 export const PORTAL_UPLOAD_MAX_BYTES = HOMEWORK_MAX_BYTES;
@@ -44,13 +44,14 @@ export async function saveSchoolUpload(opts: {
   }
 
   const bytes = await opts.file.arrayBuffer();
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", opts.schoolId, opts.folder);
-  await mkdir(uploadsDir, { recursive: true });
-
   const safeName = opts.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const filename = `${Date.now()}-${opts.ownerId.slice(0, 8)}-${safeName}`;
-  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
-  return `/uploads/${opts.schoolId}/${opts.folder}/${filename}`;
+  return saveRuntimeUpload({
+    schoolId: opts.schoolId,
+    folder: opts.folder,
+    filename,
+    bytes: Buffer.from(bytes),
+  });
 }
 
 export async function saveHomeworkSubmissionFile(
