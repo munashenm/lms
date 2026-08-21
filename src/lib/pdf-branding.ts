@@ -21,6 +21,10 @@ export type SchoolBrand = {
   postalCode?: string | null;
   logoUrl?: string | null;
   registrationNo?: string | null;
+  bankName?: string | null;
+  bankAccountName?: string | null;
+  bankAccountNumber?: string | null;
+  bankBranchCode?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
 };
@@ -44,6 +48,10 @@ export function toSchoolBrand(school: {
   postalCode?: string | null;
   logoUrl?: string | null;
   registrationNo?: string | null;
+  bankName?: string | null;
+  bankAccountName?: string | null;
+  bankAccountNumber?: string | null;
+  bankBranchCode?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
 }): SchoolBrand {
@@ -58,9 +66,26 @@ export function toSchoolBrand(school: {
     postalCode: school.postalCode,
     logoUrl: school.logoUrl,
     registrationNo: school.registrationNo,
+    bankName: school.bankName,
+    bankAccountName: school.bankAccountName,
+    bankAccountNumber: school.bankAccountNumber,
+    bankBranchCode: school.bankBranchCode,
     primaryColor: school.primaryColor,
     accentColor: school.accentColor,
   };
+}
+
+export function schoolBankingLines(brand: SchoolBrand): string[] {
+  return [
+    brand.bankName ? `Bank: ${brand.bankName}` : null,
+    brand.bankAccountName ? `Account name: ${brand.bankAccountName}` : null,
+    brand.bankAccountNumber ? `Account number: ${brand.bankAccountNumber}` : null,
+    brand.bankBranchCode ? `Branch code: ${brand.bankBranchCode}` : null,
+  ].filter((line): line is string => Boolean(line));
+}
+
+export function hasSchoolBanking(brand: SchoolBrand): boolean {
+  return schoolBankingLines(brand).length > 0;
 }
 
 export function formatSchoolAddress(brand: SchoolBrand): string {
@@ -82,9 +107,19 @@ async function resolveLogoBytes(logoUrl: string): Promise<Uint8Array | null> {
     }
 
     const relative = logoUrl.startsWith("/") ? logoUrl.slice(1) : logoUrl;
-    const filePath = path.join(/* turbopackIgnore: true */ process.cwd(), "public", relative);
-    const buf = await readFile(filePath);
-    return new Uint8Array(buf);
+    const candidates = [
+      path.join(/* turbopackIgnore: true */ process.cwd(), "public", relative),
+      path.join(/* turbopackIgnore: true */ process.cwd(), relative),
+    ];
+    for (const filePath of candidates) {
+      try {
+        const buf = await readFile(filePath);
+        return new Uint8Array(buf);
+      } catch {
+        /* try the next location */
+      }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -114,7 +149,7 @@ function fitLogo(image: PDFImage, maxH: number, maxW: number) {
   return { width: image.width * scale, height: image.height * scale };
 }
 
-/** Dark banner header with optional logo, school name, document title, and contact line. */
+/** Official letterhead: logo on white, school details, document title, brand colour bars. */
 export async function drawBrandedBannerHeader(params: {
   doc: PDFDocument;
   page: PDFPage;
@@ -125,57 +160,174 @@ export async function drawBrandedBannerHeader(params: {
   headerHeight?: number;
 }): Promise<number> {
   const { doc, page, brand, title, font, fontBold } = params;
-  const headerHeight = params.headerHeight ?? 88;
+  const headerHeight = Math.max(params.headerHeight ?? 108, 96);
   const { width, height } = page.getSize();
+  const top = height - headerHeight;
+  const primary = brandPrimaryRgb(brand);
+  const ink = rgb(0.12, 0.14, 0.2);
 
   page.drawRectangle({
     x: 0,
-    y: height - headerHeight,
+    y: top,
     width,
     height: headerHeight,
-    color: brandPrimaryRgb(brand),
+    color: WHITE,
+  });
+  page.drawRectangle({
+    x: 0,
+    y: height - 5,
+    width,
+    height: 5,
+    color: primary,
+  });
+  page.drawRectangle({
+    x: 0,
+    y: top,
+    width,
+    height: 4,
+    color: primary,
   });
 
   const logo = await embedSchoolLogo(doc, brand.logoUrl);
-  let textX = 50;
+  let textX = 48;
   if (logo) {
-    const size = fitLogo(logo, 48, 72);
+    const size = fitLogo(logo, 58, 92);
     page.drawImage(logo, {
       x: 40,
-      y: height - headerHeight + (headerHeight - size.height) / 2,
+      y: top + 14 + (headerHeight - 28 - size.height) / 2,
       width: size.width,
       height: size.height,
     });
-    textX = 40 + size.width + 16;
+    textX = 40 + size.width + 14;
   }
 
-  page.drawText(brand.name, {
+  const name = brand.name.slice(0, 52);
+  page.drawText(name, {
     x: textX,
-    y: height - 36,
-    size: 16,
+    y: height - 34,
+    size: 15,
     font: fontBold,
-    color: WHITE,
-  });
-  page.drawText(title.toUpperCase(), {
-    x: textX,
-    y: height - 54,
-    size: 11,
-    font,
-    color: rgb(0.9, 0.9, 0.9),
+    color: primary,
   });
 
-  const contact = formatSchoolContactLine(brand);
-  if (contact) {
-    page.drawText(contact.slice(0, 90), {
+  let infoY = height - 50;
+  const address = formatSchoolAddress(brand);
+  if (address) {
+    page.drawText(address.slice(0, 92), {
       x: textX,
-      y: height - 72,
+      y: infoY,
       size: 8,
       font,
-      color: rgb(0.85, 0.88, 0.9),
+      color: MUTED,
+    });
+    infoY -= 11;
+  }
+  const contact = formatSchoolContactLine(brand);
+  if (contact) {
+    page.drawText(contact.slice(0, 92), {
+      x: textX,
+      y: infoY,
+      size: 8,
+      font,
+      color: MUTED,
+    });
+    infoY -= 11;
+  }
+  if (brand.registrationNo) {
+    page.drawText(`EMIS / Reg. No: ${brand.registrationNo}`.slice(0, 92), {
+      x: textX,
+      y: infoY,
+      size: 8,
+      font,
+      color: MUTED,
     });
   }
 
-  return height - headerHeight - 24;
+  const heading = title.toUpperCase();
+  const headingSize = heading.length > 28 ? 8 : 10;
+  const headingWidth = fontBold.widthOfTextAtSize(heading, headingSize);
+  page.drawText(heading, {
+    x: Math.max(textX, width - 48 - headingWidth),
+    y: top + 14,
+    size: headingSize,
+    font: fontBold,
+    color: ink,
+  });
+
+  return top - 22;
+}
+
+/** EFT banking block for invoices and fee statements. */
+export function drawSchoolBankingBlock(params: {
+  page: PDFPage;
+  brand: SchoolBrand;
+  font: PDFFont;
+  fontBold: PDFFont;
+  y: number;
+  paymentReference?: string | null;
+  accountNumberLabel?: string;
+}): number {
+  const { page, brand, font, fontBold } = params;
+  const lines = schoolBankingLines(brand);
+  const reference = params.paymentReference?.trim();
+  if (lines.length === 0 && !reference) return params.y;
+
+  const rowCount = lines.length + (reference ? 2 : 0) + 1;
+  const boxHeight = 18 + rowCount * 12;
+  let y = params.y;
+  const primary = brandPrimaryRgb(brand);
+
+  page.drawRectangle({
+    x: 50,
+    y: y - boxHeight + 8,
+    width: 495,
+    height: boxHeight,
+    color: rgb(0.97, 0.98, 0.99),
+    borderColor: primary,
+    borderWidth: 0.8,
+  });
+
+  page.drawText("Banking details for EFT / deposit", {
+    x: 62,
+    y: y - 6,
+    size: 9,
+    font: fontBold,
+    color: primary,
+  });
+  y -= 20;
+
+  for (const line of lines) {
+    page.drawText(line.slice(0, 78), {
+      x: 62,
+      y,
+      size: 9,
+      font,
+      color: rgb(0.15, 0.15, 0.2),
+    });
+    y -= 12;
+  }
+
+  if (reference) {
+    const label = params.accountNumberLabel ?? "Payment reference (learner account no.)";
+    page.drawText(`${label}: ${reference}`.slice(0, 78), {
+      x: 62,
+      y,
+      size: 9,
+      font: fontBold,
+      color: rgb(0.15, 0.15, 0.2),
+    });
+    y -= 12;
+    page.drawText("Use this account number as the bank payment reference.", {
+      x: 62,
+      y,
+      size: 8,
+      font,
+      color: MUTED,
+    });
+    y -= 12;
+  }
+
+  return y - 10;
 }
 
 /** Compact contact/address footer for official documents. */

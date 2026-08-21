@@ -7,12 +7,7 @@ import { prisma } from "@/lib/db";
 import { resolveSettingsSchoolId } from "@/lib/school-integrations";
 import { logAudit } from "@/lib/audit";
 
-const ALLOWED = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-]);
+const ALLOWED = new Set(["image/png", "image/jpeg", "image/jpg"]);
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -38,7 +33,7 @@ export async function POST(request: NextRequest) {
 
   if (!ALLOWED.has(file.type)) {
     return NextResponse.json(
-      { message: "Use PNG or JPEG logo files" },
+      { message: "Use a PNG or JPEG logo so it prints on invoices and reports" },
       { status: 400 }
     );
   }
@@ -47,12 +42,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Logo must be under 2MB" }, { status: 400 });
   }
 
-  const ext =
-    file.type === "image/png"
-      ? "png"
-      : file.type === "image/webp"
-        ? "webp"
-        : "jpg";
+  const ext = file.type === "image/png" ? "png" : "jpg";
 
   const uploadsDir = path.join(
     process.cwd(),

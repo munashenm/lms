@@ -126,6 +126,10 @@ async function main() {
       city: "Johannesburg",
       province: "Gauteng",
       postalCode: "2001",
+      bankName: "FNB",
+      bankAccountName: "Cyber Developers College",
+      bankAccountNumber: "62801234567",
+      bankBranchCode: "250655",
       popiaConsentText:
         "I consent to the collection and processing of my personal information in accordance with POPIA.",
     },

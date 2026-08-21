@@ -53,4 +53,21 @@ describe("school settings", () => {
     });
     expect(parsed.success).toBe(true);
   });
+
+  it("accepts school banking details for invoices", () => {
+    const parsed = schoolSettingsSchema.safeParse({
+      bankName: "FNB",
+      bankAccountName: "Cyber Developers College",
+      bankAccountNumber: "6280 1234 567",
+      bankBranchCode: "250655",
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("rejects an invalid account number or branch code", () => {
+    expect(
+      schoolSettingsSchema.safeParse({ bankAccountNumber: "ABC123" }).success
+    ).toBe(false);
+    expect(schoolSettingsSchema.safeParse({ bankBranchCode: "25" }).success).toBe(false);
+  });
 });

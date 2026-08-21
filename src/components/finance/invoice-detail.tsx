@@ -13,7 +13,8 @@ import {
 } from "@/lib/finance";
 import { formatDate, formatDateTime, formatZAR } from "@/lib/utils";
 import { invoiceSchoolDetailLines } from "@/lib/fee-collection";
-import { toSchoolBrand } from "@/lib/pdf-branding";
+import { schoolBankingLines, toSchoolBrand } from "@/lib/pdf-branding";
+import { SchoolLogo } from "@/components/layout/brand-mark";
 import type { InvoiceStatus, PaymentMethod } from "@prisma/client";
 
 interface LineItem {
@@ -64,6 +65,11 @@ interface InvoiceDetailProps {
       province?: string | null;
       postalCode?: string | null;
       registrationNo?: string | null;
+      logoUrl?: string | null;
+      bankName?: string | null;
+      bankAccountName?: string | null;
+      bankAccountNumber?: string | null;
+      bankBranchCode?: string | null;
     } | null;
     lineItems: LineItem[];
     payments: Payment[];
@@ -74,23 +80,29 @@ interface InvoiceDetailProps {
 
 export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetailProps) {
   const outstanding = getOutstandingBalance(Number(invoice.total), Number(invoice.amountPaid));
-  const schoolLines = invoice.school
-    ? invoiceSchoolDetailLines(toSchoolBrand(invoice.school))
-    : [];
+  const brand = invoice.school ? toSchoolBrand(invoice.school) : null;
+  const schoolLines = brand ? invoiceSchoolDetailLines(brand) : [];
+  const bankingLines = brand ? schoolBankingLines(brand) : [];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{invoice.invoiceNumber}</h1>
-          <p className="text-muted text-sm mt-1">
-            {invoice.student.firstName} {invoice.student.lastName} · {invoice.student.studentNumber}
-            {invoice.student.grade && ` · ${invoice.student.grade.name}`}
-            {invoice.student.class && ` · ${invoice.student.class.name}`}
-          </p>
-          {invoice.description && (
-            <p className="text-sm mt-2">{invoice.description}</p>
-          )}
+        <div className="flex items-start gap-4">
+          {invoice.school?.logoUrl ? (
+            <SchoolLogo src={invoice.school.logoUrl} name={invoice.school.name} size="lg" framed />
+          ) : null}
+          <div>
+            <h1 className="text-2xl font-bold">{invoice.invoiceNumber}</h1>
+            <p className="text-muted text-sm mt-1">
+              {invoice.student.firstName} {invoice.student.lastName} · Account no.{" "}
+              {invoice.student.studentNumber}
+              {invoice.student.grade && ` · ${invoice.student.grade.name}`}
+              {invoice.student.class && ` · ${invoice.student.class.name}`}
+            </p>
+            {invoice.description && (
+              <p className="text-sm mt-2">{invoice.description}</p>
+            )}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 self-start">
           <InvoicePdfButton
@@ -112,6 +124,25 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
             {schoolLines.map((line) => (
               <p key={line}>{line}</p>
             ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {bankingLines.length > 0 || invoice.student.studentNumber ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Banking details</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-1">
+            {bankingLines.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+            <p className="font-medium">
+              Payment reference (learner account no.): {invoice.student.studentNumber}
+            </p>
+            <p className="text-muted text-xs">
+              Use the learner account number as the bank payment reference.
+            </p>
           </CardContent>
         </Card>
       ) : null}

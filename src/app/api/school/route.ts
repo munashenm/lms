@@ -96,6 +96,22 @@ export async function PATCH(request: NextRequest) {
     ...(parsed.data.email !== undefined && {
       email: parsed.data.email || null,
     }),
+    ...(parsed.data.bankName !== undefined && {
+      bankName: parsed.data.bankName || null,
+    }),
+    ...(parsed.data.bankAccountName !== undefined && {
+      bankAccountName: parsed.data.bankAccountName || null,
+    }),
+    ...(parsed.data.bankAccountNumber !== undefined && {
+      bankAccountNumber: parsed.data.bankAccountNumber
+        ? parsed.data.bankAccountNumber.replace(/\s+/g, "")
+        : null,
+    }),
+    ...(parsed.data.bankBranchCode !== undefined && {
+      bankBranchCode: parsed.data.bankBranchCode
+        ? parsed.data.bankBranchCode.replace(/\s+/g, "")
+        : null,
+    }),
   };
 
   try {

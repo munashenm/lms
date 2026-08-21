@@ -42,6 +42,10 @@ interface SchoolData {
   province: string | null;
   postalCode: string | null;
   registrationNo: string | null;
+  bankName?: string | null;
+  bankAccountName?: string | null;
+  bankAccountNumber?: string | null;
+  bankBranchCode?: string | null;
   popiaConsentText: string | null;
   institutionType: string;
   curriculumType: string;
@@ -114,6 +118,10 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             province: form.get("province") || undefined,
             postalCode: form.get("postalCode") || undefined,
             registrationNo: form.get("registrationNo") || undefined,
+            bankName: form.get("bankName") || "",
+            bankAccountName: form.get("bankAccountName") || "",
+            bankAccountNumber: form.get("bankAccountNumber") || "",
+            bankBranchCode: form.get("bankBranchCode") || "",
             popiaConsentText: form.get("popiaConsentText") || undefined,
             institutionType: form.get("institutionType"),
             curriculumType: form.get("curriculumType"),
@@ -244,8 +252,8 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             <Label>School Logo</Label>
             <p className="text-xs text-muted">
               Appears on staff, learner and parent portals, the public site, login, student
-              cards, report cards, certificates, fee statements and reports. Prefer PNG/JPEG
-              under 2MB.
+              cards, invoices, report cards, certificates and letters. Use PNG or JPEG under
+              2MB so the logo prints clearly on PDFs.
             </p>
             <div className="flex flex-wrap items-center gap-4">
               {logoPreview ? (
@@ -262,7 +270,7 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
               )}
               <Input
                 type="file"
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/png,image/jpeg"
                 disabled={logoUploading}
                 onChange={(e) => uploadLogo(e.target.files?.[0] ?? null)}
               />
@@ -273,6 +281,59 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
               onChange={(e) => setLogoPreview(e.target.value || null)}
               placeholder="Or paste logo URL /uploads/..."
               className="mt-2"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Banking for fee invoices</CardTitle>
+          <p className="text-sm text-muted">
+            Printed on invoices and fee statements so families can pay by EFT. Use the school
+            fees account, not staff payroll accounts. Learners&apos; admission numbers are used
+            as the payment reference.
+          </p>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="bankName">Bank</Label>
+            <Input
+              id="bankName"
+              name="bankName"
+              defaultValue={school.bankName ?? ""}
+              placeholder="FNB"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="bankAccountName">Account name</Label>
+            <Input
+              id="bankAccountName"
+              name="bankAccountName"
+              defaultValue={school.bankAccountName ?? ""}
+              placeholder="School or college name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="bankAccountNumber">Account number</Label>
+            <Input
+              id="bankAccountNumber"
+              name="bankAccountNumber"
+              inputMode="numeric"
+              autoComplete="off"
+              defaultValue={school.bankAccountNumber ?? ""}
+              placeholder="62801234567"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="bankBranchCode">Branch code</Label>
+            <Input
+              id="bankBranchCode"
+              name="bankBranchCode"
+              inputMode="numeric"
+              autoComplete="off"
+              defaultValue={school.bankBranchCode ?? ""}
+              placeholder="250655"
             />
           </div>
         </CardContent>

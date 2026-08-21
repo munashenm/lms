@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { invoiceSchoolDetailLines } from "@/lib/fee-collection";
-import { toSchoolBrand } from "@/lib/pdf-branding";
+import { schoolBankingLines, toSchoolBrand } from "@/lib/pdf-branding";
 
 export async function loadFeeCollectionPage(schoolId: string | undefined) {
   if (!schoolId) {
@@ -20,9 +20,13 @@ export async function loadFeeCollectionPage(schoolId: string | undefined) {
     }),
   ]);
 
+  const brand = school ? toSchoolBrand(school) : null;
+
   return {
     schoolName: school?.name ?? "School",
-    schoolLines: school ? invoiceSchoolDetailLines(toSchoolBrand(school)) : [],
+    schoolLines: brand
+      ? [...invoiceSchoolDetailLines(brand), ...schoolBankingLines(brand)]
+      : [],
     classes: classes.map((row) => ({
       id: row.id,
       name: row.name,

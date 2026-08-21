@@ -349,5 +349,5 @@ export function snapshotCounts(snapshot: BackupSnapshot) {
   };
 }
 
-export const SCHEMA_VERSION = "20260820060000_academic_pdf_snapshot";
+export const SCHEMA_VERSION = "20260821070000_school_banking_letterhead";
 export const APP_VERSION = process.env.npm_package_version || "0.1.0";

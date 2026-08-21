@@ -578,6 +578,24 @@ export const schoolSettingsSchema = z.object({
   postalCode: z.string().optional(),
   popiaConsentText: z.string().optional(),
   registrationNo: z.string().optional(),
+  bankName: z.string().max(80).optional().or(z.literal("")),
+  bankAccountName: z.string().max(120).optional().or(z.literal("")),
+  bankAccountNumber: z
+    .string()
+    .max(20)
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || /^[0-9]{6,16}$/.test(val.replace(/\s+/g, "")), {
+      message: "Account number must be 6–16 digits",
+    }),
+  bankBranchCode: z
+    .string()
+    .max(10)
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || /^[0-9]{6}$/.test(val.replace(/\s+/g, "")), {
+      message: "Branch code must be 6 digits",
+    }),
   institutionType: z
     .enum([
       "SCHOOL",

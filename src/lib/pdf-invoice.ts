@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
   drawBrandedBannerHeader,
   drawBrandedFooter,
+  drawSchoolBankingBlock,
   brandPrimaryRgb,
   type SchoolBrand,
 } from "./pdf-branding";
@@ -32,6 +33,7 @@ export interface InvoicePdfData {
   total: number;
   amountPaid: number;
   outstanding: number;
+  paymentReference?: string | null;
   collections?: Array<{
     paidAt: string;
     methodLabel: string;
@@ -78,13 +80,6 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
   if (data.generatedAt) line(`Printed: ${data.generatedAt}`);
   y -= 6;
 
-  const schoolLines = (data.schoolDetails ?? []).filter(Boolean);
-  if (schoolLines.length > 0) {
-    line("Issuing school", true, 11);
-    for (const row of schoolLines) line(row);
-    y -= 6;
-  }
-
   line(`Bill to: ${data.studentName}`, true, 11);
   line(`${data.studentNumberLabel ?? "Admission No"}: ${data.studentNumber}`);
   if (data.gradeOrProgramme) line(`Grade / Programme: ${data.gradeOrProgramme}`);
@@ -92,6 +87,16 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<Uint8Arr
     y -= 4;
     line(`Description: ${data.description}`);
   }
+
+  y = drawSchoolBankingBlock({
+    page,
+    brand: data.brand,
+    font,
+    fontBold,
+    y: y - 4,
+    paymentReference: data.paymentReference ?? data.studentNumber,
+    accountNumberLabel: "Payment reference (learner account no.)",
+  });
 
   y -= 12;
   const cols = [50, 300, 360, 430, 500];

@@ -95,6 +95,6 @@ describe("academic PDF snapshots", () => {
   });
 
   it("bumps the backup schema version with the snapshot migration", () => {
-    expect(SCHEMA_VERSION).toBe("20260820060000_academic_pdf_snapshot");
+    expect(SCHEMA_VERSION).toBe("20260821070000_school_banking_letterhead");
   });
 });

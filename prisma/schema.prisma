@@ -447,6 +447,10 @@ model School {
   phone           String?
   website         String?
   logoUrl         String?
+  bankName        String?
+  bankAccountName String?
+  bankAccountNumber String?
+  bankBranchCode  String?
   primaryColor    String?
   accentColor     String?
   address         String?

@@ -32,7 +32,7 @@ export async function generateTableReportPdf(options: ReportPdfOptions): Promise
   const pageHeight = 842;
   const margin = 50;
   const rowHeight = 18;
-  const headerHeight = 88;
+  const headerHeight = 108;
 
   let page = doc.addPage([pageWidth, pageHeight]);
   let y = pageHeight - margin;
