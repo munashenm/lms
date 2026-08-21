@@ -33,18 +33,26 @@ function jsonSafe<T>(value: T): T {
 
 async function collectUploads(schoolId: string): Promise<BackupSnapshot["files"]> {
   const roots = [
-    path.join(process.cwd(), "public", "uploads", schoolId),
+    { dir: path.join(process.cwd(), "public", "uploads", schoolId), base: path.join(process.cwd(), "public") },
+    { dir: path.join(process.cwd(), "data", "uploads", schoolId), base: path.join(process.cwd(), "data") },
   ];
   const files: BackupSnapshot["files"] = [];
+  const seen = new Set<string>();
   for (const root of roots) {
-    await walkFiles(root, root, files);
+    const batch: BackupSnapshot["files"] = [];
+    await walkFiles(root.dir, root.base, batch);
+    for (const file of batch) {
+      if (seen.has(file.relativePath)) continue;
+      seen.add(file.relativePath);
+      files.push(file);
+    }
   }
   return files;
 }
 
 async function walkFiles(
-  root: string,
   current: string,
+  base: string,
   out: BackupSnapshot["files"]
 ) {
   let entries;
@@ -56,14 +64,14 @@ async function walkFiles(
   for (const entry of entries) {
     const full = path.join(current, entry.name);
     if (entry.isDirectory()) {
-      await walkFiles(root, full, out);
+      await walkFiles(full, base, out);
       continue;
     }
     const info = await stat(full);
     if (info.size > 25 * 1024 * 1024) continue;
     const buf = await readFile(full);
     out.push({
-      relativePath: path.relative(path.join(process.cwd(), "public"), full).replace(/\\/g, "/"),
+      relativePath: path.relative(base, full).replace(/\\/g, "/"),
       contentBase64: buf.toString("base64"),
     });
   }
@@ -349,5 +357,5 @@ export function snapshotCounts(snapshot: BackupSnapshot) {
   };
 }
 
-export const SCHEMA_VERSION = "20260820060000_academic_pdf_snapshot";
+export const SCHEMA_VERSION = "20260821070000_school_banking_letterhead";
 export const APP_VERSION = process.env.npm_package_version || "0.1.0";

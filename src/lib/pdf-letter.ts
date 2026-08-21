@@ -115,17 +115,31 @@ export async function generateLetterPdf(data: LetterPdfData): Promise<Uint8Array
 
   y -= 16;
   write("Yours faithfully", 11);
-  y -= 24;
+  y -= 36;
+  page.drawLine({
+    start: { x: 50, y: y + 10 },
+    end: { x: 220, y: y + 10 },
+    thickness: 0.7,
+    color: rgb(0.55, 0.55, 0.6),
+  });
   write(data.brand.name, 12, true);
   const address = formatSchoolAddress(data.brand);
   if (address) write(address, 9);
-  page.drawText("School stamp / official signature", {
-    x: 50,
-    y: 70,
+  page.drawText("Official stamp", {
+    x: 388,
+    y: 92,
     size: 8,
     font,
     color: brandPrimaryRgb(data.brand),
   });
-  drawBrandedFooter({ page, brand: data.brand, font, y: 48 });
+  page.drawRectangle({
+    x: 360,
+    y: 86,
+    width: 140,
+    height: 56,
+    borderColor: brandPrimaryRgb(data.brand),
+    borderWidth: 0.7,
+  });
+  drawBrandedFooter({ page, brand: data.brand, font, y: 36 });
   return doc.save();
 }

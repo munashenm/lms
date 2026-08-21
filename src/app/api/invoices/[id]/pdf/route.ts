@@ -86,6 +86,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     dueDate: invoice.dueDate ? formatDate(invoice.dueDate) : null,
     generatedAt: formatDateTime(new Date()),
     schoolDetails: invoiceSchoolDetailLines(brand),
+    paymentReference: invoice.student.studentNumber,
     lineItems: invoice.lineItems.map((item) => ({
       description: item.description,
       quantity: item.quantity,

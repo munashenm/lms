@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import {
   drawBrandedBannerHeader,
   drawBrandedFooter,
+  drawSchoolBankingBlock,
   brandPrimaryRgb,
   type SchoolBrand,
 } from "./pdf-branding";
@@ -65,6 +66,16 @@ export async function generateFeeStatementPdf(data: FeeStatementData): Promise<U
   if (data.academicYear) line(`Academic Year: ${data.academicYear}`);
   if (data.guardianName) line(`Parent / Guardian: ${data.guardianName}`);
   line(`Generated: ${data.generatedAt}`);
+
+  y = drawSchoolBankingBlock({
+    page,
+    brand,
+    font,
+    fontBold,
+    y: y - 4,
+    paymentReference: data.studentNumber,
+    accountNumberLabel: "Payment reference (learner account no.)",
+  });
 
   y -= 8;
   line(`Opening balance: ${money(data.openingBalance)}`, true);

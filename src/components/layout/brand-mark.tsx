@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -31,11 +34,30 @@ export function SchoolLogo({
   className?: string;
 }) {
   if (!src) return null;
+  return <SchoolLogoImage src={src} name={name} size={size} framed={framed} className={className} />;
+}
+
+function SchoolLogoImage({
+  src,
+  name,
+  size,
+  framed,
+  className,
+}: {
+  src: string;
+  name?: string | null;
+  size: keyof typeof LOGO_SIZE;
+  framed: boolean;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt={schoolLogoAlt(name)}
+      onError={() => setFailed(true)}
       className={cn(
         "shrink-0 object-contain",
         LOGO_SIZE[size],

@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { getSession } from "@/lib/auth";
 import { requirePermission } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { resolveSettingsSchoolId } from "@/lib/school-integrations";
 import { logAudit } from "@/lib/audit";
+import { saveRuntimeUpload } from "@/lib/runtime-uploads";
 
-const ALLOWED = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-]);
+const ALLOWED = new Set(["image/png", "image/jpeg", "image/jpg"]);
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -38,7 +32,7 @@ export async function POST(request: NextRequest) {
 
   if (!ALLOWED.has(file.type)) {
     return NextResponse.json(
-      { message: "Use PNG or JPEG logo files" },
+      { message: "Use a PNG or JPEG logo so it prints on invoices and reports" },
       { status: 400 }
     );
   }
@@ -47,25 +41,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Logo must be under 2MB" }, { status: 400 });
   }
 
-  const ext =
-    file.type === "image/png"
-      ? "png"
-      : file.type === "image/webp"
-        ? "webp"
-        : "jpg";
-
-  const uploadsDir = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    schoolId,
-    "branding"
-  );
-  await mkdir(uploadsDir, { recursive: true });
+  const ext = file.type === "image/png" ? "png" : "jpg";
   const filename = `logo-${Date.now()}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(uploadsDir, filename), buffer);
-  const logoUrl = `/uploads/${schoolId}/branding/${filename}`;
+  const logoUrl = await saveRuntimeUpload({
+    schoolId,
+    folder: "branding",
+    filename,
+    bytes: buffer,
+  });
 
   const school = await prisma.school.update({
     where: { id: schoolId },

@@ -217,9 +217,15 @@ export async function executeRestore(opts: {
 async function restoreFiles(snapshot: BackupSnapshot) {
   for (const file of snapshot.files) {
     if (!file.relativePath.startsWith("uploads/")) continue;
-    const dest = path.join(process.cwd(), "public", file.relativePath);
-    await mkdir(path.dirname(dest), { recursive: true });
-    await writeFile(dest, Buffer.from(file.contentBase64, "base64"));
+    const body = Buffer.from(file.contentBase64, "base64");
+    for (const root of [
+      path.join(process.cwd(), "data"),
+      path.join(process.cwd(), "public"),
+    ]) {
+      const dest = path.join(root, file.relativePath);
+      await mkdir(path.dirname(dest), { recursive: true });
+      await writeFile(dest, body);
+    }
   }
 }
 
@@ -341,6 +347,11 @@ async function replaceSchoolData(
         postalCode: (school.postalCode as string | null) ?? null,
         popiaConsentText: (school.popiaConsentText as string | null) ?? null,
         logoUrl: (school.logoUrl as string | null) ?? null,
+        registrationNo: (school.registrationNo as string | null) ?? null,
+        bankName: (school.bankName as string | null) ?? null,
+        bankAccountName: (school.bankAccountName as string | null) ?? null,
+        bankAccountNumber: (school.bankAccountNumber as string | null) ?? null,
+        bankBranchCode: (school.bankBranchCode as string | null) ?? null,
         primaryColor: (school.primaryColor as string | null) ?? null,
         accentColor: (school.accentColor as string | null) ?? null,
         heroHeadline: (school.heroHeadline as string | null) ?? null,

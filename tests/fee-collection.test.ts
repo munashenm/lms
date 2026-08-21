@@ -11,6 +11,7 @@ import {
   toPublicFeeCollectionStudent,
 } from "@/lib/fee-collection";
 import { johannesburgDatetimeLocalValue } from "@/lib/utils";
+import { schoolBankingLines } from "@/lib/pdf-branding";
 
 describe("fee collection search", () => {
   it("requires a query or class before listing learners", () => {
@@ -184,5 +185,22 @@ describe("invoice school and collection rows", () => {
       { id: "p3", reversedAt: null, reversalOfId: "p1" },
     ]);
     expect(rows.map((row) => row.id)).toEqual(["p1"]);
+  });
+
+  it("prints school banking details for EFT", () => {
+    expect(
+      schoolBankingLines({
+        name: "Sunrise High",
+        bankName: "FNB",
+        bankAccountName: "Sunrise High School",
+        bankAccountNumber: "62801234567",
+        bankBranchCode: "250655",
+      })
+    ).toEqual([
+      "Bank: FNB",
+      "Account name: Sunrise High School",
+      "Account number: 62801234567",
+      "Branch code: 250655",
+    ]);
   });
 });
