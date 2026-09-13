@@ -36,7 +36,7 @@ export default async function HomePage() {
               src={school?.logoUrl || APP_LOGO_URL}
               name={school?.name ?? APP_NAME}
               size="xl"
-              framed
+              framed={Boolean(school?.logoUrl)}
               appMark={!school?.logoUrl}
               className="mb-6"
             />
