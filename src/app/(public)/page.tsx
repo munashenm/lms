@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import { ROLE_DASHBOARD } from "@/lib/constants";
+import { APP_LOGO_URL, APP_NAME, ROLE_DASHBOARD } from "@/lib/constants";
 import { getFeaturedSchool } from "@/lib/public-site";
 import { getTerminology } from "@/lib/terminology";
 import { SchoolLogo } from "@/components/layout/brand-mark";
@@ -32,15 +32,14 @@ export default async function HomePage() {
       <section className="bg-primary text-white">
         <div className="mx-auto max-w-6xl px-4 py-20 lg:px-6 lg:py-28">
           <div className="max-w-2xl">
-            {school?.logoUrl ? (
-              <SchoolLogo
-                src={school.logoUrl}
-                name={school.name}
-                size="xl"
-                framed
-                className="mb-6"
-              />
-            ) : null}
+            <SchoolLogo
+              src={school?.logoUrl || APP_LOGO_URL}
+              name={school?.name ?? APP_NAME}
+              size="xl"
+              framed={Boolean(school?.logoUrl)}
+              appMark={!school?.logoUrl}
+              className="mb-6"
+            />
             <p className="text-accent font-semibold text-sm uppercase tracking-wide mb-3">
               {school?.institutionType.replace("_", " ") ?? "School"} · {school?.city ?? "South Africa"}
             </p>

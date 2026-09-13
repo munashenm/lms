@@ -21,6 +21,7 @@ const PUBLIC_PATHS = [
   "/news",
   "/calendar",
   "/uploads",
+  "/branding",
   "/api/webhooks",
   "/api/cron",
   "/api/contact",
