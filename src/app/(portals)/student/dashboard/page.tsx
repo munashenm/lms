@@ -92,26 +92,34 @@ export default async function StudentDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Today&apos;s classes</CardTitle>
+            <CardTitle className="text-base">This week&apos;s classes</CardTitle>
             <Button variant="ghost" size="sm" asChild><Link href="/student/timetable">Timetable</Link></Button>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {!data?.todaySlots.length ? (
-              <p className="text-sm text-muted">No classes scheduled for today.</p>
+          <CardContent className="space-y-4">
+            {!data?.weekSlots.length ? (
+              <p className="text-sm text-muted">No classes scheduled this week.</p>
             ) : (
-              data.todaySlots.map((slot) => (
-                <div key={slot.id} className="rounded-lg border border-border p-3 text-sm">
-                  <p className="font-medium">{slot.subject?.name ?? slot.module?.name ?? "Period"}</p>
-                  <p className="text-xs text-muted mt-1">
-                    {slot.startTime}–{slot.endTime}
-                    {slot.room ? ` · ${slot.room}` : ""}
-                    {slot.teacher ? ` · ${slot.teacher.firstName} ${slot.teacher.lastName}` : ""}
+              data.weekSlots.map((group) => (
+                <div key={group.day} className="space-y-2">
+                  <p className={`text-xs font-semibold uppercase tracking-wide ${group.isToday ? "text-primary" : "text-muted"}`}>
+                    {group.label}
+                    {group.isToday ? " · Today" : ""}
                   </p>
-                  {slot.onlineMeetingUrl ? (
-                    <a href={slot.onlineMeetingUrl} className="text-xs text-primary hover:underline" target="_blank" rel="noreferrer">
-                      Join online class
-                    </a>
-                  ) : null}
+                  {group.slots.map((slot) => (
+                    <div key={slot.id} className="rounded-lg border border-border p-3 text-sm">
+                      <p className="font-medium">{slot.subject?.name ?? slot.module?.name ?? "Period"}</p>
+                      <p className="text-xs text-muted mt-1">
+                        {slot.startTime}–{slot.endTime}
+                        {slot.room ? ` · ${slot.room}` : ""}
+                        {slot.teacher ? ` · ${slot.teacher.firstName} ${slot.teacher.lastName}` : ""}
+                      </p>
+                      {slot.onlineMeetingUrl ? (
+                        <a href={slot.onlineMeetingUrl} className="text-xs text-primary hover:underline" target="_blank" rel="noreferrer">
+                          Join online class
+                        </a>
+                      ) : null}
+                    </div>
+                  ))}
                 </div>
               ))
             )}

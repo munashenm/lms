@@ -74,6 +74,15 @@ export function findTimetableConflicts(
   return conflicts;
 }
 
+const SCHOOL_DAYS: DayOfWeek[] = [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+];
+
 /** Calendar day for timetable queries. Returns null on Sunday (no DayOfWeek enum value). */
 export function getTodayDayOfWeek(date: Date = new Date()): DayOfWeek | null {
   const days: Array<DayOfWeek | null> = [
@@ -86,4 +95,15 @@ export function getTodayDayOfWeek(date: Date = new Date()): DayOfWeek | null {
     "SATURDAY",
   ];
   return days[date.getDay()] ?? null;
+}
+
+/**
+ * Full school week with today first, then the rest of the week wrapping around.
+ * On Sunday (no school day), starts at Monday.
+ */
+export function orderDaysWithTodayFirst(today: DayOfWeek | null = getTodayDayOfWeek()): DayOfWeek[] {
+  if (!today) return [...SCHOOL_DAYS];
+  const index = SCHOOL_DAYS.indexOf(today);
+  if (index <= 0) return [...SCHOOL_DAYS];
+  return [...SCHOOL_DAYS.slice(index), ...SCHOOL_DAYS.slice(0, index)];
 }
