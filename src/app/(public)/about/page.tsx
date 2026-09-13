@@ -1,5 +1,6 @@
 import { getFeaturedSchool } from "@/lib/public-site";
 import { publicPageMetadata } from "@/lib/site-metadata";
+import { APP_LOGO_URL, APP_NAME } from "@/lib/constants";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Mail, Phone } from "lucide-react";
@@ -15,11 +16,18 @@ export const dynamic = "force-dynamic";
 export default async function AboutPage() {
   const school = await getFeaturedSchool();
   const campus = school?.campuses[0];
+  const logoSrc = school?.logoUrl || APP_LOGO_URL;
+  const usingAppLogo = !school?.logoUrl;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 lg:px-6 space-y-10">
       <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-        <SchoolLogo src={school?.logoUrl} name={school?.name} size="lg" />
+        <SchoolLogo
+          src={logoSrc}
+          name={school?.name ?? APP_NAME}
+          size="lg"
+          appMark={usingAppLogo}
+        />
         <div>
           <h1 className="text-3xl font-bold">About {school?.name ?? "Our Institution"}</h1>
           <p className="text-muted mt-3 max-w-2xl leading-relaxed">
