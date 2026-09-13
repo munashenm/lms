@@ -80,7 +80,7 @@ export default async function ParentTimetablePage({ searchParams }: PageProps) {
               </CardContent>
             </Card>
           )}
-          <TimetableGrid slots={slots} highlightDay={today} />
+          <TimetableGrid slots={slots} highlightDay={today ?? undefined} />
         </>
       )}
     </div>
