@@ -1,4 +1,4 @@
-import { AssessmentType, DayOfWeek, InstalmentStatus } from "@prisma/client";
+import { AssessmentType, InstalmentStatus } from "@prisma/client";
 import { prisma } from "./db";
 import { getStudentLedger } from "./student-ledger";
 import { getOutstandingBalance } from "./finance";
@@ -13,7 +13,7 @@ export async function getLearnerDashboardData(student: {
   campusId: string | null;
 }) {
   const now = new Date();
-  const today = getTodayDayOfWeek();
+  const today = getTodayDayOfWeek(now);
 
   const [
     attendanceRecords,
@@ -93,15 +93,17 @@ export async function getLearnerDashboardData(student: {
       orderBy: [{ isPinned: "desc" }, { publishAt: "desc" }],
       take: 5,
     }),
-    prisma.timetableSlot.findMany({
-          where: { classId: student.classId ?? "__none__", dayOfWeek: today as DayOfWeek },
+    today
+      ? prisma.timetableSlot.findMany({
+          where: { classId: student.classId ?? "__none__", dayOfWeek: today },
           include: {
             subject: { select: { id: true, name: true } },
             module: { select: { name: true } },
             teacher: { select: { firstName: true, lastName: true } },
           },
           orderBy: { startTime: "asc" },
-        }),
+        })
+      : Promise.resolve([]),
     getStudentLedger({ studentId: student.id, take: 8 }),
     prisma.curriculumTopic.findMany({
       where: {

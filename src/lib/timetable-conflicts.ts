@@ -1,3 +1,5 @@
+import type { DayOfWeek } from "@prisma/client";
+
 export interface TimetableSlotLike {
   id?: string;
   classId: string;
@@ -72,7 +74,16 @@ export function findTimetableConflicts(
   return conflicts;
 }
 
-export function getTodayDayOfWeek(): string {
-  const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
-  return days[new Date().getDay()];
+/** Calendar day for timetable queries. Returns null on Sunday (no DayOfWeek enum value). */
+export function getTodayDayOfWeek(date: Date = new Date()): DayOfWeek | null {
+  const days: Array<DayOfWeek | null> = [
+    null, // Sunday — not part of DayOfWeek
+    "MONDAY",
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+    "SATURDAY",
+  ];
+  return days[date.getDay()] ?? null;
 }
