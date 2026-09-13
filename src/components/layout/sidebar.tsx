@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, ChevronDown, ChevronsLeft, ChevronsRight, X } from "lucide-react";
+import { ChevronDown, ChevronsLeft, ChevronsRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { APP_LOGO_URL } from "@/lib/constants";
 import { isNavHrefActive, navClusters, type NavItem } from "@/lib/navigation";
 import { NavIcon } from "./nav-icon";
 import { BrandMark } from "./brand-mark";
@@ -159,12 +160,12 @@ export function Sidebar({
         <div className={cn("flex h-16 items-center border-b border-white/10", collapsed ? "justify-center px-2" : "justify-between px-5")}>
           <div className={cn("flex items-center gap-2 min-w-0", collapsed && "lg:justify-center")}>
             {collapsed ? (
-              logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt="" className="h-8 w-8 object-contain rounded bg-white/90 hidden lg:block" />
-              ) : (
-                <Building2 className="h-7 w-7 text-accent shrink-0 hidden lg:block" />
-              )
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl || APP_LOGO_URL}
+                alt=""
+                className="h-8 w-8 object-contain rounded bg-white/90 hidden lg:block"
+              />
             ) : null}
             <div className={cn(collapsed && "lg:hidden")}>
               <BrandMark logoUrl={logoUrl} name={schoolName} subtitle={portalLabel} inverted size="md" />
