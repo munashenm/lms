@@ -68,7 +68,7 @@ export default async function StudentTimetablePage() {
               </CardContent>
             </Card>
           )}
-          <TimetableGrid slots={slots} highlightDay={today} />
+          <TimetableGrid slots={slots} highlightDay={today ?? undefined} />
         </>
       )}
     </div>
