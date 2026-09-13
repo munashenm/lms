@@ -1,5 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { DAY_LABELS, DAYS_ORDER } from "@/lib/portal-data";
+import { orderDaysWithTodayFirst } from "@/lib/timetable-conflicts";
+import type { DayOfWeek } from "@prisma/client";
 
 interface TimetableSlot {
   id: string;
@@ -17,10 +19,18 @@ interface TimetableSlot {
 interface TimetableGridProps {
   slots: TimetableSlot[];
   showClass?: boolean;
+  /** When set, that day is shown first and highlighted as today. */
   highlightDay?: string;
+  /** Prefer today at the top of the week. Defaults to true when highlightDay is set. */
+  prioritizeToday?: boolean;
 }
 
-export function TimetableGrid({ slots, showClass = false, highlightDay }: TimetableGridProps) {
+export function TimetableGrid({
+  slots,
+  showClass = false,
+  highlightDay,
+  prioritizeToday = Boolean(highlightDay),
+}: TimetableGridProps) {
   if (slots.length === 0) {
     return (
       <Card>
@@ -31,9 +41,14 @@ export function TimetableGrid({ slots, showClass = false, highlightDay }: Timeta
     );
   }
 
+  const dayOrder =
+    prioritizeToday
+      ? orderDaysWithTodayFirst((highlightDay as DayOfWeek | undefined) ?? null)
+      : [...DAYS_ORDER];
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {DAYS_ORDER.map((day) => {
+      {dayOrder.map((day) => {
         const daySlots = slots.filter((s) => s.dayOfWeek === day);
         if (daySlots.length === 0) return null;
         return (

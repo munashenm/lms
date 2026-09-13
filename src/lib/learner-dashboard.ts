@@ -1,9 +1,10 @@
-import { AssessmentType, DayOfWeek, InstalmentStatus } from "@prisma/client";
+import { AssessmentType, InstalmentStatus } from "@prisma/client";
 import { prisma } from "./db";
 import { getStudentLedger } from "./student-ledger";
 import { getOutstandingBalance } from "./finance";
 import { attendanceSummary, assignmentLearnerStatus, curriculumProgress, examWindow } from "./learner-portal";
-import { getTodayDayOfWeek } from "./timetable-conflicts";
+import { getTodayDayOfWeek, orderDaysWithTodayFirst } from "./timetable-conflicts";
+import { DAY_LABELS } from "./portal-data";
 
 export async function getLearnerDashboardData(student: {
   id: string;
@@ -13,7 +14,7 @@ export async function getLearnerDashboardData(student: {
   campusId: string | null;
 }) {
   const now = new Date();
-  const today = getTodayDayOfWeek();
+  const today = getTodayDayOfWeek(now);
 
   const [
     attendanceRecords,
@@ -94,14 +95,14 @@ export async function getLearnerDashboardData(student: {
       take: 5,
     }),
     prisma.timetableSlot.findMany({
-          where: { classId: student.classId ?? "__none__", dayOfWeek: today as DayOfWeek },
-          include: {
-            subject: { select: { id: true, name: true } },
-            module: { select: { name: true } },
-            teacher: { select: { firstName: true, lastName: true } },
-          },
-          orderBy: { startTime: "asc" },
-        }),
+      where: { classId: student.classId ?? "__none__" },
+      include: {
+        subject: { select: { id: true, name: true } },
+        module: { select: { name: true } },
+        teacher: { select: { firstName: true, lastName: true } },
+      },
+      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+    }),
     getStudentLedger({ studentId: student.id, take: 8 }),
     prisma.curriculumTopic.findMany({
       where: {
@@ -228,7 +229,16 @@ export async function getLearnerDashboardData(student: {
     pendingAssignments,
     upcomingExams,
     announcements,
-    todaySlots: slots,
+    today,
+    todaySlots: today ? slots.filter((s) => s.dayOfWeek === today) : [],
+    weekSlots: orderDaysWithTodayFirst(today)
+      .map((day) => ({
+        day,
+        label: DAY_LABELS[day],
+        isToday: day === today,
+        slots: slots.filter((s) => s.dayOfWeek === day),
+      }))
+      .filter((group) => group.slots.length > 0),
     ledgerBalance: ledger.balance,
     latestResults: marks.slice(0, 5).map((m) => ({
       id: m.id,
