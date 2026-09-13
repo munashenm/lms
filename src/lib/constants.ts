@@ -2,7 +2,7 @@ import { UserRole } from "@prisma/client";
 
 export const APP_NAME = "SchoolHub SA";
 export const APP_TAGLINE = "School Management for South Africa";
-export const APP_LOGO_URL = "/branding/schoolhub-sa-logo.png";
+export const APP_LOGO_URL = "/branding/schoolhub-sa-logo.png?v=3";
 export const COMPANY_NAME = "Cyber Developers";
 export const TIMEZONE = "Africa/Johannesburg";
 export const CURRENCY = "ZAR";

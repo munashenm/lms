@@ -82,7 +82,8 @@ export function BrandMark({
         src={resolvedLogo}
         name={title}
         size={size}
-        framed={inverted}
+        // App wordmark already has a transparent canvas — skip the white matte.
+        framed={inverted && !usingAppLogo}
         appMark={usingAppLogo}
       />
       {(showTitle || showSubtitle) && (
