@@ -30,6 +30,16 @@ export function outstandingCentsFromInvoices(
   );
 }
 
+/** Invoice remaining, reduced by a ledger credit balance when the family ledger has rows. */
+export function outstandingCentsForDocuments(
+  invoiceOutstandingCents: number,
+  ledgerSignedCents: number | null
+): number {
+  const invoice = Math.max(0, invoiceOutstandingCents);
+  if (ledgerSignedCents == null) return invoice;
+  return Math.min(invoice, Math.max(0, ledgerSignedCents));
+}
+
 export function documentReleaseFrom(requireFees: boolean, outstandingCents: number): DocumentRelease {
   return {
     requireFees,
@@ -39,11 +49,7 @@ export function documentReleaseFrom(requireFees: boolean, outstandingCents: numb
 }
 
 export async function getStudentOutstandingCents(studentId: string): Promise<number> {
-  const invoices = await prisma.invoice.findMany({
-    where: { studentId, status: { in: COLLECTABLE } },
-    select: { total: true, amountPaid: true },
-  });
-  return outstandingCentsFromInvoices(invoices);
+  return (await getDocumentRelease(studentId)).outstandingCents;
 }
 
 export async function getDocumentReleases(
@@ -52,7 +58,7 @@ export async function getDocumentReleases(
   const result = new Map<string, DocumentRelease>();
   if (!studentIds.length) return result;
 
-  const [students, invoices] = await Promise.all([
+  const [students, invoices, ledger] = await Promise.all([
     prisma.student.findMany({
       where: { id: { in: studentIds } },
       select: { id: true, school: { select: { requireFeesPaidForDocuments: true } } },
@@ -60,6 +66,11 @@ export async function getDocumentReleases(
     prisma.invoice.findMany({
       where: { studentId: { in: studentIds }, status: { in: COLLECTABLE } },
       select: { studentId: true, total: true, amountPaid: true },
+    }),
+    prisma.studentLedgerEntry.groupBy({
+      by: ["studentId"],
+      where: { studentId: { in: studentIds } },
+      _sum: { signedAmount: true },
     }),
   ]);
 
@@ -72,12 +83,20 @@ export async function getDocumentReleases(
     );
   }
 
+  const ledgerByStudent = new Map<string, number>();
+  for (const row of ledger) {
+    ledgerByStudent.set(row.studentId, toCents(String(row._sum.signedAmount ?? 0)));
+  }
+
   for (const student of students) {
     result.set(
       student.id,
       documentReleaseFrom(
         student.school.requireFeesPaidForDocuments,
-        outstandingByStudent.get(student.id) ?? 0
+        outstandingCentsForDocuments(
+          outstandingByStudent.get(student.id) ?? 0,
+          ledgerByStudent.has(student.id) ? (ledgerByStudent.get(student.id) ?? 0) : null
+        )
       )
     );
   }
