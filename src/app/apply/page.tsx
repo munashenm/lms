@@ -2,9 +2,8 @@ import { ApplyWizard } from "@/components/applications/apply-form";
 import { getFeaturedSchool } from "@/lib/public-site";
 import { admissionYearLabel, isApplicationsOpen, requiredDocumentTypes } from "@/lib/admissions";
 import { getTerminology, isCollegeLike } from "@/lib/terminology";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyNote, PageHero, SiteSection } from "@/components/public/site-ui";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -18,13 +17,9 @@ export default async function ApplyPage({ searchParams }: ApplyPageProps) {
 
   if (!school) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-12">
-        <Card>
-          <CardContent className="py-12 text-center text-muted">
-            The institution website is not configured yet.
-          </CardContent>
-        </Card>
-      </div>
+      <SiteSection>
+        <EmptyNote>The institution website is not configured yet.</EmptyNote>
+      </SiteSection>
     );
   }
 
@@ -34,48 +29,50 @@ export default async function ApplyPage({ searchParams }: ApplyPageProps) {
   const yearLabel = admissionYearLabel(school.admissionYear);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12 lg:px-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Apply for {yearLabel}</h1>
-        <p className="text-muted text-sm mt-2">
-          Apply to {school.name}. You will receive a reference number such as APP-{yearLabel.replace(/\D/g, "").slice(-4) || yearLabel}-00001 to track your application.
-        </p>
-      </div>
-      {!window.open ? (
-        <Card>
-          <CardContent className="py-10 space-y-4 text-center">
-            <p className="font-medium">Applications are closed</p>
-            <p className="text-sm text-muted">{window.message}</p>
-            <div className="flex justify-center gap-3">
-              <Button variant="outline" asChild>
-                <Link href="/admissions">Admissions information</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/contact">Contact us</Link>
-              </Button>
+    <>
+      <PageHero
+        eyebrow="Apply"
+        title={`Apply for ${yearLabel}.`}
+        description={`Apply to ${school.name}. You will receive a reference number such as APP-${yearLabel.replace(/\D/g, "").slice(-4) || yearLabel}-00001 to track your application.`}
+        imageUrl={school.heroImageUrl}
+      />
+      <SiteSection>
+        <div className="max-w-3xl mx-auto">
+          {!window.open ? (
+            <div className="bg-white border border-[var(--site-line)] rounded-[14px] p-10 text-center space-y-4">
+              <h2>Applications are closed</h2>
+              <p className="text-[var(--site-muted)]">{window.message}</p>
+              <div className="flex justify-center gap-3">
+                <Link href="/admissions" className="site-btn site-btn-outline">
+                  Admissions information
+                </Link>
+                <Link href="/contact" className="site-btn site-btn-navy">
+                  Contact us
+                </Link>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <ApplyWizard
-          school={{
-            slug: school.slug,
-            name: school.name,
-            college,
-            popiaConsentText: school.popiaConsentText,
-            yearLabel,
-            gradeLabel: terms.grade,
-            programmeLabel: terms.programme,
-            guardianLabel: terms.guardian,
-            grades: school.grades.filter((grade) => grade.openForApplications).map((grade) => ({ id: grade.id, name: grade.name })),
-            courses: school.courses.filter((course) => course.openForApplications).map((course) => ({ id: course.id, name: course.name })),
-            campuses: school.campuses.map((campus) => ({ id: campus.id, name: campus.name })),
-            requiredDocuments: requiredDocumentTypes(school),
-            instructions: school.applicationInstructions || school.admissionsText,
-          }}
-          initialCourse={params.course}
-        />
-      )}
-    </div>
+          ) : (
+            <ApplyWizard
+              school={{
+                slug: school.slug,
+                name: school.name,
+                college,
+                popiaConsentText: school.popiaConsentText,
+                yearLabel,
+                gradeLabel: terms.grade,
+                programmeLabel: terms.programme,
+                guardianLabel: terms.guardian,
+                grades: school.grades.filter((grade) => grade.openForApplications).map((grade) => ({ id: grade.id, name: grade.name })),
+                courses: school.courses.filter((course) => course.openForApplications).map((course) => ({ id: course.id, name: course.name })),
+                campuses: school.campuses.map((campus) => ({ id: campus.id, name: campus.name })),
+                requiredDocuments: requiredDocumentTypes(school),
+                instructions: school.applicationInstructions || school.admissionsText,
+              }}
+              initialCourse={params.course}
+            />
+          )}
+        </div>
+      </SiteSection>
+    </>
   );
 }

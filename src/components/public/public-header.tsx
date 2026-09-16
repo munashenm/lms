@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import { BrandMark } from "@/components/layout/brand-mark";
-import { Button } from "@/components/ui/button";
+import { BrandMark, SchoolLogo } from "@/components/layout/brand-mark";
 import { cn } from "@/lib/utils";
 
 export type PublicNavLink = { href: string; label: string };
@@ -15,19 +14,16 @@ export function PublicHeader({
   logoUrl,
   academicsHref,
   academicsLabel,
-  applyLabel,
 }: {
   schoolName?: string;
   logoUrl?: string | null;
   academicsHref?: string;
   academicsLabel?: string;
-  applyLabel?: string;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const programmesHref = academicsHref ?? "/programmes";
   const programmesLabel = academicsLabel ?? "Programmes";
-  const applyText = applyLabel ?? "Apply Online";
 
   const navLinks: PublicNavLink[] = [
     { href: "/", label: "Home" },
@@ -49,40 +45,49 @@ export function PublicHeader({
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-surface/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 lg:px-6">
+    <header className="sticky top-0 z-50 border-b border-[var(--site-line)] bg-[rgba(250,248,244,0.86)] backdrop-blur-[12px]">
+      <div className="mx-auto flex max-w-[1180px] items-center gap-4 px-7 py-3.5">
         <Link href="/" className="flex min-w-0 items-center shrink-0">
-          <BrandMark logoUrl={logoUrl} name={schoolName} size="md" />
+          {logoUrl ? (
+            <SchoolLogo src={logoUrl} name={schoolName} size="md" className="h-11 max-h-11 max-w-[180px]" />
+          ) : (
+            <BrandMark name={schoolName} size="md" />
+          )}
         </Link>
 
-        <nav className="hidden xl:flex min-w-0 flex-1 items-center justify-center gap-0.5">
+        <nav className="ml-auto hidden xl:flex min-w-0 items-center">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               className={cn(
-                "rounded-lg px-2.5 py-2 text-sm font-medium transition-colors whitespace-nowrap",
+                "rounded-[10px] px-3 py-2 text-[0.92rem] font-semibold transition-colors whitespace-nowrap",
                 isActive(link.href)
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted hover:text-foreground hover:bg-background"
+                  ? "text-primary bg-[var(--site-paper-2)]"
+                  : "text-[var(--site-ink)] hover:text-primary hover:bg-[var(--site-paper-2)]"
               )}
             >
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/student/login"
+            className="rounded-[10px] px-3 py-2 text-[0.92rem] font-semibold text-[var(--site-ink)] hover:text-primary hover:bg-[var(--site-paper-2)] whitespace-nowrap"
+          >
+            Student Login
+          </Link>
+          <Link href="/apply" className="site-btn site-btn-gold ml-2 !py-2.5 !px-4">
+            Apply
+          </Link>
         </nav>
 
-        <div className="ml-auto hidden sm:flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/student/login">Student Login</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href="/apply">{applyText}</Link>
-          </Button>
+        <div className="ml-auto xl:hidden">
+          <Link href="/apply" className="site-btn site-btn-gold !py-2.5 !px-4">
+            Apply
+          </Link>
         </div>
-
         <button
-          className="xl:hidden rounded-lg p-2 text-muted ml-auto sm:ml-0"
+          className="xl:hidden rounded-[10px] bg-primary p-2.5 text-white"
           onClick={() => setOpen(!open)}
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
@@ -92,33 +97,28 @@ export function PublicHeader({
       </div>
 
       {open && (
-        <div className="xl:hidden border-t border-border bg-surface px-4 py-4 space-y-1">
+        <nav className="xl:hidden border-t border-[var(--site-line)] bg-white">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setOpen(false)}
               className={cn(
-                "block rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-background",
-                isActive(link.href) ? "text-primary bg-primary/10" : "text-muted"
+                "block border-t border-[var(--site-line)] px-7 py-3.5 font-semibold",
+                isActive(link.href) ? "text-primary" : "text-[var(--site-ink)]"
               )}
             >
               {link.label}
             </Link>
           ))}
-          <div className="flex flex-col sm:flex-row gap-2 pt-3">
-            <Button variant="outline" className="flex-1" asChild>
-              <Link href="/student/login" onClick={() => setOpen(false)}>
-                Student Login
-              </Link>
-            </Button>
-            <Button className="flex-1" asChild>
-              <Link href="/apply" onClick={() => setOpen(false)}>
-                {applyText}
-              </Link>
-            </Button>
-          </div>
-        </div>
+          <Link
+            href="/student/login"
+            onClick={() => setOpen(false)}
+            className="block border-t border-[var(--site-line)] px-7 py-3.5 font-semibold"
+          >
+            Student Login
+          </Link>
+        </nav>
       )}
     </header>
   );

@@ -1,7 +1,7 @@
 import { getFeaturedSchool } from "@/lib/public-site";
 import { getPublicCalendarItems } from "@/lib/public-calendar";
 import { publicPageMetadata } from "@/lib/site-metadata";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyNote, PageHero, SiteSection } from "@/components/public/site-ui";
 import { formatDate } from "@/lib/utils";
 
 export const metadata = publicPageMetadata("Calendar", "Term dates and school events.");
@@ -12,29 +12,34 @@ export default async function PublicCalendarPage() {
   const items = school ? await getPublicCalendarItems(school.id) : [];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 lg:px-6 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Calendar</h1>
-        <p className="text-muted mt-2">Term dates, events and public notices.</p>
-      </div>
-      {items.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-sm text-muted text-center">No upcoming public dates.</CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="divide-y divide-border p-0">
+    <>
+      <PageHero
+        eyebrow="Calendar"
+        title="Term dates and events."
+        description="Public dates for families and applicants."
+        imageUrl={school?.heroImageUrl}
+      />
+      <SiteSection>
+        {items.length === 0 ? (
+          <EmptyNote>No upcoming public dates.</EmptyNote>
+        ) : (
+          <div className="bg-white border border-[var(--site-line)] rounded-[14px] overflow-hidden">
             {items.map((item, index) => (
-              <div key={`${item.kind}-${item.title}-${index}`} className="px-4 py-4">
-                <p className="text-xs uppercase tracking-wide text-muted">{item.kind}</p>
-                <p className="font-medium">{item.title}</p>
-                <p className="text-sm text-muted">{formatDate(item.date)}</p>
-                {item.detail ? <p className="text-sm mt-1 whitespace-pre-wrap">{item.detail}</p> : null}
+              <div
+                key={`${item.kind}-${item.title}-${index}`}
+                className="px-5 py-4 border-b border-[var(--site-line)] last:border-0 grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-2 sm:gap-6"
+              >
+                <p className="text-sm font-semibold text-[var(--accent-dark)]">{formatDate(item.date)}</p>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[var(--site-muted)] font-semibold">{item.kind}</p>
+                  <p className="font-semibold text-primary">{item.title}</p>
+                  {item.detail ? <p className="text-sm text-[var(--site-muted)] mt-1 whitespace-pre-wrap">{item.detail}</p> : null}
+                </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
-      )}
-    </div>
+          </div>
+        )}
+      </SiteSection>
+    </>
   );
 }

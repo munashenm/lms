@@ -4,10 +4,9 @@ import { getPublicPaymentOptions } from "@/lib/school-integrations";
 import { getPublicFeeSchedule } from "@/lib/fee-schedule";
 import { publicPageMetadata } from "@/lib/site-metadata";
 import { formatZAR } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { getTerminology } from "@/lib/terminology";
 import { admissionYearLabel } from "@/lib/admissions";
+import { CtaBand, EmptyNote, PageHero, SiteSection } from "@/components/public/site-ui";
 
 export const metadata = publicPageMetadata("Fees", "Fee schedule, payment options and bursary information.");
 export const dynamic = "force-dynamic";
@@ -30,81 +29,83 @@ export default async function FeesPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 lg:px-6 space-y-10">
-      <div>
-        <h1 className="text-3xl font-bold">Fees</h1>
-        <p className="text-muted mt-3 max-w-2xl">
-          Fee information for {school?.name ?? "this institution"}. Amounts are in South African Rand (ZAR).
-        </p>
-      </div>
+    <>
+      <PageHero
+        eyebrow="Fees"
+        title="Clear, published fee information."
+        description={`Fee information for ${school?.name ?? "this institution"}. Amounts are in South African Rand (ZAR).`}
+        imageUrl={school?.heroImageUrl}
+      />
 
-      {rows.length ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{yearLabel} fee schedule</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <table className="w-full text-sm">
+      <SiteSection>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-9">
+          <h2 className="section-title">{yearLabel} fee schedule</h2>
+          <p className="text-[var(--site-muted)] max-w-[26em] md:text-right">
+            Annual and itemised fees as published by the finance office.
+          </p>
+        </div>
+        {rows.length ? (
+          <div className="overflow-x-auto">
+            <table className="site-fees">
               <thead>
-                <tr className="border-b border-border bg-background/50">
-                  <th className="text-left px-4 py-3 font-medium text-muted">Item</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted">Amount</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted hidden sm:table-cell">Notes</th>
+                <tr>
+                  <th>Item</th>
+                  <th>Amount</th>
+                  <th className="hidden sm:table-cell">Notes</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={row.name} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3 font-medium">{row.name}</td>
-                    <td className="px-4 py-3 text-right">{formatZAR(row.amount)}</td>
-                    <td className="px-4 py-3 text-muted hidden sm:table-cell">{row.notes ?? "—"}</td>
+                  <tr key={row.name}>
+                    <td className="font-semibold text-primary">{row.name}</td>
+                    <td>{formatZAR(row.amount)}</td>
+                    <td className="hidden sm:table-cell text-[var(--site-muted)]">{row.notes ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="py-12 text-center text-sm text-muted">
-            A public fee schedule has not been published yet. Please contact the finance office.
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        ) : (
+          <EmptyNote>A public fee schedule has not been published yet. Please contact the finance office.</EmptyNote>
+        )}
+      </SiteSection>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardContent className="p-6 space-y-3">
-            <h2 className="font-semibold">Payment options</h2>
-            <ul className="text-sm text-muted space-y-2 list-disc list-inside">
+      <SiteSection alt>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white border border-[var(--site-line)] rounded-[14px] p-7">
+            <h3 className="mb-3">Payment options</h3>
+            <ul className="space-y-2 text-[var(--site-muted)]">
               {paymentOptions.map((option) => (
-                <li key={option}>{option}</li>
+                <li key={option} className="pl-7 relative before:content-['✓'] before:absolute before:left-0 before:text-[var(--accent-dark)] before:font-bold">
+                  {option}
+                </li>
               ))}
             </ul>
-            <p className="text-xs text-muted pt-1">
+            <p className="text-xs text-[var(--site-muted)] mt-4">
               Enrolled {terms.students.toLowerCase()} can pay invoices from the {terms.portal.toLowerCase()} when
               gateways are enabled.
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6 space-y-3">
-            <h2 className="font-semibold">Bursaries & discounts</h2>
-            <p className="text-sm text-muted">
+          </div>
+          <div className="bg-white border border-[var(--site-line)] rounded-[14px] p-7">
+            <h3 className="mb-3">Bursaries & discounts</h3>
+            <p className="text-[var(--site-muted)]">
               Contact the finance office after acceptance for bursary or discount enquiries.
             </p>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/contact">Enquire about funding</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+            <Link href="/contact" className="site-read inline-block mt-5">
+              Enquire about funding →
+            </Link>
+          </div>
+        </div>
+      </SiteSection>
 
-      <div className="text-center">
-        <Button asChild>
-          <Link href="/apply">Apply Online</Link>
-        </Button>
-      </div>
-    </div>
+      <CtaBand
+        title="Ready to apply?"
+        description="Start an online application or speak to the admissions office."
+        primaryHref="/apply"
+        primaryLabel="Apply online"
+        secondaryHref="/admissions"
+        secondaryLabel="Admissions"
+      />
+    </>
   );
 }

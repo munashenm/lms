@@ -4,32 +4,32 @@ import { ROLE_DASHBOARD } from "@/lib/constants";
 import {
   admissionSummary,
   defaultWhyChooseUs,
+  emphasizeLastWord,
   formatSchoolAddress,
   getFeaturedSchool,
+  homeHighlights,
+  journeyCards,
   parseWhyChooseUs,
   publicAcademicsHref,
   publicAcademicsLabel,
-  publishedStats,
-  whatsappHref,
 } from "@/lib/public-site";
-import { applyCtaLabel } from "@/lib/admissions";
 import { getTerminology, isCollegeLike } from "@/lib/terminology";
 import { getPublicCalendarItems, getPublicNews } from "@/lib/public-calendar";
-import { SchoolLogo } from "@/components/layout/brand-mark";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { CtaBand, FeatureCard, SectionHead, SiteEyebrow, SiteLink, SiteSection } from "@/components/public/site-ui";
 import { formatDate } from "@/lib/utils";
 import {
-  ArrowRight,
+  BookOpen,
   CalendarDays,
   CheckCircle,
   GraduationCap,
-  MapPin,
-  Megaphone,
-  Newspaper,
+  Home,
+  Shield,
+  Users,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+const WHY_ICONS = [Shield, BookOpen, Users, GraduationCap, CheckCircle, Home];
 
 export default async function HomePage() {
   const [session, school] = await Promise.all([getSession(), getFeaturedSchool()]);
@@ -38,277 +38,312 @@ export default async function HomePage() {
   const academicsHref = publicAcademicsHref(school?.institutionType);
   const academicsLabel = publicAcademicsLabel(school?.institutionType);
   const admission = school ? admissionSummary(school) : null;
-  const applyLabel = applyCtaLabel(admission?.yearLabel ?? String(new Date().getFullYear()));
-  const stats = school ? publishedStats(school) : null;
   const why = school ? parseWhyChooseUs(school.whyChooseUs) : [];
   const whyItems = why.length ? why : defaultWhyChooseUs(college);
-  const courseOfferings = school?.courses.filter((course) => course.openForApplications).slice(0, 4) ?? [];
-  const gradeOfferings = school?.grades.filter((grade) => grade.openForApplications).slice(0, 8) ?? [];
+  const highlights = school ? homeHighlights(school) : [];
+  const journey = school ? journeyCards(school) : [];
+  const welcomeImage = school?.websiteGallery[0]?.imageUrl || school?.heroImageUrl || null;
+  const principalImage = school?.websiteGallery[1]?.imageUrl || school?.websiteGallery[0]?.imageUrl || null;
   const [news, calendar] = school
     ? await Promise.all([getPublicNews(school.id), getPublicCalendarItems(school.id)])
     : [[], []];
   const events = calendar.filter((item) => item.kind === "event").slice(0, 4);
-  const dates = calendar.filter((item) => item.kind === "term" || item.kind === "event").slice(0, 6);
   const address = school ? formatSchoolAddress(school) : "";
-  const wa = whatsappHref(school?.whatsapp);
+  const headline = school?.heroHeadline || school?.name || "Welcome";
+  const { lead, emphasis } = emphasizeLastWord(headline);
+  const subtitle =
+    school?.heroSubtitle ||
+    school?.aboutText ||
+    `${school?.name ?? "Our institution"} serves ${terms.students.toLowerCase()} and families across South Africa.`;
+  const leaderTitle =
+    school?.principalTitle || (college ? "Director" : "Principal");
 
   return (
     <>
       <section className="relative overflow-hidden bg-primary text-white">
         {school?.heroImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={school.heroImageUrl}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover opacity-25"
-          />
+          <img src={school.heroImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : null}
-        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:py-20 lg:px-6 lg:py-28">
-          <div className="max-w-2xl">
-            {school?.logoUrl ? (
-              <SchoolLogo src={school.logoUrl} name={school.name} size="xl" framed className="mb-6" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: school?.heroImageUrl
+              ? "linear-gradient(to bottom, color-mix(in srgb, var(--primary) 72%, #000), color-mix(in srgb, var(--primary) 55%, #000))"
+              : "radial-gradient(1100px 500px at 78% -10%, color-mix(in srgb, var(--accent) 28%, transparent), transparent 60%)",
+          }}
+        />
+        <div className="relative z-10 mx-auto max-w-[860px] px-7 py-[120px] text-center">
+          <SiteEyebrow className="text-[var(--accent)]">
+            {school?.city ? `${school.city}` : "Believe in yourself"}
+          </SiteEyebrow>
+          <h1 className="hero-title">
+            {lead}
+            <em>{emphasis}</em>
+          </h1>
+          <p className="text-[length:var(--site-lead)] text-white/80 max-w-[30em] mx-auto mb-8">{subtitle}</p>
+          <div className="flex flex-wrap justify-center gap-3.5">
+            <Link href="/apply" className="site-btn site-btn-gold site-btn-arrow">
+              Apply online
+            </Link>
+            <Link href="/contact" className="site-btn site-btn-ghost">
+              Book a visit
+            </Link>
+            {session ? (
+              <Link href={ROLE_DASHBOARD[session.role]} className="site-btn site-btn-ghost">
+                My Dashboard
+              </Link>
             ) : null}
-            <p className="text-accent font-semibold text-sm uppercase tracking-wide mb-3">
-              {school?.institutionType.replaceAll("_", " ") ?? "Institution"}
-              {school?.city ? ` · ${school.city}` : ""}
-            </p>
-            <h1 className="text-4xl lg:text-5xl font-bold leading-tight">
-              {school?.heroHeadline || school?.name || "Welcome"}
-            </h1>
-            <p className="mt-4 text-lg text-white/80 leading-relaxed">
-              {school?.heroSubtitle ||
-                school?.aboutText ||
-                `${school?.name ?? "Our institution"} serves learners and families across South Africa.`}
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button size="lg" className="bg-accent text-primary hover:bg-accent/90" asChild>
-                <Link href="/apply">
-                  {applyLabel}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10" asChild>
-                <Link href="/student/login">Student Login</Link>
-              </Button>
-              {session ? (
-                <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10" asChild>
-                  <Link href={ROLE_DASHBOARD[session.role]}>My Dashboard</Link>
-                </Button>
-              ) : null}
-            </div>
           </div>
         </div>
       </section>
 
-      {stats ? (
-        <section className="mx-auto max-w-7xl px-4 py-12 lg:px-6">
-          <div className={stats.length === 1 ? "grid grid-cols-1 gap-4" : stats.length === 2 ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : "grid grid-cols-1 sm:grid-cols-3 gap-4"}>
-            {stats.map((item) => (
-              <Card key={item.label}>
-                <CardContent className="p-6 text-center">
-                  <p className="text-3xl font-bold text-primary">{item.value}</p>
-                  <p className="text-sm text-muted mt-1">{item.label}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section className="mx-auto max-w-7xl px-4 py-16 lg:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-          <div>
-            <h2 className="text-2xl font-bold">About {school?.name ?? "us"}</h2>
-            <p className="text-muted mt-3 leading-relaxed whitespace-pre-wrap">
-              {school?.aboutText ||
-                `${school?.name ?? "This institution"} is committed to quality education for South African ${terms.students.toLowerCase()}.`}
-            </p>
-            <Button variant="outline" className="mt-6" asChild>
-              <Link href="/about">Read more</Link>
-            </Button>
-          </div>
-          <Card>
-            <CardContent className="p-6 space-y-3">
-              <h3 className="font-semibold flex items-center gap-2">
-                <GraduationCap className="h-4 w-4 text-primary" />
-                {academicsLabel}
-              </h3>
-              {college ? (
-                <ul className="space-y-2 text-sm">
-                  {courseOfferings.map((course) => (
-                    <li key={course.id} className="flex justify-between gap-3">
-                      <span>{course.name}</span>
-                      {course.nqfLevel ? <span className="text-muted">NQF {course.nqfLevel}</span> : null}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {gradeOfferings.map((grade) => (
-                    <span key={grade.id} className="rounded-full bg-primary/10 text-primary px-3 py-1 text-sm">
-                      {grade.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {!(college ? courseOfferings.length : gradeOfferings.length) ? (
-                <p className="text-sm text-muted">{academicsLabel} will be published by the institution.</p>
-              ) : null}
-              <Button size="sm" className="mt-2" asChild>
-                <Link href={academicsHref}>View {academicsLabel.toLowerCase()}</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      <section className="bg-surface border-y border-border">
-        <div className="mx-auto max-w-7xl px-4 py-16 lg:px-6">
-          <h2 className="text-2xl font-bold text-center mb-10">Why choose us</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {whyItems.map((item) => (
-              <div key={item.title} className="text-center space-y-3">
-                <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <CheckCircle className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-semibold">{item.title}</h3>
-                <p className="text-sm text-muted">{item.description}</p>
+      {highlights.length ? (
+        <div className="bg-white border-b border-[var(--site-line)]">
+          <div className="mx-auto max-w-[1180px] px-7 py-[30px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5 text-center">
+            {highlights.map((item) => (
+              <div key={`${item.value}-${item.label}`} className="flex flex-col gap-0.5">
+                <b className="font-[family-name:var(--site-serif)] text-[1.7rem] text-primary font-semibold leading-none">
+                  {item.value}
+                </b>
+                <span className="text-[0.86rem] text-[var(--site-muted)] font-semibold">{item.label}</span>
               </div>
             ))}
           </div>
         </div>
-      </section>
+      ) : null}
 
-      <section className="mx-auto max-w-7xl px-4 py-16 lg:px-6">
-        <div className="rounded-2xl bg-primary text-white p-8 lg:p-12 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <SiteSection>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.05fr] gap-10 lg:gap-14 items-start">
           <div>
-            <h2 className="text-2xl font-bold">{applyLabel}</h2>
-            <p className="text-white/80 mt-2 max-w-xl">
-              {admission?.instructions ||
-                `Submit an online application for the ${admission?.yearLabel ?? ""} intake and track your progress with a reference number.`}
-            </p>
-            {admission && !admission.open ? (
-              <p className="text-accent mt-3 text-sm">{admission.message}</p>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button size="lg" className="bg-accent text-primary hover:bg-accent/90" asChild>
-              <Link href="/apply">{applyLabel}</Link>
-            </Button>
-            <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10" asChild>
-              <Link href="/admissions">Admissions information</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-16 lg:px-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Newspaper className="h-5 w-5 text-primary" /> Latest news
+            <SiteEyebrow>Welcome to {school?.name ?? "our campus"}</SiteEyebrow>
+            <h2 className="section-title mt-[0.35em] mb-5">
+              A place to grow, learn and thrive
             </h2>
-            <Link href="/news" className="text-sm text-primary hover:underline">
-              All news
-            </Link>
+            <p className="text-[var(--site-muted)] leading-relaxed whitespace-pre-wrap">
+              {school?.aboutText ||
+                `${school?.name ?? "This institution"} is committed to quality education for South African ${terms.students.toLowerCase()}.`}
+            </p>
+            <SiteLink href="/about" className="inline-block mt-6">
+              Read our story →
+            </SiteLink>
           </div>
-          {news.slice(0, 3).length === 0 ? (
-            <Card>
-              <CardContent className="py-10 text-sm text-muted text-center">
-                No public news has been published yet.
-              </CardContent>
-            </Card>
+          {welcomeImage ? (
+            <div className="rounded-[26px] overflow-hidden shadow-[0_18px_50px_-22px_rgba(12,63,115,0.42)] aspect-[4/3]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={welcomeImage}
+                alt={school?.websiteGallery[0]?.altText || school?.name || "Campus"}
+                className="h-full w-full object-cover"
+              />
+            </div>
           ) : (
-            news.slice(0, 3).map((item) => (
-              <Card key={item.id}>
-                <CardContent className="p-6 space-y-2">
-                  <p className="text-xs text-muted">{formatDate(item.publishAt)}</p>
-                  <h3 className="font-semibold">{item.title}</h3>
-                  <p className="text-sm text-muted line-clamp-3 whitespace-pre-wrap">{item.content}</p>
-                </CardContent>
-              </Card>
-            ))
+            <div
+              className="rounded-[26px] min-h-[280px]"
+              style={{
+                background:
+                  "linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, transparent), color-mix(in srgb, var(--primary) 70%, #16243f))",
+              }}
+            />
           )}
         </div>
-        <div className="space-y-8">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
-              <Megaphone className="h-5 w-5 text-primary" /> Upcoming events
-            </h2>
-            {events.length === 0 ? (
-              <p className="text-sm text-muted">No upcoming public events.</p>
-            ) : (
-              <ul className="space-y-3">
-                {events.map((item) => (
-                  <li key={`${item.title}-${item.date.toISOString()}`}>
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-xs text-muted">{formatDate(item.date)}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Link href="/calendar" className="text-sm text-primary hover:underline mt-3 inline-block">
-              Full calendar
-            </Link>
-          </div>
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
-              <CalendarDays className="h-5 w-5 text-primary" /> Important dates
-            </h2>
-            {dates.length === 0 ? (
-              <p className="text-sm text-muted">Term dates will appear here when published.</p>
-            ) : (
-              <ul className="space-y-3">
-                {dates.map((item) => (
-                  <li key={`${item.kind}-${item.title}`} className="text-sm">
-                    <span className="text-muted">{formatDate(item.date)} · </span>
-                    {item.title}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </section>
+      </SiteSection>
 
-      <section className="bg-surface border-t border-border">
-        <div className="mx-auto max-w-7xl px-4 py-16 lg:px-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          <div>
-            <h2 className="text-2xl font-bold">Campus & contact</h2>
-            {address ? (
-              <p className="mt-3 text-muted flex items-start gap-2">
-                <MapPin className="h-4 w-4 mt-1 shrink-0" />
-                {address}
-              </p>
-            ) : null}
-            <div className="mt-4 space-y-1 text-sm">
-              {school?.phone ? <p>{school.phone}</p> : null}
-              {school?.email ? <p>{school.email}</p> : null}
-              {school?.officeHours ? <p>{school.officeHours}</p> : null}
-            </div>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button asChild>
-                <Link href="/contact">Contact us</Link>
-              </Button>
-              {wa ? (
-                <Button variant="outline" asChild>
-                  <a href={wa} target="_blank" rel="noreferrer">
-                    WhatsApp
-                  </a>
-                </Button>
+      {journey.length ? (
+        <SiteSection alt>
+          <SectionHead
+            eyebrow={college ? "Programmes" : "Learning journey"}
+            title={college ? `One path through ${academicsLabel.toLowerCase()}` : "One journey, through every stage"}
+            description={`A continuous, supported path at ${school?.name ?? "this institution"}.`}
+          />
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${journey.length > 2 ? "lg:grid-cols-4" : "lg:grid-cols-2"} gap-5`}>
+            {journey.map((card) => (
+              <Link
+                key={card.href + card.title}
+                href={card.href}
+                className="group flex flex-col bg-white border border-[var(--site-line)] rounded-[14px] overflow-hidden transition-transform hover:-translate-y-1 hover:border-[var(--accent-dark)] hover:shadow-[0_18px_50px_-22px_rgba(12,63,115,0.42)]"
+              >
+                <div className="aspect-[4/3] overflow-hidden bg-[var(--site-paper-2)]">
+                  {card.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={card.imageUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div
+                      className="h-full w-full"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, color-mix(in srgb, var(--accent) 25%, #d8cdb4), var(--primary))",
+                      }}
+                    />
+                  )}
+                </div>
+                <div className="p-5 flex flex-col flex-1">
+                  <span className="text-[0.82rem] text-[var(--accent-dark)] font-bold tracking-wide uppercase">
+                    {card.kicker}
+                  </span>
+                  <h3 className="text-[1.18rem] mt-1 mb-1">{card.title}</h3>
+                  <p className="text-[0.92rem] text-[var(--site-muted)] mt-2 flex-1">{card.description}</p>
+                  <span className="inline-block mt-4 text-[0.82rem] font-bold text-[var(--accent-dark)] tracking-wide">
+                    Learn more →
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </SiteSection>
+      ) : null}
+
+      {school?.principalMessage ? (
+        <SiteSection>
+          <SiteEyebrow className="block mb-6">Our {leaderTitle}</SiteEyebrow>
+          <div className="grid grid-cols-1 md:grid-cols-[0.8fr_1.2fr] gap-8 md:gap-14 items-center">
+            {principalImage ? (
+              <div className="aspect-square rounded-[26px] overflow-hidden max-w-[360px] shadow-[0_18px_50px_-22px_rgba(12,63,115,0.42)]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={principalImage} alt={school.principalName || leaderTitle} className="h-full w-full object-cover" />
+              </div>
+            ) : (
+              <div
+                className="aspect-square rounded-[26px] max-w-[360px]"
+                style={{
+                  background: "linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--accent) 40%, var(--primary)))",
+                }}
+              />
+            )}
+            <div>
+              <blockquote className="font-[family-name:var(--site-serif)] text-[clamp(1.3rem,2.2vw,1.85rem)] leading-[1.35] text-primary font-normal italic">
+                “{school.principalMessage}”
+              </blockquote>
+              {school.principalName ? (
+                <p className="mt-[18px] font-[family-name:var(--site-serif)] text-[1.15rem] text-primary">{school.principalName}</p>
               ) : null}
+              <SiteLink href="/about" className="inline-block mt-5">
+                About {school.name} →
+              </SiteLink>
             </div>
           </div>
-          {school?.websiteGallery[0] ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={school.websiteGallery[0].imageUrl}
-              alt={school.websiteGallery[0].altText || school.websiteGallery[0].caption || school.name}
-              className="w-full rounded-2xl object-cover max-h-80"
-            />
-          ) : null}
+        </SiteSection>
+      ) : null}
+
+      <SiteSection alt={!school?.principalMessage}>
+        <SectionHead eyebrow={`Why ${school?.name ?? "us"}`} title="An education that opens doors" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {whyItems.map((item, index) => {
+            const Icon = WHY_ICONS[index % WHY_ICONS.length];
+            return (
+              <FeatureCard
+                key={item.title}
+                icon={<Icon className="h-[22px] w-[22px]" />}
+                title={item.title}
+                description={item.description}
+              />
+            );
+          })}
         </div>
-      </section>
+        <div className="mt-9">
+          <Link href="/about" className="site-btn site-btn-navy site-btn-arrow">
+            Discover more
+          </Link>
+        </div>
+      </SiteSection>
+
+      <SiteSection>
+        <SiteEyebrow>Continue exploring</SiteEyebrow>
+        <h2 className="section-title mt-[0.2em] mb-[1.4em]">Where to next?</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Link
+            href="/contact"
+            className="flex flex-col bg-white border border-[var(--site-line)] rounded-[26px] p-8 no-underline transition-shadow hover:shadow-[0_18px_50px_-22px_rgba(12,63,115,0.42)]"
+          >
+            <Home className="h-[22px] w-[22px] text-[var(--accent-dark)] mb-3.5" />
+            <h3 className="text-[1.55rem] font-normal text-primary mb-2">Come and see for yourself</h3>
+            <p className="text-[0.95rem] leading-relaxed text-[var(--site-muted)] flex-1">
+              {address
+                ? `Visit us at ${address}. Book a visit and we will take care of the rest.`
+                : "The best way to get a feel for campus is to walk it with our team."}
+            </p>
+            <span className="site-read mt-6 inline-block">Book a visit →</span>
+          </Link>
+          <Link
+            href={admission?.open ? "/apply" : "/admissions"}
+            className="flex flex-col bg-white border border-[var(--site-line)] rounded-[26px] p-8 no-underline transition-shadow hover:shadow-[0_18px_50px_-22px_rgba(12,63,115,0.42)]"
+          >
+            <GraduationCap className="h-[22px] w-[22px] text-[var(--accent-dark)] mb-3.5" />
+            <h3 className="text-[1.55rem] font-normal text-primary mb-2">
+              {admission?.open ? "Applications are now open" : "Admissions"}
+            </h3>
+            <p className="text-[0.95rem] leading-relaxed text-[var(--site-muted)] flex-1">
+              {admission?.instructions ||
+                `Start an online application for the ${admission?.yearLabel ?? ""} intake, or speak to admissions.`}
+            </p>
+            <span className="site-read mt-6 inline-block">
+              {admission?.open ? "Start your application →" : "Admissions information →"}
+            </span>
+          </Link>
+        </div>
+      </SiteSection>
+
+      {(news.length > 0 || events.length > 0) && (
+        <SiteSection alt>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div className="lg:col-span-2">
+              <div className="flex items-end justify-between mb-6">
+                <h2 className="section-title">Latest news</h2>
+                <SiteLink href="/news">All news →</SiteLink>
+              </div>
+              {news.slice(0, 3).length === 0 ? (
+                <p className="text-sm text-[var(--site-muted)]">No public news has been published yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {news.slice(0, 3).map((item) => (
+                    <article key={item.id} className="bg-white border border-[var(--site-line)] rounded-[14px] p-6">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent-dark)]">
+                        {formatDate(item.publishAt)}
+                      </p>
+                      <h3 className="text-xl mt-2">{item.title}</h3>
+                      <p className="text-sm text-[var(--site-muted)] mt-2 line-clamp-3 whitespace-pre-wrap">{item.content}</p>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <h2 className="text-xl mb-4 flex items-center gap-2">
+                <CalendarDays className="h-5 w-5 text-[var(--accent-dark)]" /> Upcoming
+              </h2>
+              {events.length === 0 ? (
+                <p className="text-sm text-[var(--site-muted)]">No upcoming public events.</p>
+              ) : (
+                <ul className="space-y-4">
+                  {events.map((item) => (
+                    <li key={`${item.title}-${item.date.toISOString()}`} className="border-b border-[var(--site-line)] pb-3">
+                      <p className="font-semibold text-primary">{item.title}</p>
+                      <p className="text-xs text-[var(--site-muted)] mt-1">{formatDate(item.date)}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <SiteLink href="/calendar" className="inline-block mt-4">
+                Full calendar →
+              </SiteLink>
+            </div>
+          </div>
+        </SiteSection>
+      )}
+
+      <CtaBand
+        eyebrow="Admissions"
+        title={admission?.open ? `Applications for ${admission.yearLabel}` : "Speak to admissions"}
+        description={
+          admission && !admission.open
+            ? admission.message
+            : `Submit an online application and track your progress with a reference number.`
+        }
+        primaryHref={admission?.open ? "/apply" : "/contact"}
+        primaryLabel={admission?.open ? "Apply online" : "Contact us"}
+        secondaryHref="/admissions"
+        secondaryLabel="Admissions information"
+      />
     </>
   );
 }
