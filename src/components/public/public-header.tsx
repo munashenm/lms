@@ -81,9 +81,11 @@ export function PublicHeader({
           </Link>
         </nav>
 
-        <Link href="/apply" className="site-btn site-btn-gold ml-auto xl:hidden !py-2.5 !px-4">
-          Apply
-        </Link>
+        <div className="ml-auto xl:hidden">
+          <Link href="/apply" className="site-btn site-btn-gold !py-2.5 !px-4">
+            Apply
+          </Link>
+        </div>
         <button
           className="xl:hidden rounded-[10px] bg-primary p-2.5 text-white"
           onClick={() => setOpen(!open)}
