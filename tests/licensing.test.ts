@@ -11,6 +11,7 @@ import { needsSuperAdminSchoolPicker } from "@/lib/licensing/enforce";
 import { shouldTrustUnsignedLicense } from "@/lib/licensing/service";
 import { filterNavByLicense, isFeatureEnabled, licenseBannerTone, navHrefFeature } from "@/lib/licensing/portal";
 import { getAdminNav, studentNav } from "@/lib/navigation";
+import { COMPANY_WEBSITE } from "@/lib/constants";
 
 function claims(overrides: Partial<LicenseClaims> = {}): LicenseClaims {
   const now = new Date("2026-06-01T00:00:00Z");
@@ -137,6 +138,7 @@ describe("licensing", () => {
     });
     expect(evaluation.restricted).toBe(true);
     expect(evaluation.effectiveStatus).toBe("SUSPENDED");
+    expect(evaluation.warnings[0]).toContain("Contact Cyber Developers for support");
   });
 
   it("keeps serving a cached licence when the server is unavailable", () => {
@@ -242,6 +244,19 @@ describe("restricted mode paths", () => {
     expect(isRestrictedPathAllowed("/api/students", "POST")).toBe(false);
     expect(isRestrictedPathAllowed("/api/payments", "POST")).toBe(false);
     expect(isRestrictedPathAllowed("/admin/students/new", "GET")).toBe(false);
+  });
+
+  it("sends licence support to the Cyber Developers website", () => {
+    expect(COMPANY_WEBSITE).toBe("https://www.cyberdevelopers.co.za");
+    const revoked = evaluateLicense({
+      now: new Date("2026-06-15T00:00:00Z"),
+      claims: claims({ status: "REVOKED" }),
+      signatureValid: true,
+      lastVerifiedAt: new Date(),
+      storedStatus: "REVOKED",
+      offlineGraceDays: 14,
+    });
+    expect(revoked.warnings[0]).toBe("This licence has been revoked. Contact Cyber Developers for support.");
   });
 });
 

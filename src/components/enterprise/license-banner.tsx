@@ -1,9 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { COMPANY_WEBSITE } from "@/lib/constants";
 import { RESTRICTED_MODE_MESSAGE } from "@/lib/licensing/types";
 import { licenseBannerTone } from "@/lib/licensing/portal";
 import type { EvaluatedLicense } from "@/lib/licensing/types";
+
+function ProviderSupportLink({ className }: { className?: string }) {
+  return (
+    <a
+      className={className}
+      href={COMPANY_WEBSITE}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Contact support
+    </a>
+  );
+}
 
 export function LicenseStatusBanner({
   evaluation,
@@ -46,9 +60,7 @@ export function LicenseStatusBanner({
             </Link>
           </>
         )}
-        <Link className="underline" href="/contact">
-          Contact support
-        </Link>
+        <ProviderSupportLink className="underline" />
       </div>
     </div>
   );
@@ -63,9 +75,7 @@ export function PortalUnavailable({ moduleName }: { moduleName: string }) {
         available until the LMS provider enables it.
       </p>
       <p className="mt-4 text-sm">
-        <Link className="text-primary underline" href="/contact">
-          Contact support
-        </Link>
+        <ProviderSupportLink className="text-primary underline" />
       </p>
     </div>
   );
