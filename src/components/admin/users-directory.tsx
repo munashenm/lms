@@ -1,15 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { formatDate } from "@/lib/utils";
+import { formatDate, cn } from "@/lib/utils";
+import {
+  DIRECTORY_GROUPS,
+  DIRECTORY_GROUP_LABELS,
+  filterDirectoryUsers,
+  groupDirectoryUsers,
+  type DirectoryGroup,
+  type DirectoryUserRecord,
+} from "@/lib/user-directory";
 
 const ROLE_LABELS: Record<string, string> = {
   STAFF: "Staff",
@@ -24,21 +33,16 @@ const ROLE_LABELS: Record<string, string> = {
   PARENT: "Parent",
 };
 
-interface DirectoryUser {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-  isActive: boolean;
-  lastLoginAt: string | Date | null;
-  schoolName: string | null;
-}
-
 interface SchoolOption {
   id: string;
   name: string;
 }
+
+const SEARCH_PLACEHOLDERS: Record<DirectoryGroup, string> = {
+  staff: "Search staff by name or employee ID",
+  students: "Search students by name or student ID",
+  parents: "Search parents by name or linked student ID",
+};
 
 export function UsersDirectory({
   users,
@@ -48,7 +52,7 @@ export function UsersDirectory({
   schools,
   showSchoolColumn,
 }: {
-  users: DirectoryUser[];
+  users: DirectoryUserRecord[];
   currentUserId: string;
   canWrite: boolean;
   inviteRoles: string[];
@@ -57,6 +61,12 @@ export function UsersDirectory({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
+  const [group, setGroup] = useState<DirectoryGroup>("staff");
+  const [queries, setQueries] = useState<Record<DirectoryGroup, string>>({
+    staff: "",
+    students: "",
+    parents: "",
+  });
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -65,6 +75,12 @@ export function UsersDirectory({
     role: inviteRoles[0] ?? "STAFF",
     schoolId: schools[0]?.id ?? "",
   });
+
+  const grouped = useMemo(() => groupDirectoryUsers(users), [users]);
+  const visible = useMemo(
+    () => filterDirectoryUsers(users, group, queries[group]),
+    [users, group, queries]
+  );
 
   async function invite(e: React.FormEvent) {
     e.preventDefault();
@@ -115,6 +131,18 @@ export function UsersDirectory({
       setLoading(null);
     }
   }
+
+  function identifier(user: DirectoryUserRecord) {
+    if (group === "students") return user.studentNumber || "—";
+    if (group === "staff") return user.employeeNumber || "—";
+    if (user.linkedStudents.length === 0) return "—";
+    return user.linkedStudents
+      .map((student) => `${student.name} (${student.studentNumber})`)
+      .join(", ");
+  }
+
+  const identifierLabel =
+    group === "students" ? "Student ID" : group === "staff" ? "Employee ID" : "Linked students";
 
   return (
     <div className="space-y-6">
@@ -193,12 +221,44 @@ export function UsersDirectory({
         </Card>
       ) : null}
 
+      <div className="flex flex-wrap gap-2">
+        {DIRECTORY_GROUPS.map((key) => (
+          <button
+            key={key}
+            type="button"
+            className={cn(
+              "rounded-lg px-4 py-2 text-sm font-medium border",
+              group === key
+                ? "bg-primary text-white border-primary"
+                : "bg-surface border-border text-muted hover:bg-background"
+            )}
+            onClick={() => setGroup(key)}
+          >
+            {DIRECTORY_GROUP_LABELS[key]} ({grouped[key].length})
+          </button>
+        ))}
+      </div>
+
       <Card className="overflow-hidden">
+        <CardHeader className="space-y-3">
+          <CardTitle className="text-base">{DIRECTORY_GROUP_LABELS[group]}</CardTitle>
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <Input
+              value={queries[group]}
+              onChange={(e) => setQueries({ ...queries, [group]: e.target.value })}
+              placeholder={SEARCH_PLACEHOLDERS[group]}
+              aria-label={SEARCH_PLACEHOLDERS[group]}
+              className="pl-9"
+            />
+          </div>
+        </CardHeader>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-background/50">
                 <th className="text-left px-4 py-3 font-medium text-muted">Name</th>
+                <th className="text-left px-4 py-3 font-medium text-muted">{identifierLabel}</th>
                 {showSchoolColumn ? (
                   <th className="text-left px-4 py-3 font-medium text-muted hidden lg:table-cell">School</th>
                 ) : null}
@@ -211,7 +271,7 @@ export function UsersDirectory({
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => {
+              {visible.map((user) => {
                 const isSelf = user.id === currentUserId;
                 const locked = user.role === "SUPER_ADMIN" || isSelf;
                 return (
@@ -220,6 +280,7 @@ export function UsersDirectory({
                       <p className="font-medium">{user.firstName} {user.lastName}</p>
                       <p className="text-xs text-muted">{user.email}</p>
                     </td>
+                    <td className="px-4 py-3 text-muted">{identifier(user)}</td>
                     {showSchoolColumn ? (
                       <td className="px-4 py-3 text-muted hidden lg:table-cell">{user.schoolName ?? "—"}</td>
                     ) : null}
@@ -235,12 +296,7 @@ export function UsersDirectory({
                     {canWrite ? (
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            asChild
-                          >
+                          <Button type="button" size="sm" variant="outline" asChild>
                             <a href={`/admin/users/${user.id}/permissions`}>Permissions</a>
                           </Button>
                           <Button
@@ -270,8 +326,12 @@ export function UsersDirectory({
             </tbody>
           </table>
         </div>
-        {users.length === 0 ? (
-          <CardContent className="py-12 text-center text-muted">No users yet.</CardContent>
+        {visible.length === 0 ? (
+          <CardContent className="py-12 text-center text-muted">
+            {grouped[group].length === 0
+              ? `No ${DIRECTORY_GROUP_LABELS[group].toLowerCase()} yet.`
+              : `No ${DIRECTORY_GROUP_LABELS[group].toLowerCase()} match that search.`}
+          </CardContent>
         ) : null}
       </Card>
     </div>

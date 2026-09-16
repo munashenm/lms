@@ -24,6 +24,18 @@ export default async function AdminUsersPage() {
         isActive: true,
         lastLoginAt: true,
         school: { select: { name: true } },
+        student: { select: { studentNumber: true } },
+        teacher: { select: { employeeNumber: true } },
+        employee: { select: { employeeNumber: true } },
+        guardian: {
+          select: {
+            students: {
+              select: {
+                student: { select: { firstName: true, lastName: true, studentNumber: true } },
+              },
+            },
+          },
+        },
       },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     }),
@@ -42,7 +54,8 @@ export default async function AdminUsersPage() {
       <div>
         <h1 className="text-2xl font-bold">Users</h1>
         <p className="text-muted text-sm mt-1">
-          Invite school admins, officers, and staff logins. Teachers stay on the Staff page.
+          Staff, students and parents are listed separately. Search students by name or student ID,
+          and staff by name or employee ID.
         </p>
       </div>
       <UsersDirectory
@@ -55,6 +68,12 @@ export default async function AdminUsersPage() {
           isActive: u.isActive,
           lastLoginAt: u.lastLoginAt,
           schoolName: u.school?.name ?? null,
+          studentNumber: u.student?.studentNumber ?? null,
+          employeeNumber: u.employee?.employeeNumber ?? u.teacher?.employeeNumber ?? null,
+          linkedStudents: (u.guardian?.students ?? []).map((link) => ({
+            name: `${link.student.firstName} ${link.student.lastName}`,
+            studentNumber: link.student.studentNumber,
+          })),
         }))}
         currentUserId={session.userId}
         canWrite={canWrite}
