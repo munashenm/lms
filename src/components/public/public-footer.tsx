@@ -2,6 +2,7 @@ import Link from "next/link";
 import { COMPANY_NAME } from "@/lib/constants";
 import { SchoolLogo } from "@/components/layout/brand-mark";
 import { socialLinks, whatsappHref } from "@/lib/public-site";
+import { resolveBrandLogo } from "@/lib/school-branding";
 
 interface PublicFooterProps {
   schoolName?: string;
@@ -50,14 +51,13 @@ export function PublicFooter({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr] gap-9">
           <div>
             <Link href="/" className="inline-flex mb-3.5">
-              <span className="inline-block bg-white px-3.5 py-2 rounded-xl">
-                {logoUrl ? (
-                  <SchoolLogo src={logoUrl} name={schoolName} size="md" className="h-[46px] max-h-[46px] max-w-[160px]" />
-                ) : (
-                  <span className="font-[family-name:var(--site-serif)] text-primary font-semibold text-lg">
-                    {schoolName ?? "Institution"}
-                  </span>
-                )}
+              <span className="inline-block bg-white px-3.5 py-2.5 rounded-xl">
+                <SchoolLogo
+                  src={resolveBrandLogo(logoUrl)}
+                  name={schoolName}
+                  size="lg"
+                  className="h-[72px] max-h-[72px] max-w-[220px]"
+                />
               </span>
             </Link>
             <p className="max-w-[24em] leading-relaxed">{blurb}{aboutText && aboutText.length > 160 ? "…" : ""}</p>

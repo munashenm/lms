@@ -27,6 +27,8 @@ const PUBLIC_PATHS = [
   "/calendar",
   "/gallery",
   "/privacy",
+  "/brand",
+  "/apple-touch-icon",
   "/uploads",
   "/api/webhooks",
   "/api/cron",

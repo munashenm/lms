@@ -69,4 +69,12 @@ describe("school branding", () => {
     expect(schoolLogoAlt("  ")).toBe("School logo");
     expect(schoolLogoAlt(null)).toBe("School logo");
   });
+
+  it("falls back to the SchoolHub SA brand artwork", async () => {
+    const { resolveBrandLogo, resolveBrandMark } = await import("@/lib/school-branding");
+    expect(resolveBrandLogo(null)).toBe("/brand/logo.png");
+    expect(resolveBrandLogo("  ")).toBe("/brand/logo.png");
+    expect(resolveBrandLogo("/uploads/x/logo.png")).toBe("/uploads/x/logo.png");
+    expect(resolveBrandMark(null)).toBe("/brand/mark.png");
+  });
 });
