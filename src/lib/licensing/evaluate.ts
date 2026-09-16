@@ -78,8 +78,8 @@ export function evaluateLicense(input: EvaluateLicenseInput): EvaluatedLicense {
       serverUnavailable,
       warnings: [
         status === "SUSPENDED"
-          ? "This licence has been suspended. Contact your LMS provider."
-          : "This licence has been revoked. Contact your LMS provider.",
+          ? "This licence has been suspended. Contact Cyber Developers for support."
+          : "This licence has been revoked. Contact Cyber Developers for support.",
       ],
       claims,
       daysUntilExpiry: null,
