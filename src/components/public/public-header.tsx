@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import { BrandMark, SchoolLogo } from "@/components/layout/brand-mark";
+import { SchoolLogo } from "@/components/layout/brand-mark";
+import { resolveBrandLogo } from "@/lib/school-branding";
 import { cn } from "@/lib/utils";
 
 export type PublicNavLink = { href: string; label: string };
@@ -46,13 +47,14 @@ export function PublicHeader({
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--site-line)] bg-[rgba(250,248,244,0.86)] backdrop-blur-[12px]">
-      <div className="mx-auto flex max-w-[1180px] items-center gap-4 px-7 py-3.5">
+      <div className="mx-auto flex max-w-[1180px] items-center gap-4 px-7 py-2.5">
         <Link href="/" className="flex min-w-0 items-center shrink-0">
-          {logoUrl ? (
-            <SchoolLogo src={logoUrl} name={schoolName} size="md" className="h-11 max-h-11 max-w-[180px]" />
-          ) : (
-            <BrandMark name={schoolName} size="md" />
-          )}
+          <SchoolLogo
+            src={resolveBrandLogo(logoUrl)}
+            name={schoolName}
+            size="lg"
+            className="h-[68px] max-h-[68px] max-w-[210px]"
+          />
         </Link>
 
         <nav className="ml-auto hidden xl:flex min-w-0 items-center">
