@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { DEFAULT_BRAND_LOGO_URL, DEFAULT_BRAND_MARK_URL } from "@/lib/constants";
 
 export const DEFAULT_PRIMARY_COLOR = "#1B4D6E";
 export const DEFAULT_ACCENT_COLOR = "#E8A317";
@@ -65,6 +66,16 @@ export function emptySchoolPortalBrand(): SchoolPortalBrand {
 export function schoolLogoAlt(name?: string | null): string {
   const trimmed = name?.trim();
   return trimmed ? `${trimmed} logo` : "School logo";
+}
+
+export function resolveBrandLogo(logoUrl?: string | null): string {
+  const trimmed = logoUrl?.trim();
+  return trimmed || DEFAULT_BRAND_LOGO_URL;
+}
+
+export function resolveBrandMark(logoUrl?: string | null): string {
+  const trimmed = logoUrl?.trim();
+  return trimmed || DEFAULT_BRAND_MARK_URL;
 }
 
 export function toSchoolPortalBrand(
