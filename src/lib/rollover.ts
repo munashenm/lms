@@ -50,6 +50,8 @@ export function outcomeToEnrolmentStatus(outcome: RolloverOutcome): EnrolmentSta
       return EnrolmentStatus.PROMOTED;
     case "REPEATED":
       return EnrolmentStatus.REPEATED;
+    case "PROGRESSED":
+      return EnrolmentStatus.PROGRESSED;
     case "GRADUATED":
       return EnrolmentStatus.GRADUATED;
     case "WITHDRAWN":
@@ -58,6 +60,8 @@ export function outcomeToEnrolmentStatus(outcome: RolloverOutcome): EnrolmentSta
       return EnrolmentStatus.TRANSFERRED;
     case "COMPLETED":
       return EnrolmentStatus.COMPLETED;
+    case "DEFERRED":
+      return EnrolmentStatus.DEFERRED;
   }
 }
 
@@ -76,7 +80,7 @@ export function outcomeToStudentStatus(outcome: RolloverOutcome): StudentStatus 
 }
 
 export function continuesToTarget(outcome: RolloverOutcome): boolean {
-  return outcome === "PROMOTED" || outcome === "REPEATED";
+  return outcome === "PROMOTED" || outcome === "REPEATED" || outcome === "PROGRESSED" || outcome === "DEFERRED";
 }
 
 const previewInclude = {

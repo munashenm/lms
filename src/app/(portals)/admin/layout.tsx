@@ -6,6 +6,7 @@ import { PortalShell } from "@/components/layout/portal-shell";
 import { getAdminNav } from "@/lib/navigation";
 import { getPortalSessionContext } from "@/lib/portal-session";
 import { filterNavByLicense } from "@/lib/licensing/portal";
+import { filterNavByModules } from "@/lib/access";
 
 export default async function AdminLayout({
   children,
@@ -18,11 +19,16 @@ export default async function AdminLayout({
   }
 
   const ctx = await getPortalSessionContext(session);
-  const nav = filterNavByLicense(
-    getAdminNav(ctx.terminology ?? undefined, {
-      vendorTools: session.role === UserRole.SUPER_ADMIN,
-    }),
-    ctx.license
+  const nav = await filterNavByModules(
+    filterNavByLicense(
+      getAdminNav(ctx.terminology ?? undefined, {
+        vendorTools: session.role === UserRole.SUPER_ADMIN,
+        superAdmin: session.role === UserRole.SUPER_ADMIN,
+      }),
+      ctx.license
+    ),
+    session,
+    ctx.schoolId ?? session.schoolId
   );
 
   return (

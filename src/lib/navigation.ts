@@ -179,7 +179,7 @@ export function getAdminHrNavItems(): Array<Omit<NavItem, "section" | "sectionIc
 
 export function getAdminNav(
   terms?: Terminology,
-  opts?: { vendorTools?: boolean }
+  opts?: { vendorTools?: boolean; superAdmin?: boolean }
 ): NavItem[] {
   const t = terms;
   return [
@@ -205,6 +205,10 @@ export function getAdminNav(
         { label: t?.reportCards ?? "Reports", href: "/admin/report-cards", icon: "Award" },
         { label: "Certificates", href: "/admin/certificates", icon: "Award" },
         { label: "Letters", href: "/admin/letters", icon: "FileText" },
+      ]),
+      ...cluster("Progression", [
+        { label: "Promotion", href: "/admin/academic/promotion", icon: "GraduationCap" },
+        { label: "Promotion rules", href: "/admin/academic/promotion/rules", icon: "ClipboardList" },
       ]),
     ]),
     ...grouped("Finance", "CreditCard", getAdminFinanceNavItems()),
@@ -239,6 +243,13 @@ export function getAdminNav(
         { label: "SA-SAMS", href: "/admin/integrations/sa-sams", icon: "Plug" },
         { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
       ]),
+      ...(opts?.superAdmin
+        ? cluster("Control", [
+            { label: "Institutions", href: "/admin/institutions", icon: "Globe" },
+            { label: "Modules", href: "/admin/modules", icon: "Shield" },
+            { label: "Roles & Permissions", href: "/admin/roles", icon: "Users" },
+          ])
+        : []),
     ]),
   ];
 }

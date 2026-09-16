@@ -1,14 +1,14 @@
-import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter, hasPermission, requirePermission } from "@/lib/rbac";
 import { directoryRolesForActor } from "@/lib/portal-provision";
 import { UsersDirectory } from "@/components/admin/users-directory";
+import { AccessDenied } from "@/components/layout/access-denied";
 
 export default async function AdminUsersPage() {
   const session = await getSession();
-  if (!requirePermission(session, "settings:read")) {
-    notFound();
+  if (!requirePermission(session, "users.view")) {
+    return <AccessDenied />;
   }
 
   const filter = getSchoolFilter(session);
@@ -34,7 +34,7 @@ export default async function AdminUsersPage() {
     }),
   ]);
 
-  const canWrite = hasPermission(session.role, "settings:write");
+  const canWrite = hasPermission(session.role, "users.edit");
   const showSchoolColumn = !("schoolId" in filter);
 
   return (

@@ -239,6 +239,14 @@ export function UsersDirectory({
                             type="button"
                             size="sm"
                             variant="outline"
+                            asChild
+                          >
+                            <a href={`/admin/users/${user.id}/permissions`}>Permissions</a>
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
                             disabled={loading === `${user.id}-resend` || !user.isActive}
                             onClick={() => patchUser(user.id, { resendInvite: true })}
                           >

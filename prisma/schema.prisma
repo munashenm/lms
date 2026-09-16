@@ -235,8 +235,26 @@ enum EnrolmentStatus {
   DEFERRED
   PROMOTED
   REPEATED
+  PROGRESSED
   GRADUATED
   TRANSFERRED
+}
+
+enum PromotionEligibility {
+  ELIGIBLE
+  NOT_ELIGIBLE
+  REVIEW_REQUIRED
+}
+
+enum PromotionOutcome {
+  PROMOTED
+  REPEATED
+  PROGRESSED
+  GRADUATED
+  COMPLETED
+  TRANSFERRED
+  WITHDRAWN
+  DEFERRED
 }
 
 enum DayOfWeek {
@@ -560,6 +578,10 @@ model School {
   visitorEntries         VisitorEntry[]
   websiteFaqs            WebsiteFaq[]
   websiteGallery         WebsiteGalleryItem[]
+  schoolModules          SchoolModule[]
+  studentChangeLogs      StudentChangeLog[]
+  promotionRules         PromotionRule[]
+  promotionDecisions     PromotionDecision[]
   admissionYear          AcademicYear? @relation("SchoolAdmissionYear", fields: [admissionYearId], references: [id], onDelete: SetNull)
 
   @@index([slug])
@@ -591,6 +613,7 @@ model Campus {
   financialAccounts FinancialAccount[]
   visitorEntries VisitorEntry[]
   applications Application[]
+  users        User[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -602,6 +625,7 @@ model Campus {
 model User {
   id           String    @id @default(cuid())
   schoolId     String?
+  campusId     String?
   email        String    @unique
   passwordHash String
   passwordResetTokenHash String?
@@ -614,10 +638,14 @@ model User {
   isActive     Boolean   @default(true)
   emailVerified Boolean  @default(false)
   lastLoginAt  DateTime?
+  mustResetPassword Boolean @default(false)
+  permissionGrants String[] @default([])
+  permissionDenies String[] @default([])
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   school       School?   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  campus       Campus?   @relation(fields: [campusId], references: [id], onDelete: SetNull)
   student      Student?
   teacher      Teacher?
   guardian     Guardian?
@@ -640,9 +668,12 @@ model User {
   employee           Employee?
   visitorsSignedIn   VisitorEntry[] @relation("VisitorSignedInBy")
   visitorsSignedOut  VisitorEntry[] @relation("VisitorSignedOutBy")
+  studentChangeLogs  StudentChangeLog[]
+  promotionDecisions PromotionDecision[] @relation("PromotionDecidedBy")
 
   @@index([schoolId])
   @@index([role])
+  @@index([campusId])
   @@map("users")
 }
 
@@ -673,6 +704,8 @@ model AcademicYear {
   payrollRuns          PayrollRun[]
   admissionSchools     School[]      @relation("SchoolAdmissionYear")
   applications         Application[]
+  promotionDecisionsFrom PromotionDecision[] @relation("PromotionFromYear")
+  promotionDecisionsTo   PromotionDecision[] @relation("PromotionToYear")
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -728,6 +761,10 @@ model Grade {
   subjects  Subject[]
   enrolments Enrolment[]
   feeStructures FeeStructure[]
+  promotionRulesFrom PromotionRule[] @relation("PromotionFromGrade")
+  promotionRulesTo   PromotionRule[] @relation("PromotionToGrade")
+  promotionDecisionsFrom PromotionDecision[] @relation("PromotionDecisionFromGrade")
+  promotionDecisionsTo   PromotionDecision[] @relation("PromotionDecisionToGrade")
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -879,17 +916,29 @@ model Student {
   classId         String?
   studentNumber   String
   saIdNumber      String?
+  passportNumber  String?
+  alternativeId   String?
   firstName       String
+  middleName      String?
   lastName        String
+  preferredName   String?
   dateOfBirth     DateTime?
   gender          Gender?
+  nationality     String?
+  homeLanguage    String?
   email           String?
   phone           String?
   address         String?
   city            String?
   province        String?
   postalCode      String?
+  postalAddress   String?
   photoUrl        String?
+  medicalNotes    String?       @db.Text
+  emergencyName   String?
+  emergencyPhone  String?
+  emergencyRelationship String?
+  notes           String?       @db.Text
   status          StudentStatus @default(ACTIVE)
   popiaConsentAt  DateTime?
   enrolledAt      DateTime?
@@ -921,6 +970,8 @@ model Student {
   teacherReviews  TeacherReview[]
   documents       StudentDocument[]
   examAttempts    ExamAttempt[]
+  changeLogs      StudentChangeLog[]
+  promotionDecisions PromotionDecision[]
 
   @@unique([schoolId, studentNumber])
   @@index([schoolId])
@@ -1042,6 +1093,7 @@ model Enrolment {
   class          Class?       @relation(fields: [classId], references: [id])
   modules        EnrolmentModule[]
   charges        StudentCharge[]
+  promotionDecisions PromotionDecision[]
 
   @@index([studentId])
   @@index([academicYearId])
@@ -1904,6 +1956,99 @@ model AuditLog {
   @@index([schoolId, createdAt])
   @@index([entity, entityId])
   @@map("audit_logs")
+}
+
+model SchoolModule {
+  id        String   @id @default(cuid())
+  schoolId  String
+  moduleKey String
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, moduleKey])
+  @@index([schoolId])
+  @@map("school_modules")
+}
+
+model StudentChangeLog {
+  id        String   @id @default(cuid())
+  schoolId  String
+  studentId String
+  userId    String?
+  field     String
+  oldValue  String?  @db.Text
+  newValue  String?  @db.Text
+  createdAt DateTime @default(now())
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, createdAt])
+  @@index([schoolId, createdAt])
+  @@map("student_change_logs")
+}
+
+model PromotionRule {
+  id                    String   @id @default(cuid())
+  schoolId              String
+  name                  String
+  fromGradeId           String?
+  toGradeId             String?
+  isActive              Boolean  @default(true)
+  minAverage            Decimal? @db.Decimal(5, 2)
+  minAttendancePercent  Decimal? @db.Decimal(5, 2)
+  requirePassStatus     Boolean  @default(false)
+  minSubjectsPassed     Int?
+  conditions            Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  fromGrade Grade?   @relation("PromotionFromGrade", fields: [fromGradeId], references: [id], onDelete: SetNull)
+  toGrade   Grade?   @relation("PromotionToGrade", fields: [toGradeId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId])
+  @@map("promotion_rules")
+}
+
+model PromotionDecision {
+  id                   String                @id @default(cuid())
+  schoolId             String
+  studentId            String
+  enrolmentId          String?
+  fromAcademicYearId   String
+  toAcademicYearId     String?
+  fromGradeId          String?
+  toGradeId            String?
+  toClassId            String?
+  eligibility          PromotionEligibility
+  outcome              PromotionOutcome?
+  overridden           Boolean               @default(false)
+  overrideReason       String?
+  notes                String?               @db.Text
+  average              Decimal?              @db.Decimal(5, 2)
+  attendancePercent    Decimal?              @db.Decimal(5, 2)
+  resultStatus         String?
+  decidedById          String?
+  createdAt            DateTime              @default(now())
+
+  school               School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student              Student               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrolment            Enrolment?            @relation(fields: [enrolmentId], references: [id], onDelete: SetNull)
+  fromAcademicYear     AcademicYear          @relation("PromotionFromYear", fields: [fromAcademicYearId], references: [id], onDelete: Cascade)
+  toAcademicYear       AcademicYear?         @relation("PromotionToYear", fields: [toAcademicYearId], references: [id], onDelete: SetNull)
+  fromGrade            Grade?                @relation("PromotionDecisionFromGrade", fields: [fromGradeId], references: [id], onDelete: SetNull)
+  toGrade              Grade?                @relation("PromotionDecisionToGrade", fields: [toGradeId], references: [id], onDelete: SetNull)
+  decidedBy            User?                 @relation("PromotionDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, createdAt])
+  @@index([studentId])
+  @@index([fromAcademicYearId])
+  @@map("promotion_decisions")
 }
 
 // ─── Licensing ───────────────────────────────────────────────────────────────

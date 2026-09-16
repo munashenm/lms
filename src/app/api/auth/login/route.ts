@@ -84,7 +84,8 @@ export async function POST(request: NextRequest) {
         lastName: user.lastName,
         role: user.role,
       },
-      redirect: ROLE_DASHBOARD[user.role],
+      redirect: user.mustResetPassword ? "/reset-password" : ROLE_DASHBOARD[user.role],
+      mustResetPassword: user.mustResetPassword,
     });
   } catch (error) {
     console.error("Login error:", error);

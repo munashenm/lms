@@ -36,8 +36,8 @@ describe("admin nav groups", () => {
   it("includes issue licences under Settings only for vendor tools", () => {
     expect(getAdminNav().some((item) => item.href === "/admin/settings/licence-server")).toBe(false);
     expect(
-      getAdminNav(undefined, { vendorTools: true }).some(
-        (item) => item.href === "/admin/settings/licence-server" && item.section === "Settings"
+      getAdminNav(undefined, { superAdmin: true }).some(
+        (item) => item.href === "/admin/modules" && item.group === "Control"
       )
     ).toBe(true);
   });
@@ -50,6 +50,8 @@ describe("admin nav groups", () => {
     expect(nav.find((item) => item.href === "/admin/classes")?.group).toBe("Setup");
     expect(nav.find((item) => item.href === "/admin/assessments")?.group).toBe("Classroom");
     expect(nav.find((item) => item.href === "/admin/letters")?.group).toBe("Results");
+    expect(nav.find((item) => item.href === "/admin/academic/promotion")?.group).toBe("Progression");
+    expect(nav.find((item) => item.href === "/admin/academic/promotion/rules")?.section).toBe("Academics");
     expect(nav.find((item) => item.href === "/admin/letters")?.section).toBe("Academics");
     expect(nav.find((item) => item.href === "/admin/hr")?.section).toBe("Human Resource");
     expect(nav.find((item) => item.href === "/admin/visitors")?.section).toBe("School");

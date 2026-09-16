@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { Gender, StudentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { canAccessSchool } from "@/lib/rbac";
+import { denyUnless } from "@/lib/access";
 import { studentPatchSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
-import { ensureStudentEnrolment } from "@/lib/enrolment";
 import { emptyToNull } from "@/lib/class-teachers";
+import { recordStudentChanges } from "@/lib/student-history";
 import {
   learnerPortalShouldBeActive,
   provisionExistingStudent,
@@ -19,13 +20,13 @@ interface Params {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await getSession();
-  if (!requirePermission(session, "students:write")) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
-  }
+  const denied = await denyUnless(session, "students.edit");
+  if (denied) return denied;
+  const actor = session!;
 
   const { id } = await params;
   const existing = await prisma.student.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session, existing.schoolId)) {
+  if (!existing || !canAccessSchool(actor, existing.schoolId)) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
@@ -38,20 +39,36 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const fieldUpdate = {
     ...(data.firstName !== undefined ? { firstName: data.firstName } : {}),
     ...(data.lastName !== undefined ? { lastName: data.lastName } : {}),
+    ...(data.middleName !== undefined ? { middleName: emptyToNull(data.middleName) } : {}),
+    ...(data.preferredName !== undefined ? { preferredName: emptyToNull(data.preferredName) } : {}),
+    ...(data.nationality !== undefined ? { nationality: emptyToNull(data.nationality) } : {}),
+    ...(data.homeLanguage !== undefined ? { homeLanguage: emptyToNull(data.homeLanguage) } : {}),
     ...(data.saIdNumber !== undefined ? { saIdNumber: emptyToNull(data.saIdNumber) } : {}),
+    ...(data.passportNumber !== undefined ? { passportNumber: emptyToNull(data.passportNumber) } : {}),
+    ...(data.alternativeId !== undefined ? { alternativeId: emptyToNull(data.alternativeId) } : {}),
     ...(data.email !== undefined ? { email: emptyToNull(data.email) } : {}),
     ...(data.phone !== undefined ? { phone: emptyToNull(data.phone) } : {}),
     ...(data.dateOfBirth !== undefined
       ? { dateOfBirth: emptyToNull(data.dateOfBirth) ? new Date(data.dateOfBirth) : null }
       : {}),
     ...(data.gender !== undefined ? { gender: (emptyToNull(data.gender) as Gender | null) } : {}),
-    ...(data.gradeId !== undefined ? { gradeId: emptyToNull(data.gradeId) } : {}),
-    ...(data.classId !== undefined ? { classId: emptyToNull(data.classId) } : {}),
     ...(data.campusId !== undefined ? { campusId: emptyToNull(data.campusId) } : {}),
+    ...(data.studentNumber !== undefined ? { studentNumber: data.studentNumber } : {}),
+    ...(data.enrolledAt !== undefined
+      ? { enrolledAt: emptyToNull(data.enrolledAt) ? new Date(data.enrolledAt) : null }
+      : {}),
     ...(data.address !== undefined ? { address: emptyToNull(data.address) } : {}),
     ...(data.city !== undefined ? { city: emptyToNull(data.city) } : {}),
     ...(data.province !== undefined ? { province: emptyToNull(data.province) } : {}),
     ...(data.postalCode !== undefined ? { postalCode: emptyToNull(data.postalCode) } : {}),
+    ...(data.postalAddress !== undefined ? { postalAddress: emptyToNull(data.postalAddress) } : {}),
+    ...(data.medicalNotes !== undefined ? { medicalNotes: emptyToNull(data.medicalNotes) } : {}),
+    ...(data.emergencyName !== undefined ? { emergencyName: emptyToNull(data.emergencyName) } : {}),
+    ...(data.emergencyPhone !== undefined ? { emergencyPhone: emptyToNull(data.emergencyPhone) } : {}),
+    ...(data.emergencyRelationship !== undefined
+      ? { emergencyRelationship: emptyToNull(data.emergencyRelationship) }
+      : {}),
+    ...(data.notes !== undefined ? { notes: emptyToNull(data.notes) } : {}),
     ...(data.status !== undefined ? { status: data.status as StudentStatus } : {}),
   };
 
@@ -60,18 +77,13 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       ? await prisma.student.update({ where: { id }, data: fieldUpdate })
       : existing;
 
-  const placementChanged =
-    (data.gradeId !== undefined && emptyToNull(data.gradeId) !== existing.gradeId) ||
-    (data.classId !== undefined && emptyToNull(data.classId) !== existing.classId) ||
-    (data.campusId !== undefined && emptyToNull(data.campusId) !== existing.campusId);
-
-  if (placementChanged) {
-    await ensureStudentEnrolment({
-      studentId: id,
+  if (Object.keys(fieldUpdate).length > 0) {
+    await recordStudentChanges({
       schoolId: existing.schoolId,
-      gradeId: student.gradeId,
-      classId: student.classId,
-      recordedById: session.userId,
+      studentId: id,
+      userId: actor.userId,
+      before: existing as unknown as Record<string, unknown>,
+      after: student as unknown as Record<string, unknown>,
     });
   }
 
@@ -96,12 +108,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     await setLinkedUserActive({
       userId: student.userId,
       schoolId: existing.schoolId,
-      actorId: session.userId,
+      actorId: actor.userId,
       isActive: learnerPortalShouldBeActive(data.status),
     });
     await logAudit({
       schoolId: existing.schoolId,
-      userId: session.userId,
+      userId: actor.userId,
       action: "UPDATE",
       entity: "Student",
       entityId: id,
@@ -110,7 +122,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   } else if (Object.keys(fieldUpdate).length > 0) {
     await logAudit({
       schoolId: existing.schoolId,
-      userId: session.userId,
+      userId: actor.userId,
       action: "UPDATE",
       entity: "Student",
       entityId: id,
@@ -124,7 +136,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       provision = await provisionExistingStudent({
         studentId: id,
         schoolId: existing.schoolId,
-        actorId: session.userId,
+        actorId: actor.userId,
       });
     } catch {
       provision = { studentLoginCreated: false, guardianLinked: false, invitesSent: 0 };

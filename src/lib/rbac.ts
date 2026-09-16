@@ -1,55 +1,10 @@
 import { UserRole } from "@prisma/client";
 import type { SessionPayload } from "./auth";
+import { forbiddenJson } from "./http";
+import { roleHasLegacy, type AnyPermission } from "./permissions";
+import { permissionModule } from "./modules";
 
-export type Permission =
-  | "students:read"
-  | "students:write"
-  | "staff:read"
-  | "staff:write"
-  | "classes:read"
-  | "classes:write"
-  | "attendance:read"
-  | "attendance:write"
-  | "marks:read"
-  | "marks:write"
-  | "finance:read"
-  | "finance:write"
-  | "finance.view"
-  | "finance.fees.manage"
-  | "finance.payments.create"
-  | "finance.payments.reverse"
-  | "finance.receipts.view"
-  | "finance.expenses.manage"
-  | "finance.reports.view"
-  | "hr.view"
-  | "hr.employees.manage"
-  | "hr.documents.manage"
-  | "hr.leave.manage"
-  | "hr.leave.approve"
-  | "payroll.view"
-  | "payroll.prepare"
-  | "payroll.approve"
-  | "payroll.finalise"
-  | "reports:read"
-  | "settings:read"
-  | "settings:write"
-  | "audit:read"
-  | "announcements:write"
-  | "license.view"
-  | "license.manage"
-  | "backup.view"
-  | "backup.create"
-  | "backup.download"
-  | "backup.restore"
-  | "backup.delete"
-  | "backup.settings"
-  | "sasams.view"
-  | "sasams.import"
-  | "sasams.map"
-  | "sasams.execute"
-  | "sasams.rollback"
-  | "visitors:read"
-  | "visitors:write";
+export type Permission = AnyPermission;
 
 const ENTERPRISE_FULL: Permission[] = [
   "license.view", "license.manage",
@@ -130,8 +85,20 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   STAFF: ["visitors:read", "visitors:write"],
 };
 
-export function hasPermission(role: UserRole, permission: Permission): boolean {
-  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+export function rolePermissionSet(role: UserRole): Set<string> {
+  return new Set(ROLE_PERMISSIONS[role] ?? []);
+}
+
+export function hasPermission(
+  role: UserRole,
+  permission: Permission,
+  overrides?: { grants?: string[] | null; denies?: string[] | null }
+): boolean {
+  if (role === UserRole.SUPER_ADMIN) return true;
+  const denies = new Set(overrides?.denies ?? []);
+  if (roleHasLegacy(denies, permission)) return false;
+  const owned = new Set([...(ROLE_PERMISSIONS[role] ?? []), ...(overrides?.grants ?? [])]);
+  return roleHasLegacy(owned, permission);
 }
 
 const ADMIN_ROLES: UserRole[] = [
@@ -170,7 +137,22 @@ export function requirePermission(
   permission: Permission
 ): session is SessionPayload {
   if (!session) return false;
-  return hasPermission(session.role, permission);
+  if (session.role !== UserRole.SUPER_ADMIN) {
+    const moduleKey = permissionModule(permission);
+    if (moduleKey && session.disabledModules?.includes(moduleKey)) return false;
+  }
+  return hasPermission(session.role, permission, {
+    grants: session.permissionGrants,
+    denies: session.permissionDenies,
+  });
+}
+
+export function permissionDeniedResponse(
+  session: SessionPayload | null,
+  permission: Permission
+) {
+  if (requirePermission(session, permission)) return null;
+  return forbiddenJson();
 }
 
 export function getSchoolFilter(session: SessionPayload): { schoolId: string } | Record<string, never> {

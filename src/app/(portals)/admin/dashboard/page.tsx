@@ -6,13 +6,15 @@ import { EnrollmentChart } from "@/components/dashboard/enrollment-chart";
 import { FeeChart } from "@/components/dashboard/fee-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserCheck, GraduationCap, CreditCard } from "lucide-react";
+import { Users, UserCheck, GraduationCap, CreditCard, Shield } from "lucide-react";
 import { formatZAR, formatDate } from "@/lib/utils";
 import { getMonthlyEnrollment, getMonthlyFeeCollection } from "@/lib/reports";
 import { SystemHealthCards } from "@/components/enterprise/system-health-cards";
 import { evaluateStoredLicense } from "@/lib/licensing/service";
 import { countLicenseUsage } from "@/lib/licensing/usage";
 import { getTerminology } from "@/lib/terminology";
+import { UserRole } from "@prisma/client";
+import Link from "next/link";
 
 async function getDashboardData(schoolId: string | null) {
   const filter = schoolId ? { schoolId } : {};
@@ -78,6 +80,30 @@ export default async function AdminDashboardPage() {
   const { stats, enrollmentData, feeData, recentStudents, announcements } =
     await getDashboardData(schoolId);
 
+  const platform =
+    session!.role === UserRole.SUPER_ADMIN
+      ? await Promise.all([
+          prisma.school.count(),
+          prisma.school.count({ where: { isActive: true } }),
+          prisma.user.count(),
+          prisma.student.count({ where: { status: "ACTIVE" } }),
+          prisma.schoolModule.count({ where: { enabled: false } }),
+          prisma.auditLog.findMany({
+            where: { action: { in: ["PERMISSIONS_UPDATE", "MODULES_UPDATE", "USER_ACTIVATED", "USER_DEACTIVATED", "UPDATE"] } },
+            include: { user: { select: { email: true } } },
+            orderBy: { createdAt: "desc" },
+            take: 8,
+          }),
+        ]).then(([institutions, activeInstitutions, users, activeStudents, disabledModules, recentAudit]) => ({
+          institutions,
+          activeInstitutions,
+          users,
+          activeStudents,
+          disabledModules,
+          recentAudit,
+        }))
+      : null;
+
   const school = schoolId
     ? await prisma.school.findUnique({
         where: { id: schoolId },
@@ -137,6 +163,30 @@ export default async function AdminDashboardPage() {
           Welcome back, {session!.firstName}. Here&apos;s your school overview.
         </p>
       </div>
+
+      {platform ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <StatCard title="Total institutions" value={platform.institutions} subtitle={`${platform.activeInstitutions} active`} icon={Shield} />
+          <StatCard title="Total users" value={platform.users} icon={Users} />
+          <StatCard title="Active students" value={platform.activeStudents} icon={GraduationCap} />
+          <StatCard title="Disabled modules" value={platform.disabledModules} icon={Shield} />
+        </div>
+      ) : null}
+      {platform ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent audit activity</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {platform.recentAudit.map((row) => (
+              <div key={row.id} className="flex justify-between gap-4">
+                <span>{row.action} · {row.entity} · {row.user?.email ?? "system"}</span>
+                <Link className="text-primary" href="/admin/audit">View</Link>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {health && <SystemHealthCards health={health} />}
 

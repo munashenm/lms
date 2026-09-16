@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PromotionOutcome, UserRole } from "@prisma/client";
 import { validateSAIdNumber, validateSAPhone, normalizeWebsiteUrl } from "./sa-validation";
 
 export const loginSchema = z.object({
@@ -79,12 +80,18 @@ export const studentGuardianSchema = z.object({
 export const studentPatchSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100).optional(),
   lastName: z.string().min(1, "Last name is required").max(100).optional(),
+  middleName: z.string().max(100).optional().or(z.literal("")),
+  preferredName: z.string().max(100).optional().or(z.literal("")),
+  nationality: z.string().max(80).optional().or(z.literal("")),
+  homeLanguage: z.string().max(80).optional().or(z.literal("")),
   saIdNumber: z
     .string()
     .optional()
     .refine((val) => !val || validateSAIdNumber(val), {
       message: "Invalid 13-digit SA ID number",
     }),
+  passportNumber: z.string().max(40).optional().or(z.literal("")),
+  alternativeId: z.string().max(40).optional().or(z.literal("")),
   email: z.string().email().optional().or(z.literal("")),
   phone: z
     .string()
@@ -94,13 +101,24 @@ export const studentPatchSchema = z.object({
     }),
   dateOfBirth: z.string().optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]).optional().or(z.literal("")),
-  gradeId: z.string().optional(),
-  classId: z.string().optional(),
   campusId: z.string().optional(),
+  studentNumber: z.string().max(40).optional(),
+  enrolledAt: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   province: z.string().optional(),
   postalCode: z.string().optional(),
+  postalAddress: z.string().optional().or(z.literal("")),
+  medicalNotes: z.string().optional().or(z.literal("")),
+  emergencyName: z.string().max(120).optional().or(z.literal("")),
+  emergencyPhone: z
+    .string()
+    .optional()
+    .refine((val) => !val || validateSAPhone(val), {
+      message: "Phone must be 10 digits starting with 0",
+    }),
+  emergencyRelationship: z.string().max(80).optional().or(z.literal("")),
+  notes: z.string().optional().or(z.literal("")),
   status: z.enum(["APPLICANT", "ACTIVE", "SUSPENDED", "GRADUATED", "WITHDRAWN"]).optional(),
   invitePortal: z.boolean().optional(),
 });
@@ -126,8 +144,64 @@ export const userInviteSchema = z.object({
 });
 
 export const userPatchSchema = z.object({
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional().or(z.literal("")),
+  role: z.nativeEnum(UserRole).optional(),
+  schoolId: z.string().optional().or(z.literal("")),
+  campusId: z.string().optional().or(z.literal("")),
   isActive: z.boolean().optional(),
   resendInvite: z.boolean().optional(),
+  mustResetPassword: z.boolean().optional(),
+  resetPassword: z.boolean().optional(),
+});
+
+export const userPermissionsSchema = z.object({
+  grants: z.array(z.string()),
+  denies: z.array(z.string()),
+});
+
+export const schoolModulesSchema = z.object({
+  schoolId: z.string().min(1),
+  modules: z.array(
+    z.object({
+      moduleKey: z.string().min(1),
+      enabled: z.boolean(),
+    })
+  ),
+});
+
+export const promotionRuleSchema = z.object({
+  name: z.string().min(1).max(160),
+  fromGradeId: z.string().optional().or(z.literal("")),
+  toGradeId: z.string().optional().or(z.literal("")),
+  isActive: z.boolean().optional(),
+  minAverage: z.coerce.number().min(0).max(100).optional().nullable(),
+  minAttendancePercent: z.coerce.number().min(0).max(100).optional().nullable(),
+  requirePassStatus: z.boolean().optional(),
+  minSubjectsPassed: z.coerce.number().int().min(0).optional().nullable(),
+  conditions: z
+    .array(
+      z.object({
+        type: z.string(),
+        subjectId: z.string().optional(),
+        minMark: z.number().optional(),
+      })
+    )
+    .optional(),
+});
+
+export const promotionCommitSchema = z.object({
+  studentId: z.string().min(1),
+  fromAcademicYearId: z.string().min(1),
+  toAcademicYearId: z.string().optional().or(z.literal("")),
+  toGradeId: z.string().optional().or(z.literal("")),
+  toClassId: z.string().optional().or(z.literal("")),
+  outcome: z.nativeEnum(PromotionOutcome),
+  override: z.boolean().optional(),
+  overrideReason: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export const teacherSchema = z.object({
@@ -758,10 +832,12 @@ export const enrolmentSchema = z.object({
 export const rolloverOutcomeSchema = z.enum([
   "PROMOTED",
   "REPEATED",
+  "PROGRESSED",
   "GRADUATED",
   "WITHDRAWN",
   "TRANSFERRED",
   "COMPLETED",
+  "DEFERRED",
 ]);
 
 export const rolloverPreviewSchema = z.object({
