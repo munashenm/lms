@@ -151,10 +151,14 @@ export async function issueSignedLicense(opts: {
     },
     update: {
       status: opts.status ?? undefined,
+      customerId: opts.customerId === undefined ? undefined : opts.customerId,
+      institutionId: opts.institutionId === undefined ? undefined : opts.institutionId,
+      institutionName: opts.institutionName === undefined ? undefined : opts.institutionName,
       expiresAt: opts.expiresAt === undefined ? undefined : opts.expiresAt,
+      gracePeriodDays: opts.gracePeriodDays ?? undefined,
       limitsJson: asInputJson(limits),
       featuresJson: asInputJson(features),
-      institutionId: opts.institutionId ?? undefined,
+      domainsJson: opts.domains ? asInputJson(opts.domains) : undefined,
     },
   });
 
@@ -209,6 +213,13 @@ export async function checkIssuedLicense(input: {
     const allowed = domains.some((d) => d === host || d === input.domain);
     if (host && !allowed) {
       throw Object.assign(new Error("Licence is not valid for this domain"), { status: 403 });
+    }
+  }
+
+  if (issued.status === LicenseStatus.REVOKED && input.installationId) {
+    const existing = issued.activations.find((a) => a.installationId === input.installationId);
+    if (!existing) {
+      throw Object.assign(new Error("This licence has been revoked"), { status: 403 });
     }
   }
 

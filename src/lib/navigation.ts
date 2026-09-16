@@ -233,9 +233,6 @@ export function getAdminNav(
         { label: "Users", href: "/admin/users", icon: "Users" },
         { label: "School settings", href: "/admin/settings", icon: "Settings" },
         { label: "Licence", href: "/admin/settings/licence", icon: "Shield" },
-        ...(opts?.vendorTools
-          ? [{ label: "Issue licences", href: "/admin/settings/licence-server", icon: "Shield" as const }]
-          : []),
       ]),
       ...cluster("Platform", [
         { label: "Backup & Restore", href: "/admin/settings/backup", icon: "DatabaseBackup" },
@@ -243,11 +240,12 @@ export function getAdminNav(
         { label: "SA-SAMS", href: "/admin/integrations/sa-sams", icon: "Plug" },
         { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
       ]),
-      ...(opts?.superAdmin
+      ...(opts?.superAdmin || opts?.vendorTools
         ? cluster("Control", [
             { label: "Institutions", href: "/admin/institutions", icon: "Globe" },
             { label: "Modules", href: "/admin/modules", icon: "Shield" },
             { label: "Roles & Permissions", href: "/admin/roles", icon: "Users" },
+            { label: "Customers & licences", href: "/admin/settings/licence-server", icon: "Shield" },
           ])
         : []),
     ]),

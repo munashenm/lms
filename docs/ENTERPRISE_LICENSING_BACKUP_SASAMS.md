@@ -83,6 +83,8 @@ All require `Authorization: Bearer $CRON_SECRET` (or `x-cron-secret` / `?secret=
 ### Vendor licence server
 - `POST /api/license-server/v1/licenses/check`
 - `GET/POST /api/license-server/v1/licenses` (Super Admin)
+- `PATCH /api/license-server/v1/licenses/:id` renew / suspend / revoke / reactivate
+- `GET/POST /api/license-server/v1/customers`
 
 ### Backups
 - `GET /api/backups`
@@ -104,7 +106,8 @@ All require `Authorization: Bearer $CRON_SECRET` (or `x-cron-secret` / `?secret=
 ## UI
 
 - Settings → Licence (`/admin/settings/licence`)
-- Super Admin → Issue licences (`/admin/settings/licence-server`)
+- Super Admin → Customers & licences (`/admin/settings/licence-server`)
+  Issue, renew, suspend, revoke. Last heartbeat is shown per key.
 - Settings → Backup & Restore (`/admin/settings/backup`)
 - Restore (`/admin/settings/backup/restore`)
 - Administration → Integrations → SA-SAMS (`/admin/integrations/sa-sams`)

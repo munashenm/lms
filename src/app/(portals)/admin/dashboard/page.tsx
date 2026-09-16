@@ -193,6 +193,7 @@ export default async function AdminDashboardPage() {
               <Link className="text-primary" href="/admin/users">Users</Link>
               <Link className="text-primary" href="/admin/roles">Roles & Permissions</Link>
               <Link className="text-primary" href="/admin/modules">Modules</Link>
+              <Link className="text-primary" href="/admin/settings/licence-server">Customers & licences</Link>
               <Link className="text-primary" href="/admin/audit">Audit Logs</Link>
               <Link className="text-primary" href="/admin/settings">System Settings</Link>
             </div>

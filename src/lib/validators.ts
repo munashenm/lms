@@ -985,3 +985,14 @@ export const visitorSignOutSchema = z.object({
   action: z.literal("sign_out"),
 });
 
+export const licenseCustomerSchema = z.object({
+  name: z.string().min(1, "Customer name is required").max(200),
+  email: z.string().email().optional().or(z.literal("")),
+  notes: z.string().max(2000).optional().or(z.literal("")),
+});
+
+export const vendorLicenseActionSchema = z.object({
+  action: z.enum(["renew", "suspend", "revoke", "reactivate"]),
+  expiresAt: z.string().optional().nullable(),
+});
+

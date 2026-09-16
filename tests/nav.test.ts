@@ -33,8 +33,13 @@ describe("admin nav groups", () => {
     expect(settings.find((item) => item.href === "/admin/audit")?.group).toBe("Platform");
   });
 
-  it("includes issue licences under Settings only for vendor tools", () => {
+  it("includes customers and licences under Control for Super Admin", () => {
     expect(getAdminNav().some((item) => item.href === "/admin/settings/licence-server")).toBe(false);
+    const item = getAdminNav(undefined, { superAdmin: true }).find(
+      (nav) => nav.href === "/admin/settings/licence-server"
+    );
+    expect(item?.label).toBe("Customers & licences");
+    expect(item?.group).toBe("Control");
     expect(
       getAdminNav(undefined, { superAdmin: true }).some(
         (item) => item.href === "/admin/modules" && item.group === "Control"

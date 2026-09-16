@@ -141,8 +141,8 @@ export default async function SettingsPage({ searchParams }: PageProps) {
             href="/admin/settings/licence-server"
             className="rounded-xl border border-border bg-surface p-4 hover:border-primary"
           >
-            <p className="font-medium">Issue licences</p>
-            <p className="text-xs text-muted mt-1">Vendor catalogue, signed keys and activations</p>
+            <p className="font-medium">Customers & licences</p>
+            <p className="text-xs text-muted mt-1">Issue, renew, suspend, revoke and heartbeats</p>
           </Link>
         )}
       </div>
