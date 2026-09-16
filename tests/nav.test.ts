@@ -55,7 +55,8 @@ describe("admin nav groups", () => {
     expect(nav.find((item) => item.href === "/admin/visitors")?.section).toBe("School");
     expect(nav.some((item) => item.section === "Organisation")).toBe(false);
     expect(nav.some((item) => item.section === "People")).toBe(false);
-    expect(nav.some((item) => item.section === "Admissions")).toBe(false);
+    expect(getAdminNav().find((item) => item.href === "/admin/website")?.section).toBe("Website Management");
+    expect(getAdminNav().find((item) => item.href === "/admin/website/admissions")?.label).toBe("Admissions");
   });
 
   it("puts applications, registration and student details under Students", () => {

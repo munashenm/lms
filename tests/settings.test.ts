@@ -49,6 +49,12 @@ describe("school settings", () => {
       heroSubtitle: "A Cape Town school",
       aboutText: "About the school",
       missionText: "Our mission",
+      visionText: "Our vision",
+      valuesText: "Respect",
+      principalName: "A. Principal",
+      whatsapp: "0821234567",
+      applicationsOpen: true,
+      publishPublicStats: false,
       admissionsText: "How to apply",
     });
     expect(parsed.success).toBe(true);

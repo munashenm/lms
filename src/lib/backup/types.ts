@@ -103,6 +103,9 @@ export interface BackupSnapshot {
   examQuestions?: Record<string, unknown>[];
   examAttempts?: Record<string, unknown>[];
   examAnswers?: Record<string, unknown>[];
+  applicationDocuments?: Record<string, unknown>[];
+  websiteFaqs?: Record<string, unknown>[];
+  websiteGalleryItems?: Record<string, unknown>[];
   files: { relativePath: string; contentBase64: string; mimeType?: string }[];
 }
 

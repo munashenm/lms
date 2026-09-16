@@ -338,11 +338,11 @@ describe("leave overlap and homework files", () => {
 });
 
 describe("South African terminology", () => {
-  it("uses learner, educator and admission number for schools", () => {
+  it("uses learner, teacher and admission number for schools", () => {
     const terms = getTerminology(InstitutionType.HIGH_SCHOOL);
     expect(terms.student).toBe("Learner");
     expect(terms.students).toBe("Learners");
-    expect(terms.teacher).toBe("Educator");
+    expect(terms.teacher).toBe("Teacher");
     expect(terms.period).toBe("Term");
     expect(terms.admissionNumber).toBe("Admission No");
     expect(terms.homework).toBe("Homework");
@@ -362,7 +362,7 @@ describe("South African terminology", () => {
   it("labels learner nav with school terms by default", () => {
     const nav = getStudentNav();
     expect(nav.some((item) => item.label === "Homework")).toBe(true);
-    expect(nav.some((item) => item.label === "Educator Reviews")).toBe(true);
+    expect(nav.some((item) => item.label === "Teacher Reviews")).toBe(true);
     expect(nav.some((item) => item.label === "School Fees")).toBe(true);
     expect(nav.some((item) => item.section === "Learner Services")).toBe(true);
   });

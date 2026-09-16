@@ -41,7 +41,7 @@ export function shouldCreateStudentOnAccept(input: {
   nextStatus: string;
   studentId: string | null | undefined;
 }): boolean {
-  return input.nextStatus === "ACCEPTED" && !input.studentId;
+  return (input.nextStatus === "ACCEPTED" || input.nextStatus === "ENROLLED") && !input.studentId;
 }
 
 export async function findStudentForApplication(application: {

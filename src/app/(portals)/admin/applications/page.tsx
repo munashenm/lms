@@ -11,12 +11,23 @@ export default async function ApplicationsPage() {
 
   const applications = await prisma.application.findMany({
     where: filter,
-    include: { student: { select: { id: true, studentNumber: true, userId: true } } },
+    include: {
+      student: { select: { id: true, studentNumber: true, userId: true } },
+      documents: true,
+    },
     orderBy: { submittedAt: "desc" },
   });
 
-  const pending = applications.filter(
-    (a) => a.status === "SUBMITTED" || a.status === "UNDER_REVIEW"
+  const pending = applications.filter((a) =>
+    [
+      "SUBMITTED",
+      "UNDER_REVIEW",
+      "DOCUMENTS_OUTSTANDING",
+      "INTERVIEW_REQUIRED",
+      "ASSESSMENT_REQUIRED",
+      "WAITLISTED",
+      "PROVISIONALLY_ACCEPTED",
+    ].includes(a.status)
   ).length;
 
   return (

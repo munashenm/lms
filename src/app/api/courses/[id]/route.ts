@@ -42,6 +42,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         ...(data.nqfLevel !== undefined ? { nqfLevel: data.nqfLevel } : {}),
         ...(data.durationMonths !== undefined ? { durationMonths: data.durationMonths } : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        ...(data.openForApplications !== undefined ? { openForApplications: data.openForApplications } : {}),
       },
     });
     await logAudit({

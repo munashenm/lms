@@ -17,9 +17,15 @@ export function publicPageMetadata(title: string, description?: string): Metadat
 export const PUBLIC_SITEMAP_PATHS = [
   "/",
   "/about",
+  "/admissions",
+  "/academics",
   "/programmes",
   "/fees",
+  "/news",
+  "/calendar",
+  "/gallery",
   "/contact",
+  "/privacy",
   "/apply",
   "/apply/status",
 ] as const;

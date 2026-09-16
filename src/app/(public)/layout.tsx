@@ -10,7 +10,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const name = school?.name ?? APP_NAME;
   return {
     title: { default: `${name} — ${APP_TAGLINE}`, template: `%s | ${name}` },
-    description: `Admissions, programmes and school information for ${name}. Apply online and track your application.`,
+    description: school?.heroSubtitle || school?.aboutText || `Admissions and information for ${name}.`,
+    icons: school?.faviconUrl ? [{ url: school.faviconUrl }] : undefined,
   };
 }
 
@@ -20,14 +21,5 @@ export default async function PublicLayout({
   children: React.ReactNode;
 }) {
   const school = await getFeaturedSchool();
-  return (
-    <PublicShell
-      schoolName={school?.name}
-      logoUrl={school?.logoUrl}
-      primaryColor={school?.primaryColor}
-      accentColor={school?.accentColor}
-    >
-      {children}
-    </PublicShell>
-  );
+  return <PublicShell school={school}>{children}</PublicShell>;
 }

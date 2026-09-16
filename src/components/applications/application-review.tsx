@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
-import { APPLICATION_STATUS_LABELS } from "@/lib/application-status";
+import { APPLICATION_STATUS_LABELS, REVIEW_ACTION_STATUSES } from "@/lib/application-status";
 import { Copy, ExternalLink } from "lucide-react";
+import { Select } from "@/components/ui/select";
 
 interface Application {
   id: string;
@@ -29,12 +30,19 @@ interface Application {
   guardianLastName?: string | null;
   guardianEmail?: string | null;
   guardianRelationship?: string | null;
+  previousSchool?: string | null;
+  documents?: Array<{ id: string; documentType: string; fileUrl: string; title: string }>;
 }
 
 const statusVariant: Record<string, "success" | "warning" | "danger" | "secondary" | "default"> = {
   SUBMITTED: "default",
   UNDER_REVIEW: "warning",
+  DOCUMENTS_OUTSTANDING: "warning",
+  INTERVIEW_REQUIRED: "warning",
+  ASSESSMENT_REQUIRED: "warning",
   ACCEPTED: "success",
+  PROVISIONALLY_ACCEPTED: "success",
+  ENROLLED: "success",
   REJECTED: "danger",
   WAITLISTED: "secondary",
   WITHDRAWN: "secondary",
@@ -109,7 +117,7 @@ export function ApplicationReview({ applications }: { applications: Application[
   return (
     <div className="space-y-3">
       {applications.map((app) => {
-        const pending = app.status === "SUBMITTED" || app.status === "UNDER_REVIEW";
+        const pending = !["REJECTED", "WITHDRAWN", "ENROLLED"].includes(app.status);
         return (
           <Card key={app.id} data-application-card>
             <CardContent className="p-5">
@@ -154,6 +162,19 @@ export function ApplicationReview({ applications }: { applications: Application[
                       {app.guardianEmail ? ` · ${app.guardianEmail}` : ""}
                     </p>
                   ) : null}
+                  {app.previousSchool ? (
+                    <p className="text-sm text-muted mt-1">Previous education: {app.previousSchool}</p>
+                  ) : null}
+                  {app.documents?.length ? (
+                    <p className="text-sm mt-1">
+                      Documents:{" "}
+                      {app.documents.map((doc) => (
+                        <a key={doc.id} href={doc.fileUrl} className="text-primary hover:underline mr-2" target="_blank" rel="noreferrer">
+                          {doc.title}
+                        </a>
+                      ))}
+                    </p>
+                  ) : null}
                   <p className="text-xs text-muted mt-1">Submitted {formatDate(app.submittedAt)}</p>
                   {app.student?.studentNumber ? (
                     <p className="text-sm mt-2">
@@ -167,16 +188,21 @@ export function ApplicationReview({ applications }: { applications: Application[
                 </div>
                 {pending ? (
                   <div className="flex flex-wrap gap-2 shrink-0">
-                    {app.status === "SUBMITTED" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={loading === app.id}
-                        onClick={() => updateStatus(app.id, "UNDER_REVIEW")}
-                      >
-                        Start Review
-                      </Button>
-                    )}
+                    <Select
+                      defaultValue={app.status}
+                      disabled={loading === app.id}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        if (next === "ACCEPTED" || next === app.status) return;
+                        void updateStatus(app.id, next);
+                      }}
+                    >
+                      {REVIEW_ACTION_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {APPLICATION_STATUS_LABELS[status]}
+                        </option>
+                      ))}
+                    </Select>
                     <label className="flex items-center gap-2 text-xs text-muted">
                       <input type="checkbox" name="hostel" className="rounded border-border" />
                       Hostel

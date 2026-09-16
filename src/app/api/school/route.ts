@@ -5,6 +5,7 @@ import { requirePermission } from "@/lib/rbac";
 import { schoolSettingsSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { resolveSettingsSchoolId } from "@/lib/school-integrations";
+import type { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -64,44 +65,55 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const data = {
-    ...parsed.data,
-    ...(parsed.data.logoUrl !== undefined && {
-      logoUrl: parsed.data.logoUrl || null,
-    }),
-    ...(parsed.data.primaryColor !== undefined && {
-      primaryColor: parsed.data.primaryColor || null,
-    }),
-    ...(parsed.data.accentColor !== undefined && {
-      accentColor: parsed.data.accentColor || null,
-    }),
-    ...(parsed.data.website !== undefined && {
-      website: parsed.data.website || null,
-    }),
-    ...(parsed.data.heroHeadline !== undefined && {
-      heroHeadline: parsed.data.heroHeadline || null,
-    }),
-    ...(parsed.data.heroSubtitle !== undefined && {
-      heroSubtitle: parsed.data.heroSubtitle || null,
-    }),
-    ...(parsed.data.aboutText !== undefined && {
-      aboutText: parsed.data.aboutText || null,
-    }),
-    ...(parsed.data.missionText !== undefined && {
-      missionText: parsed.data.missionText || null,
-    }),
-    ...(parsed.data.admissionsText !== undefined && {
-      admissionsText: parsed.data.admissionsText || null,
-    }),
-    ...(parsed.data.email !== undefined && {
-      email: parsed.data.email || null,
-    }),
-  };
+  const nullableStrings = [
+    "logoUrl",
+    "primaryColor",
+    "accentColor",
+    "website",
+    "heroHeadline",
+    "heroSubtitle",
+    "aboutText",
+    "missionText",
+    "visionText",
+    "valuesText",
+    "principalName",
+    "principalTitle",
+    "principalMessage",
+    "admissionsText",
+    "applicationInstructions",
+    "faviconUrl",
+    "heroImageUrl",
+    "whatsapp",
+    "officeHours",
+    "facebookUrl",
+    "instagramUrl",
+    "twitterUrl",
+    "linkedinUrl",
+    "youtubeUrl",
+    "email",
+    "admissionYearId",
+    "applicationsOpenFrom",
+    "applicationsOpenUntil",
+  ] as const;
+
+  const data: Record<string, unknown> = { ...parsed.data };
+  for (const key of nullableStrings) {
+    if (key in data) {
+      const value = data[key];
+      if (value === "" || value === undefined) data[key] = null;
+    }
+  }
+  if (typeof data.applicationsOpenFrom === "string" && data.applicationsOpenFrom) {
+    data.applicationsOpenFrom = new Date(data.applicationsOpenFrom as string);
+  }
+  if (typeof data.applicationsOpenUntil === "string" && data.applicationsOpenUntil) {
+    data.applicationsOpenUntil = new Date(data.applicationsOpenUntil as string);
+  }
 
   try {
     const school = await prisma.school.update({
       where: { id: schoolId },
-      data,
+      data: data as Prisma.SchoolUpdateInput,
     });
 
     await logAudit({

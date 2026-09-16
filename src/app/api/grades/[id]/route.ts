@@ -41,6 +41,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         ...(data.phase !== undefined ? { phase: emptyToNull(data.phase) } : {}),
         ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder } : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        ...(data.openForApplications !== undefined ? { openForApplications: data.openForApplications } : {}),
       },
     });
     await logAudit({

@@ -22,6 +22,7 @@ export function isRestrictedPathAllowed(pathname: string, method: string): boole
   if (pathname.startsWith("/account/password")) return true;
   if (pathname.startsWith("/api/auth")) return true;
   if (pathname === "/login" || pathname === "/contact") return true;
+  if (pathname === "/student/login" || pathname === "/parent/login") return true;
   if (pathname.startsWith("/api/notifications")) return true;
   return LICENSE_ALLOWED_WHEN_RESTRICTED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }

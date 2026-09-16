@@ -166,10 +166,13 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
   const examScope = {
     assessmentId: { in: assessmentIds.length ? assessmentIds : ["__none__"] },
   };
-  const [examQuestions, examAttempts, schoolEvents] = await Promise.all([
+  const [examQuestions, examAttempts, schoolEvents, websiteFaqs, websiteGalleryItems, applicationDocuments] = await Promise.all([
     prisma.examQuestion.findMany({ where: examScope }),
     prisma.examAttempt.findMany({ where: examScope, include: { answers: true } }),
     prisma.schoolEvent.findMany({ where: { schoolId } }),
+    prisma.websiteFaq.findMany({ where: { schoolId } }),
+    prisma.websiteGalleryItem.findMany({ where: { schoolId } }),
+    prisma.applicationDocument.findMany({ where: { application: { schoolId } } }),
   ]);
 
   const reportCards = await prisma.reportCard.findMany({
@@ -330,6 +333,9 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
     visitorEntries: jsonSafe(visitorEntries),
     studentDocuments: jsonSafe(studentDocuments),
     schoolEvents: jsonSafe(schoolEvents),
+    websiteFaqs: jsonSafe(websiteFaqs),
+    websiteGalleryItems: jsonSafe(websiteGalleryItems),
+    applicationDocuments: jsonSafe(applicationDocuments),
     examQuestions: jsonSafe(examQuestions),
     examAttempts: jsonSafe(
       examAttempts.map((a) => omitKey(a as unknown as Record<string, unknown>, "answers"))

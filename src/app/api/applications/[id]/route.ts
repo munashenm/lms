@@ -80,7 +80,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   });
 
   let provision: { studentLoginCreated: boolean; guardianLinked: boolean; invitesSent: number } | null = null;
-  if (parsed.data.status === "ACCEPTED" && studentId) {
+  if ((parsed.data.status === "ACCEPTED" || parsed.data.status === "ENROLLED") && studentId) {
     try {
       provision = await provisionPortalAccounts({
         studentId,
