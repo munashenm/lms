@@ -27,70 +27,80 @@ export async function GET(request: NextRequest) {
     request.nextUrl.searchParams.get("schoolId")
   );
   if (!schoolId) {
-    return NextResponse.json({ message: "School context required" }, { status: 400 });
+    return NextResponse.json(
+      { message: "Select a school to view its licence" },
+      { status: 400 }
+    );
   }
   if (!canAccessSchool(session!, schoolId)) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
 
-  const school = await prisma.school.findUnique({ where: { id: schoolId } });
-  if (!school) return NextResponse.json({ message: "School not found" }, { status: 404 });
+  try {
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+    if (!school) return NextResponse.json({ message: "School not found" }, { status: 404 });
 
-  let license = await prisma.schoolLicense.findUnique({
-    where: { schoolId },
-    include: { features: true },
-  });
-  if (!license) {
-    await createLocalTrialLicense(schoolId);
-    license = await prisma.schoolLicense.findUnique({
+    let license = await prisma.schoolLicense.findUnique({
       where: { schoolId },
       include: { features: true },
     });
+    if (!license) {
+      await createLocalTrialLicense(schoolId);
+      license = await prisma.schoolLicense.findUnique({
+        where: { schoolId },
+        include: { features: true },
+      });
+    }
+
+    const evaluation = await evaluateStoredLicense(schoolId);
+    const usage = await countLicenseUsage(schoolId);
+    const installationId = await ensureInstallationId(schoolId);
+
+    return NextResponse.json({
+      institution: { id: school.id, name: school.name, slug: school.slug },
+      license: license
+        ? {
+            licenseKey: license.licenseKey,
+            product: license.productName,
+            productCode: license.productCode,
+            plan: license.planName,
+            planCode: license.planCode,
+            status: evaluation.effectiveStatus,
+            storedStatus: license.status,
+            issueDate: license.issuedAt,
+            startDate: license.startsAt,
+            expiryDate: license.expiresAt,
+            gracePeriodDays: license.gracePeriodDays,
+            lastVerifiedAt: license.lastVerifiedAt,
+            nextVerificationAt: license.nextVerificationAt,
+            installationId,
+            registeredDomain: license.registeredDomain ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
+            customerName: license.customerName,
+            limits: {
+              learners: { used: usage.activeLearners, max: license.maxLearners },
+              staff: { used: usage.educators, max: license.maxEducators },
+              administrators: { used: usage.administrators, max: license.maxAdministrators },
+              campuses: { used: usage.campuses, max: license.maxCampuses },
+              storage: { used: usage.storageBytes, max: license.storageLimitBytes?.toString() ?? null },
+            },
+            features: license.features.map((f) => ({
+              key: f.featureKey,
+              label: LICENSE_FEATURE_LABELS[f.featureKey as keyof typeof LICENSE_FEATURE_LABELS] ?? f.featureKey,
+              enabled: f.enabled,
+              future: isFutureLicenseFeature(f.featureKey),
+              note: LICENSE_FEATURE_NOTES[f.featureKey as keyof typeof LICENSE_FEATURE_NOTES] ?? null,
+            })),
+          }
+        : null,
+      evaluation,
+      serverConfigured: Boolean(licenseServerUrl() && getLicensePublicKey()),
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : "Unable to load licence" },
+      { status: 500 }
+    );
   }
-
-  const evaluation = await evaluateStoredLicense(schoolId);
-  const usage = await countLicenseUsage(schoolId);
-  const installationId = await ensureInstallationId(schoolId);
-
-  return NextResponse.json({
-    institution: { id: school.id, name: school.name, slug: school.slug },
-    license: license
-      ? {
-          licenseKey: license.licenseKey,
-          product: license.productName,
-          productCode: license.productCode,
-          plan: license.planName,
-          planCode: license.planCode,
-          status: evaluation.effectiveStatus,
-          storedStatus: license.status,
-          issueDate: license.issuedAt,
-          startDate: license.startsAt,
-          expiryDate: license.expiresAt,
-          gracePeriodDays: license.gracePeriodDays,
-          lastVerifiedAt: license.lastVerifiedAt,
-          nextVerificationAt: license.nextVerificationAt,
-          installationId,
-          registeredDomain: license.registeredDomain ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
-          customerName: license.customerName,
-          limits: {
-            learners: { used: usage.activeLearners, max: license.maxLearners },
-            staff: { used: usage.educators, max: license.maxEducators },
-            administrators: { used: usage.administrators, max: license.maxAdministrators },
-            campuses: { used: usage.campuses, max: license.maxCampuses },
-            storage: { used: usage.storageBytes, max: license.storageLimitBytes?.toString() ?? null },
-          },
-          features: license.features.map((f) => ({
-            key: f.featureKey,
-            label: LICENSE_FEATURE_LABELS[f.featureKey as keyof typeof LICENSE_FEATURE_LABELS] ?? f.featureKey,
-            enabled: f.enabled,
-            future: isFutureLicenseFeature(f.featureKey),
-            note: LICENSE_FEATURE_NOTES[f.featureKey as keyof typeof LICENSE_FEATURE_NOTES] ?? null,
-          })),
-        }
-      : null,
-    evaluation,
-    serverConfigured: Boolean(licenseServerUrl() && getLicensePublicKey()),
-  });
 }
 
 export async function POST(request: NextRequest) {

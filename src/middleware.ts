@@ -38,6 +38,8 @@ const PUBLIC_PATHS = [
   "/robots.txt",
 ];
 
+const STATIC_ASSET = /\.(?:png|jpe?g|gif|webp|svg|ico|woff2?|ttf|css|map)$/i;
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -48,6 +50,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/uploads/letters")
   ) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
+  }
+
+  if (STATIC_ASSET.test(pathname)) {
+    return NextResponse.next();
   }
 
   if (

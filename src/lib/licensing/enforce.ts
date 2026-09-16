@@ -128,6 +128,13 @@ export async function assertFeatureEnabled(schoolId: string, feature: LicenseFea
   return licenseWriteGuard({ schoolId, feature });
 }
 
+export function needsSuperAdminSchoolPicker(
+  session: Pick<SessionPayload, "role" | "schoolId">,
+  requestedSchoolId?: string | null
+): boolean {
+  return session.role === UserRole.SUPER_ADMIN && !session.schoolId && !requestedSchoolId;
+}
+
 export async function resolveLicenseSchoolId(
   session: SessionPayload,
   requestedSchoolId?: string | null
@@ -139,7 +146,16 @@ export async function resolveLicenseSchoolId(
     });
     return exists?.id ?? null;
   }
-  return session.schoolId;
+  if (session.schoolId) return session.schoolId;
+  if (session.role === UserRole.SUPER_ADMIN) {
+    const school = await prisma.school.findFirst({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true },
+    });
+    return school?.id ?? null;
+  }
+  return null;
 }
 
 export { isKnownFeature, trustUnsignedLocal };

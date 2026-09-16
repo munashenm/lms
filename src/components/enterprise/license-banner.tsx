@@ -28,9 +28,8 @@ export function LicenseStatusBanner({
         : "Licence notice";
 
   const message =
-    tone === "restricted"
-      ? RESTRICTED_MODE_MESSAGE
-      : evaluation.warnings[0] ?? "Please review the institution licence.";
+    evaluation.warnings[0] ??
+    (tone === "restricted" ? RESTRICTED_MODE_MESSAGE : "Please review the institution licence.");
 
   return (
     <div className={`mb-4 rounded-lg border px-4 py-3 text-sm ${styles}`}>

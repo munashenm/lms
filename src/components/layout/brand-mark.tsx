@@ -27,9 +27,36 @@ export function SchoolLogo({
   className?: string;
   fallbackSrc?: string;
 }) {
-  const initialSrc = src?.trim() || fallbackSrc;
-  const [failedFor, setFailedFor] = useState<string | null>(null);
-  const displaySrc = failedFor === initialSrc ? fallbackSrc : initialSrc;
+  const preferred = src?.trim() || fallbackSrc;
+  return (
+    <SchoolLogoImage
+      key={preferred}
+      src={preferred}
+      fallbackSrc={fallbackSrc}
+      name={name}
+      size={size}
+      framed={framed}
+      className={className}
+    />
+  );
+}
+
+function SchoolLogoImage({
+  src,
+  fallbackSrc,
+  name,
+  size,
+  framed,
+  className,
+}: {
+  src: string;
+  fallbackSrc: string;
+  name?: string | null;
+  size: keyof typeof LOGO_SIZE;
+  framed: boolean;
+  className?: string;
+}) {
+  const [displaySrc, setDisplaySrc] = useState(src);
   if (!displaySrc) return null;
 
   return (
@@ -38,7 +65,11 @@ export function SchoolLogo({
       src={displaySrc}
       alt={schoolLogoAlt(name)}
       onError={() => {
-        if (initialSrc !== fallbackSrc) setFailedFor(initialSrc);
+        if (displaySrc !== fallbackSrc && fallbackSrc) {
+          setDisplaySrc(fallbackSrc);
+          return;
+        }
+        setDisplaySrc("");
       }}
       className={cn(
         "shrink-0 object-contain",

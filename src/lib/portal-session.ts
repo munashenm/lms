@@ -11,6 +11,7 @@ import { getTerminology, type Terminology } from "./terminology";
 import { requireSchoolId } from "./portal-data";
 import { evaluateStoredLicense } from "@/lib/licensing/service";
 import type { EvaluatedLicense } from "@/lib/licensing/types";
+import { availablePortalBrand } from "./brand-assets";
 import { emptySchoolPortalBrand, toSchoolPortalBrand, type SchoolPortalBrand } from "./school-branding";
 
 export async function getPortalSessionContext(session: SessionPayload): Promise<{
@@ -34,7 +35,7 @@ export async function getPortalSessionContext(session: SessionPayload): Promise<
         terminology: null,
         institutionType: null,
         license: null,
-        branding: emptySchoolPortalBrand(),
+        branding: availablePortalBrand(emptySchoolPortalBrand()),
       };
     }
   }
@@ -57,6 +58,6 @@ export async function getPortalSessionContext(session: SessionPayload): Promise<
     terminology: school ? getTerminology(school.institutionType) : null,
     institutionType: school?.institutionType ?? null,
     license,
-    branding: toSchoolPortalBrand(school),
+    branding: availablePortalBrand(toSchoolPortalBrand(school)),
   };
 }

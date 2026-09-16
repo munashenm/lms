@@ -34,6 +34,12 @@ export function trustUnsignedLocal(): boolean {
   return process.env.NODE_ENV !== "production";
 }
 
+/** Local trials stay usable until a signed licence has been activated. */
+export function shouldTrustUnsignedLicense(hasSignedPayload: boolean): boolean {
+  if (!hasSignedPayload) return true;
+  return trustUnsignedLocal() && !getLicensePublicKey();
+}
+
 export function licenseServerUrl(): string | null {
   const url = process.env.LICENSE_SERVER_URL?.trim();
   return url ? url.replace(/\/$/, "") : null;
@@ -45,6 +51,7 @@ export async function evaluateStoredLicense(
 ): Promise<EvaluatedLicense> {
   const row = await prisma.schoolLicense.findUnique({ where: { schoolId } });
   const publicKey = getLicensePublicKey();
+  const hasSignedPayload = Boolean(row?.signedPayload);
   let claims: LicenseClaims | null = null;
   let signatureValid = false;
 
@@ -67,7 +74,7 @@ export async function evaluateStoredLicense(
     storedStatus: row?.status ?? null,
     offlineGraceDays: offlineGraceDays(),
     serverUnavailable: opts?.serverUnavailable ?? false,
-    trustUnsignedLocal: trustUnsignedLocal() && !publicKey,
+    trustUnsignedLocal: shouldTrustUnsignedLicense(hasSignedPayload),
   });
 }
 

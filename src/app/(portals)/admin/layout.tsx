@@ -38,7 +38,7 @@ export default async function AdminLayout({
       portalLabel="Admin Portal"
       sessions={ctx.sessions}
       viewSessionId={ctx.viewSessionId}
-      license={ctx.license}
+      license={session.role === UserRole.SUPER_ADMIN && !session.schoolId ? null : ctx.license}
       canManageLicense
       branding={ctx.branding}
     >
