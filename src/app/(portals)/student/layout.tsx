@@ -17,7 +17,7 @@ export default async function StudentLayout({
     !session ||
     (session.role !== UserRole.STUDENT && session.role !== UserRole.SUPER_ADMIN)
   ) {
-    redirect("/login");
+    redirect("/student/login");
   }
 
   const ctx = await getPortalSessionContext(session);

@@ -4,6 +4,7 @@ import { validateSAIdNumber, validateSAPhone, normalizeWebsiteUrl } from "./sa-v
 export const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  portal: z.enum(["student", "parent", "staff"]).optional(),
 });
 
 export const forgotPasswordSchema = z.object({
@@ -178,6 +179,7 @@ export const gradePatchSchema = z.object({
   phase: z.string().optional(),
   sortOrder: z.coerce.number().int().optional(),
   isActive: z.boolean().optional(),
+  openForApplications: z.boolean().optional(),
 });
 
 export const subjectSchema = z.object({
@@ -202,6 +204,7 @@ export const courseSchema = z.object({
 
 export const coursePatchSchema = courseSchema.partial().extend({
   isActive: z.boolean().optional(),
+  openForApplications: z.boolean().optional(),
 });
 
 export const moduleSchema = z.object({
@@ -426,6 +429,19 @@ export const applicationSchema = z.object({
     }),
   gradeApplied: z.string().optional(),
   courseApplied: z.string().optional(),
+  campusId: z.string().optional(),
+  academicYearId: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]).optional(),
+  nationality: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  province: z.string().optional(),
+  postalCode: z.string().optional(),
+  previousSchool: z.string().optional(),
+  previousGrade: z.string().optional(),
+  additionalInfo: z.string().optional(),
+  popiaAccepted: z.union([z.boolean(), z.literal("true"), z.literal("on"), z.literal("1")]).optional(),
   notes: z.string().optional(),
   guardianFirstName: z.string().optional(),
   guardianLastName: z.string().optional(),
@@ -440,7 +456,19 @@ export const applicationSchema = z.object({
 });
 
 export const applicationStatusSchema = z.object({
-  status: z.enum(["SUBMITTED", "UNDER_REVIEW", "ACCEPTED", "REJECTED", "WAITLISTED", "WITHDRAWN"]),
+  status: z.enum([
+    "SUBMITTED",
+    "UNDER_REVIEW",
+    "DOCUMENTS_OUTSTANDING",
+    "INTERVIEW_REQUIRED",
+    "ASSESSMENT_REQUIRED",
+    "WAITLISTED",
+    "PROVISIONALLY_ACCEPTED",
+    "ACCEPTED",
+    "REJECTED",
+    "ENROLLED",
+    "WITHDRAWN",
+  ]),
   notes: z.string().optional(),
   hostel: z.boolean().optional(),
   transport: z.boolean().optional(),
@@ -600,7 +628,56 @@ export const schoolSettingsSchema = z.object({
   heroSubtitle: z.string().optional(),
   aboutText: z.string().optional(),
   missionText: z.string().optional(),
+  visionText: z.string().optional(),
+  valuesText: z.string().optional(),
+  principalName: z.string().optional(),
+  principalTitle: z.string().optional(),
+  principalMessage: z.string().optional(),
   admissionsText: z.string().optional(),
+  applicationInstructions: z.string().optional(),
+  faviconUrl: z.string().optional().or(z.literal("")),
+  heroImageUrl: z.string().optional().or(z.literal("")),
+  whatsapp: z.string().optional(),
+  officeHours: z.string().optional(),
+  facebookUrl: z.string().optional().or(z.literal("")),
+  instagramUrl: z.string().optional().or(z.literal("")),
+  twitterUrl: z.string().optional().or(z.literal("")),
+  linkedinUrl: z.string().optional().or(z.literal("")),
+  youtubeUrl: z.string().optional().or(z.literal("")),
+  whyChooseUs: z
+    .array(z.object({ title: z.string(), description: z.string() }))
+    .optional(),
+  applicationsOpen: z.coerce.boolean().optional(),
+  applicationsOpenFrom: z.string().optional().nullable(),
+  applicationsOpenUntil: z.string().optional().nullable(),
+  admissionYearId: z.string().optional().nullable(),
+  requiredApplicationDocuments: z.array(z.string()).optional(),
+  publishPublicStats: z.coerce.boolean().optional(),
+});
+
+export const websiteFaqSchema = z.object({
+  question: z.string().min(1, "Question is required"),
+  answer: z.string().min(1, "Answer is required"),
+  sortOrder: z.coerce.number().int().optional(),
+  isPublished: z.coerce.boolean().optional(),
+});
+
+export const websiteGallerySchema = z.object({
+  caption: z.string().optional(),
+  altText: z.string().optional(),
+  sortOrder: z.coerce.number().int().optional(),
+  isPublished: z.coerce.boolean().optional(),
+});
+
+export const websiteAdmissionsSchema = z.object({
+  applicationsOpen: z.coerce.boolean(),
+  applicationsOpenFrom: z.string().optional().nullable(),
+  applicationsOpenUntil: z.string().optional().nullable(),
+  admissionYearId: z.string().optional().nullable(),
+  applicationInstructions: z.string().optional(),
+  requiredApplicationDocuments: z.array(z.string()).optional(),
+  gradeIds: z.array(z.string()).optional(),
+  courseIds: z.array(z.string()).optional(),
 });
 
 export const studentLedgerEntrySchema = z.object({

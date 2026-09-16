@@ -31,7 +31,8 @@ export type NavIconName =
   | "MessageSquare"
   | "Star"
   | "CalendarDays"
-  | "NotebookPen";
+  | "NotebookPen"
+  | "Globe";
 
 export interface NavItem {
   label: string;
@@ -211,6 +212,10 @@ export function getAdminNav(
       { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
       { label: "Calendar", href: "/admin/calendar", icon: "CalendarDays" },
       { label: "Email & SMS", href: "/admin/communications", icon: "Megaphone" },
+    ]),
+    ...grouped("Website Management", "Globe", [
+      { label: "Website", href: "/admin/website", icon: "Globe" },
+      { label: "Admissions", href: "/admin/website/admissions", icon: "ClipboardList" },
     ]),
     ...grouped("School", "FolderOpen", [
       { label: "Visitor Book", href: "/admin/visitors", icon: "NotebookPen" },

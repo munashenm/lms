@@ -5,7 +5,20 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/about", "/programmes", "/fees", "/contact", "/apply"],
+      allow: [
+        "/",
+        "/about",
+        "/admissions",
+        "/academics",
+        "/programmes",
+        "/fees",
+        "/news",
+        "/calendar",
+        "/gallery",
+        "/contact",
+        "/privacy",
+        "/apply",
+      ],
       disallow: ["/admin", "/teacher", "/student", "/parent", "/finance", "/api"],
     },
     sitemap: `${baseUrl}/sitemap.xml`,

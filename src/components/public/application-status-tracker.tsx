@@ -76,7 +76,7 @@ export function ApplicationStatusTracker() {
         <CardContent className="space-y-4">
           <p className="text-sm text-muted">
             Enter the reference number you received when you submitted your application
-            (e.g. APP-2026-0001).
+            (e.g. APP-2027-00482).
           </p>
           <div className="flex gap-2">
             <div className="flex-1 space-y-2">
@@ -85,7 +85,7 @@ export function ApplicationStatusTracker() {
                 id="ref"
                 value={ref}
                 onChange={(e) => setRef(e.target.value.toUpperCase())}
-                placeholder="APP-2026-0001"
+                placeholder="APP-2027-00482"
                 className="font-mono"
               />
             </div>

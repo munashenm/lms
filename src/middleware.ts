@@ -5,6 +5,7 @@ import { canAccessAdmin, canAccessFinance, canAccessHr } from "@/lib/rbac";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { canApplyForLeave } from "@/lib/staff-leave-access";
 import { UserRole } from "@prisma/client";
+import { unauthenticatedLoginPath } from "@/lib/login-portals";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -13,13 +14,19 @@ const PUBLIC_PATHS = [
   "/api/auth/login",
   "/api/auth/forgot-password",
   "/api/auth/reset-password",
+  "/student/login",
+  "/parent/login",
   "/apply",
   "/about",
+  "/admissions",
+  "/academics",
   "/programmes",
   "/fees",
   "/contact",
   "/news",
   "/calendar",
+  "/gallery",
+  "/privacy",
   "/uploads",
   "/api/webhooks",
   "/api/cron",
@@ -61,7 +68,7 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL(unauthenticatedLoginPath(pathname), request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
@@ -82,11 +89,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
   }
 
-  if (pathname.startsWith("/student") && session.role !== UserRole.STUDENT && session.role !== UserRole.SUPER_ADMIN) {
+  if (pathname.startsWith("/student") && pathname !== "/student/login" && session.role !== UserRole.STUDENT && session.role !== UserRole.SUPER_ADMIN) {
     return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
   }
 
-  if (pathname.startsWith("/parent") && session.role !== UserRole.PARENT && session.role !== UserRole.SUPER_ADMIN) {
+  if (pathname.startsWith("/parent") && pathname !== "/parent/login" && session.role !== UserRole.PARENT && session.role !== UserRole.SUPER_ADMIN) {
     return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
   }
 

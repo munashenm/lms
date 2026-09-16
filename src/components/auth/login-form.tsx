@@ -2,20 +2,30 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import type { LoginPortal } from "@/lib/login-portals";
 
 interface LoginFormProps {
   dbReady?: boolean;
+  portal?: LoginPortal;
+  title?: string;
+  description?: string;
 }
 
-export function LoginForm({ dbReady = true }: LoginFormProps) {
+export function LoginForm({
+  dbReady = true,
+  portal,
+  title = "Sign in to your portal",
+  description = "Enter your credentials to access your dashboard",
+}: LoginFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +40,7 @@ export function LoginForm({ dbReady = true }: LoginFormProps) {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, ...(portal ? { portal } : {}) }),
       });
 
       const data = await res.json();
@@ -41,11 +51,15 @@ export function LoginForm({ dbReady = true }: LoginFormProps) {
         } else {
           toast.error(data.message || "Login failed");
         }
+        if (data.redirect && res.status === 403) {
+          router.push(data.redirect);
+        }
         return;
       }
 
       toast.success(`Welcome back, ${data.user.firstName}!`);
-      router.push(data.redirect);
+      const next = searchParams.get("redirect");
+      router.push(next && next.startsWith("/") ? next : data.redirect);
       router.refresh();
     } catch {
       toast.error("Connection error. Please try again.");
@@ -57,10 +71,8 @@ export function LoginForm({ dbReady = true }: LoginFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Sign in to your portal</CardTitle>
-        <CardDescription>
-          Enter your credentials to access your dashboard
-        </CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -106,13 +118,6 @@ export function LoginForm({ dbReady = true }: LoginFormProps) {
             )}
           </Button>
         </form>
-
-        <div className="mt-6 rounded-lg bg-background p-4 text-xs text-muted space-y-1">
-          <p className="font-medium text-foreground">Demo accounts:</p>
-          <p>Admin: admin@college.co.za / admin123</p>
-          <p>Teacher: lecturer@college.co.za / lecturer123</p>
-          <p>Student: student@college.co.za / student123</p>
-        </div>
       </CardContent>
     </Card>
   );

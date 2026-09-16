@@ -91,6 +91,10 @@ async function main() {
   await prisma.timetableSlot.deleteMany();
   await prisma.classSubject.deleteMany();
   await prisma.classTeacher.deleteMany();
+  await prisma.applicationDocument.deleteMany();
+  await prisma.websiteFaq.deleteMany();
+  await prisma.websiteGalleryItem.deleteMany();
+  await prisma.school.updateMany({ data: { admissionYearId: null } });
   await prisma.studentGuardian.deleteMany();
   await prisma.enrolment.deleteMany();
   await prisma.application.deleteMany();
@@ -128,6 +132,26 @@ async function main() {
       postalCode: "2001",
       popiaConsentText:
         "I consent to the collection and processing of my personal information in accordance with POPIA.",
+      heroHeadline: "Quality education for a changing world",
+      heroSubtitle:
+        "A South African college offering accredited programmes, student support and a clear path from application to qualification.",
+      aboutText:
+        "Cyber Developers College prepares students for the workplace through practical, NQF-aligned programmes and a digital-first campus experience.",
+      missionText:
+        "To provide accessible, high-quality education that equips South African youth with skills for work and further study.",
+      visionText: "To be a trusted college partner for skills, character and opportunity.",
+      valuesText: "Integrity\nExcellence\nRespect\nInnovation",
+      principalName: "Thandi Nkosi",
+      principalTitle: "Campus Director",
+      principalMessage:
+        "Welcome. Our lecturers and support team are ready to help you apply, enrol and succeed.",
+      officeHours: "Mon–Fri: 08:00 – 16:30 (SAST)",
+      whatsapp: "087 550 1813",
+      applicationsOpen: true,
+      requiredApplicationDocuments: ["ID_DOCUMENT", "LATEST_REPORT", "PROOF_OF_RESIDENCE"],
+      applicationInstructions:
+        "Complete the online application for the current intake. Keep your reference number to track progress.",
+      publishPublicStats: false,
     },
   });
 
@@ -292,6 +316,11 @@ async function main() {
       },
     },
     include: { terms: true },
+  });
+
+  await prisma.school.update({
+    where: { id: school.id },
+    data: { admissionYearId: academicYear.id },
   });
 
   const term2 = academicYear.terms.find((t) => t.termNumber === 2)!;
@@ -956,6 +985,29 @@ async function main() {
         gradeApplied: "NQF Level 3",
         status: "ACCEPTED",
         reviewedAt: new Date(),
+      },
+    ],
+  });
+
+  await prisma.websiteFaq.createMany({
+    data: [
+      {
+        schoolId: school.id,
+        question: "How do I apply?",
+        answer: "Use Apply Online on this website. You will receive a reference number to track your application.",
+        sortOrder: 0,
+      },
+      {
+        schoolId: school.id,
+        question: "When will I hear back?",
+        answer: "Admissions typically reviews applications within 5–10 working days.",
+        sortOrder: 1,
+      },
+      {
+        schoolId: school.id,
+        question: "Where do students and parents log in?",
+        answer: "Use Student Portal or Parent Portal in the website footer. Staff use Staff Portal.",
+        sortOrder: 2,
       },
     ],
   });

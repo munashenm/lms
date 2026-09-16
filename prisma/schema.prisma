@@ -144,9 +144,14 @@ enum ExamAttemptStatus {
 enum ApplicationStatus {
   SUBMITTED
   UNDER_REVIEW
+  DOCUMENTS_OUTSTANDING
+  INTERVIEW_REQUIRED
+  ASSESSMENT_REQUIRED
+  WAITLISTED
+  PROVISIONALLY_ACCEPTED
   ACCEPTED
   REJECTED
-  WAITLISTED
+  ENROLLED
   WITHDRAWN
 }
 
@@ -460,7 +465,29 @@ model School {
   heroSubtitle    String?
   aboutText       String?         @db.Text
   missionText     String?         @db.Text
+  visionText      String?         @db.Text
+  valuesText      String?         @db.Text
+  principalName   String?
+  principalTitle  String?
+  principalMessage String?        @db.Text
   admissionsText  String?         @db.Text
+  applicationInstructions String? @db.Text
+  faviconUrl      String?
+  heroImageUrl    String?
+  whatsapp        String?
+  officeHours     String?
+  facebookUrl     String?
+  instagramUrl    String?
+  twitterUrl      String?
+  linkedinUrl     String?
+  youtubeUrl      String?
+  whyChooseUs     Json?
+  applicationsOpen Boolean        @default(true)
+  applicationsOpenFrom DateTime?
+  applicationsOpenUntil DateTime?
+  admissionYearId String?
+  requiredApplicationDocuments String[] @default([])
+  publishPublicStats Boolean      @default(false)
   absenceNotifyEnabled Boolean    @default(false)
   teacherReviewsAnonymous Boolean @default(true)
   studentLeaveRequiresGuardian Boolean @default(false)
@@ -531,8 +558,12 @@ model School {
   lessonPlans            LessonPlan[]
   curriculumTopics       CurriculumTopic[]
   visitorEntries         VisitorEntry[]
+  websiteFaqs            WebsiteFaq[]
+  websiteGallery         WebsiteGalleryItem[]
+  admissionYear          AcademicYear? @relation("SchoolAdmissionYear", fields: [admissionYearId], references: [id], onDelete: SetNull)
 
   @@index([slug])
+  @@index([admissionYearId])
   @@map("schools")
 }
 
@@ -559,6 +590,7 @@ model Campus {
   feeStructures FeeStructure[]
   financialAccounts FinancialAccount[]
   visitorEntries VisitorEntry[]
+  applications Application[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -639,6 +671,8 @@ model AcademicYear {
   feeStructures        FeeStructure[]
   studentCharges       StudentCharge[]
   payrollRuns          PayrollRun[]
+  admissionSchools     School[]      @relation("SchoolAdmissionYear")
+  applications         Application[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -684,6 +718,7 @@ model Grade {
   phase     String?
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)
+  openForApplications Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -734,6 +769,7 @@ model Course {
   nqfLevel    Int?
   durationMonths Int?
   isActive    Boolean  @default(true)
+  openForApplications Boolean @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1019,14 +1055,27 @@ model Application {
   id              String            @id @default(cuid())
   schoolId        String
   studentId       String?
+  academicYearId  String?
+  campusId        String?
   referenceNo     String
   firstName       String
   lastName        String
   saIdNumber      String?
+  dateOfBirth     DateTime?         @db.Date
+  gender          Gender?
+  nationality     String?
   email           String?
   phone           String?
+  address         String?
+  city            String?
+  province        String?
+  postalCode      String?
   gradeApplied    String?
   courseApplied   String?
+  previousSchool  String?
+  previousGrade   String?
+  additionalInfo  String?           @db.Text
+  popiaAccepted   Boolean           @default(false)
   guardianFirstName    String?
   guardianLastName     String?
   guardianEmail        String?
@@ -1041,10 +1090,65 @@ model Application {
 
   school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student         Student? @relation(fields: [studentId], references: [id])
+  academicYear    AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  campus          Campus?  @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  documents       ApplicationDocument[]
 
   @@unique([schoolId, referenceNo])
   @@index([schoolId, status])
+  @@index([academicYearId])
+  @@index([campusId])
   @@map("applications")
+}
+
+model ApplicationDocument {
+  id            String   @id @default(cuid())
+  applicationId String
+  documentType  String
+  title         String
+  fileName      String
+  fileUrl       String
+  mimeType      String?
+  fileSize      Int?
+  createdAt     DateTime @default(now())
+
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("application_documents")
+}
+
+model WebsiteFaq {
+  id        String   @id @default(cuid())
+  schoolId  String
+  question  String
+  answer    String   @db.Text
+  sortOrder Int      @default(0)
+  isPublished Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, sortOrder])
+  @@map("website_faqs")
+}
+
+model WebsiteGalleryItem {
+  id          String   @id @default(cuid())
+  schoolId    String
+  imageUrl    String
+  caption     String?
+  altText     String?
+  sortOrder   Int      @default(0)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, sortOrder])
+  @@map("website_gallery_items")
 }
 
 // ─── Attendance ──────────────────────────────────────────────────────────────

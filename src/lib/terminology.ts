@@ -43,8 +43,8 @@ const SCHOOL_TERMS: Terminology = {
   classes: "Classes",
   subject: "Subject",
   subjects: "Subjects",
-  teacher: "Educator",
-  teachers: "Educators",
+  teacher: "Teacher",
+  teachers: "Teachers",
   period: "Term",
   periods: "Terms",
   guardian: "Parent / Guardian",
@@ -126,7 +126,7 @@ export const CURRICULUM_TYPE_LABELS: Record<string, string> = {
   CUSTOM: "Custom",
 };
 
-export function isCollegeLike(type: InstitutionType): boolean {
+export function isCollegeLike(type?: InstitutionType | null): boolean {
   return (
     type === InstitutionType.COLLEGE ||
     type === InstitutionType.TVET ||
@@ -151,6 +151,14 @@ export function defaultPeriodStructure(
   return isCollegeLike(type)
     ? AcademicPeriodStructure.SEMESTERS_2
     : AcademicPeriodStructure.TERMS_4;
+}
+
+export function publicAcademicsHref(type?: InstitutionType | null): "/academics" | "/programmes" {
+  return isCollegeLike(type ?? null) ? "/programmes" : "/academics";
+}
+
+export function publicAcademicsLabel(type?: InstitutionType | null): string {
+  return isCollegeLike(type ?? null) ? "Programmes" : "Academics";
 }
 
 export function defaultPeriodNames(

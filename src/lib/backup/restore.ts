@@ -307,6 +307,9 @@ async function replaceSchoolData(
     await tx.staffAttendanceRecord.deleteMany({ where: { schoolId } });
     await tx.ledgerEntry.deleteMany({ where: { schoolId } });
     await tx.document.deleteMany({ where: { schoolId } });
+    await tx.websiteFaq.deleteMany({ where: { schoolId } });
+    await tx.websiteGalleryItem.deleteMany({ where: { schoolId } });
+    await tx.applicationDocument.deleteMany({ where: { application: { schoolId } } });
     await tx.announcement.deleteMany({ where: { schoolId } });
     await tx.application.deleteMany({ where: { schoolId } });
     await tx.student.deleteMany({ where: { schoolId } });
@@ -318,6 +321,7 @@ async function replaceSchoolData(
     await tx.subject.deleteMany({ where: { schoolId } });
     await tx.grade.deleteMany({ where: { schoolId } });
     await tx.term.deleteMany({ where: { academicYear: { schoolId } } });
+    await tx.school.update({ where: { id: schoolId }, data: { admissionYearId: null } });
     await tx.academicYear.deleteMany({ where: { schoolId } });
     await tx.campus.deleteMany({ where: { schoolId } });
     await tx.user.deleteMany({
@@ -348,6 +352,28 @@ async function replaceSchoolData(
         aboutText: (school.aboutText as string | null) ?? null,
         missionText: (school.missionText as string | null) ?? null,
         admissionsText: (school.admissionsText as string | null) ?? null,
+        visionText: (school.visionText as string | null) ?? null,
+        valuesText: (school.valuesText as string | null) ?? null,
+        principalName: (school.principalName as string | null) ?? null,
+        principalTitle: (school.principalTitle as string | null) ?? null,
+        principalMessage: (school.principalMessage as string | null) ?? null,
+        applicationInstructions: (school.applicationInstructions as string | null) ?? null,
+        faviconUrl: (school.faviconUrl as string | null) ?? null,
+        heroImageUrl: (school.heroImageUrl as string | null) ?? null,
+        whatsapp: (school.whatsapp as string | null) ?? null,
+        officeHours: (school.officeHours as string | null) ?? null,
+        facebookUrl: (school.facebookUrl as string | null) ?? null,
+        instagramUrl: (school.instagramUrl as string | null) ?? null,
+        twitterUrl: (school.twitterUrl as string | null) ?? null,
+        linkedinUrl: (school.linkedinUrl as string | null) ?? null,
+        youtubeUrl: (school.youtubeUrl as string | null) ?? null,
+        whyChooseUs: school.whyChooseUs ? asInputJson(school.whyChooseUs) : undefined,
+        applicationsOpen: school.applicationsOpen !== false,
+        publishPublicStats: school.publishPublicStats === true,
+        requiredApplicationDocuments: Array.isArray(school.requiredApplicationDocuments)
+          ? (school.requiredApplicationDocuments as string[])
+          : [],
+        admissionYearId: null,
         requireFeesPaidForDocuments: school.requireFeesPaidForDocuments !== false,
       },
     });
@@ -373,6 +399,12 @@ async function replaceSchoolData(
     const users = snapshot.users.filter((u) => u.id !== preserveUserId);
     if (users.length) await createManyIgnore(tx.user, users);
     await createManyIgnore(tx.academicYear, snapshot.academicYears);
+    if (school.admissionYearId) {
+      await tx.school.update({
+        where: { id: schoolId },
+        data: { admissionYearId: String(school.admissionYearId) },
+      });
+    }
     await createManyIgnore(tx.term, snapshot.terms);
     await createManyIgnore(tx.grade, snapshot.grades);
     await createManyIgnore(tx.subject, snapshot.subjects);
@@ -388,6 +420,9 @@ async function replaceSchoolData(
     await createManyIgnore(tx.studentGuardian, snapshot.studentGuardians);
     await createManyIgnore(tx.enrolment, snapshot.enrolments);
     await createManyIgnore(tx.application, snapshot.applications);
+    await createManyIgnore(tx.applicationDocument, snapshot.applicationDocuments ?? []);
+    await createManyIgnore(tx.websiteFaq, snapshot.websiteFaqs ?? []);
+    await createManyIgnore(tx.websiteGalleryItem, snapshot.websiteGalleryItems ?? []);
     await createManyIgnore(tx.attendanceRecord, snapshot.attendanceRecords);
     await createManyIgnore(tx.timetableSlot, snapshot.timetableSlots);
     await createManyIgnore(tx.assessment, snapshot.assessments);

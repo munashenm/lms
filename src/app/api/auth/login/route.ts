@@ -4,6 +4,7 @@ import { createToken, setSessionCookie, verifyPassword } from "@/lib/auth";
 import { loginSchema } from "@/lib/validators";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { logAudit } from "@/lib/audit";
+import { portalMismatchMessage, roleAllowedForPortal } from "@/lib/login-portals";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ errors }, { status: 400 });
     }
 
-    const { email, password } = parsed.data;
+    const { email, password, portal } = parsed.data;
 
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
@@ -37,6 +38,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 }
+      );
+    }
+
+    if (portal && !roleAllowedForPortal(user.role, portal)) {
+      const mismatch = portalMismatchMessage(user.role, portal);
+      return NextResponse.json(
+        { message: mismatch.message, redirect: mismatch.redirect },
+        { status: 403 }
       );
     }
 

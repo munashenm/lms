@@ -17,7 +17,7 @@ export default async function ParentLayout({
     !session ||
     (session.role !== UserRole.PARENT && session.role !== UserRole.SUPER_ADMIN)
   ) {
-    redirect("/login");
+    redirect("/parent/login");
   }
 
   const ctx = await getPortalSessionContext(session);
