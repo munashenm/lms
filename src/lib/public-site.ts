@@ -1,5 +1,5 @@
 import { prisma } from "./db";
-import { isCollegeLike } from "./terminology";
+import { INSTITUTION_TYPE_LABELS, isCollegeLike, publicAcademicsHref, publicAcademicsLabel } from "./terminology";
 import { admissionYearLabel, isApplicationsOpen } from "./admissions";
 
 export {
@@ -165,4 +165,149 @@ export function admissionSummary(school: PublicSchool) {
     openFrom: school.applicationsOpenFrom,
     openUntil: school.applicationsOpenUntil,
   };
+}
+
+export function emphasizeLastWord(text: string): { lead: string; emphasis: string } {
+  const trimmed = text.trim();
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return { lead: "", emphasis: trimmed };
+  return { lead: `${parts.slice(0, -1).join(" ")} `, emphasis: parts[parts.length - 1] };
+}
+
+export type HighlightStat = { value: string; label: string };
+
+function shortInstitutionLabel(type: PublicSchool["institutionType"]): string {
+  return INSTITUTION_TYPE_LABELS[type].split(" / ")[0].replace(" (legacy)", "");
+}
+
+export function homeHighlights(school: PublicSchool): HighlightStat[] {
+  const college = isCollegeLike(school.institutionType);
+  const items: HighlightStat[] = [
+    {
+      value: shortInstitutionLabel(school.institutionType),
+      label: school.city?.trim() || school.province?.trim() || "South Africa",
+    },
+  ];
+
+  if (school.curriculumType) {
+    items.push({
+      value: school.curriculumType.replaceAll("_", " "),
+      label: "Curriculum",
+    });
+  }
+
+  if (college && school.courses.length) {
+    items.push({
+      value: String(school.courses.length),
+      label: school.courses.length === 1 ? "Programme" : "Programmes",
+    });
+  } else if (school.grades.length) {
+    const first = school.grades[0]?.name;
+    const last = school.grades[school.grades.length - 1]?.name;
+    items.push({
+      value: first && last && first !== last ? `${first}–${last}` : first || String(school.grades.length),
+      label: school.grades.length === 1 ? "Grade offered" : "Grades offered",
+    });
+  }
+
+  const admission = admissionSummary(school);
+  items.push({
+    value: admission.yearLabel,
+    label: admission.open ? "Applications open" : "Admissions",
+  });
+
+  return items.slice(0, 5);
+}
+
+export type JourneyCard = {
+  href: string;
+  kicker: string;
+  title: string;
+  description: string;
+  imageUrl: string | null;
+};
+
+export function journeyCards(school: PublicSchool): JourneyCard[] {
+  const gallery = school.websiteGallery.map((item) => item.imageUrl);
+  const college = isCollegeLike(school.institutionType);
+  const academicsHref = publicAcademicsHref(school.institutionType);
+  const academicsLabel = publicAcademicsLabel(school.institutionType);
+  const cards: JourneyCard[] = [];
+  const imageAt = (index: number) => gallery[index] ?? school.heroImageUrl ?? null;
+
+  if (college) {
+    school.courses
+      .filter((course) => course.isActive)
+      .slice(0, 4)
+      .forEach((course, index) => {
+        cards.push({
+          href: course.openForApplications ? `/apply?course=${encodeURIComponent(course.name)}` : "/programmes",
+          kicker: course.nqfLevel ? `NQF ${course.nqfLevel}` : course.code,
+          title: course.name,
+          description: course.description?.trim() || `Study ${course.name} at ${school.name}.`,
+          imageUrl: imageAt(index),
+        });
+      });
+  } else {
+    school.grades
+      .filter((grade) => grade.isActive)
+      .slice(0, 4)
+      .forEach((grade, index) => {
+        cards.push({
+          href: grade.openForApplications ? "/apply" : "/academics",
+          kicker: "Grade",
+          title: grade.name,
+          description: `A place in ${grade.name} at ${school.name}.`,
+          imageUrl: imageAt(index),
+        });
+      });
+  }
+
+  if (cards.length < 4) {
+    for (const campus of school.campuses) {
+      if (cards.length >= 4) break;
+      cards.push({
+        href: "/contact",
+        kicker: campus.isMain ? "Main campus" : "Campus",
+        title: campus.name,
+        description: [campus.address, campus.city].filter(Boolean).join(", ") || `Visit our ${campus.name} campus.`,
+        imageUrl: imageAt(cards.length),
+      });
+    }
+  }
+
+  if (!cards.length) {
+    return [
+      {
+        href: "/about",
+        kicker: "Our story",
+        title: `About ${school.name}`,
+        description: school.aboutText?.slice(0, 140) || `Learn who we are and what we stand for.`,
+        imageUrl: imageAt(0),
+      },
+      {
+        href: academicsHref,
+        kicker: academicsLabel,
+        title: academicsLabel,
+        description: `See the ${academicsLabel.toLowerCase()} offered at ${school.name}.`,
+        imageUrl: imageAt(1),
+      },
+      {
+        href: "/admissions",
+        kicker: "Join us",
+        title: "Admissions",
+        description: "Applications, documents and intake dates in one place.",
+        imageUrl: imageAt(2),
+      },
+      {
+        href: "/contact",
+        kicker: "Visit",
+        title: "Come and see",
+        description: "Walk the campus and speak to the admissions team.",
+        imageUrl: imageAt(3),
+      },
+    ];
+  }
+
+  return cards.slice(0, 4);
 }

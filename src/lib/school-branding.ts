@@ -40,6 +40,12 @@ export function lightenHex(hex: string, amount = 0.18): string {
   return `#${[lift(r), lift(g), lift(b)].map((n) => n.toString(16).padStart(2, "0")).join("").toUpperCase()}`;
 }
 
+export function darkenHex(hex: string, amount = 0.22): string {
+  const { r, g, b } = hexToRgbTuple(hex);
+  const drop = (channel: number) => Math.round(channel * (1 - amount));
+  return `#${[drop(r), drop(g), drop(b)].map((n) => n.toString(16).padStart(2, "0")).join("").toUpperCase()}`;
+}
+
 export function hexToPdfRgb(hex: string): { r: number; g: number; b: number } {
   const { r, g, b } = hexToRgbTuple(hex);
   return { r: r / 255, g: g / 255, b: b / 255 };
@@ -99,10 +105,12 @@ export function schoolThemeCssVars(
   const primaryHex = normalizeHexColor(primary, DEFAULT_PRIMARY_COLOR);
   const accentHex = normalizeHexColor(accent, DEFAULT_ACCENT_COLOR);
   const primaryLight = lightenHex(primaryHex);
+  const accentDark = darkenHex(accentHex, 0.28);
   return {
     "--primary": primaryHex,
     "--primary-light": primaryLight,
     "--accent": accentHex,
+    "--accent-dark": accentDark,
     "--color-primary": primaryHex,
     "--color-primary-light": primaryLight,
     "--color-accent": accentHex,

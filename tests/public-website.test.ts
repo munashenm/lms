@@ -7,7 +7,7 @@ import {
   nextApplicationReference,
 } from "@/lib/admissions";
 import { publicAcademicsHref, publicAcademicsLabel } from "@/lib/terminology";
-import { parseWhyChooseUs, publishedStats } from "@/lib/public-site";
+import { emphasizeLastWord, homeHighlights, parseWhyChooseUs, publishedStats } from "@/lib/public-site";
 import { portalForRole, roleAllowedForPortal, unauthenticatedLoginPath } from "@/lib/login-portals";
 import { UserRole } from "@prisma/client";
 import { APPLICATION_STATUS_LABELS } from "@/lib/application-status";
@@ -64,6 +64,32 @@ describe("public website terminology", () => {
     expect(parseWhyChooseUs([{ title: "Care", description: "Safe campus" }])).toEqual([
       { title: "Care", description: "Safe campus" },
     ]);
+  });
+
+  it("italicises the last word of a headline", () => {
+    expect(emphasizeLastWord("Where every child can thrive.")).toEqual({
+      lead: "Where every child can ",
+      emphasis: "thrive.",
+    });
+  });
+
+  it("builds highlight stats from real institution data", () => {
+    const highlights = homeHighlights({
+      institutionType: InstitutionType.COLLEGE,
+      city: "Johannesburg",
+      province: "Gauteng",
+      curriculumType: "TVET_NQF",
+      courses: [{ isActive: true }, { isActive: true }],
+      grades: [],
+      applicationsOpen: true,
+      applicationsOpenFrom: null,
+      applicationsOpenUntil: null,
+      admissionYear: { name: "2026" },
+      applicationInstructions: null,
+      admissionsText: null,
+    } as never);
+    expect(highlights[0]).toEqual({ value: "College", label: "Johannesburg" });
+    expect(highlights.some((item) => item.label === "Programmes" && item.value === "2")).toBe(true);
   });
 });
 
