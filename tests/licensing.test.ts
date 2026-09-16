@@ -8,6 +8,7 @@ import { UserRole } from "@prisma/client";
 import type { SessionPayload } from "@/lib/auth";
 import { isRestrictedPathAllowed } from "@/lib/licensing/restricted-paths";
 import { needsSuperAdminSchoolPicker } from "@/lib/licensing/enforce";
+import { shouldTrustUnsignedLicense } from "@/lib/licensing/service";
 import { filterNavByLicense, isFeatureEnabled, licenseBannerTone, navHrefFeature } from "@/lib/licensing/portal";
 import { getAdminNav, studentNav } from "@/lib/navigation";
 
@@ -68,6 +69,35 @@ describe("licensing", () => {
       offlineGraceDays: 14,
     });
     expect(evaluation.restricted).toBe(true);
+  });
+
+  it("keeps an unsigned local trial usable until a signed licence is activated", () => {
+    expect(shouldTrustUnsignedLicense(false)).toBe(true);
+    const evaluation = evaluateLicense({
+      now: new Date("2026-06-15T00:00:00Z"),
+      claims: claims({ status: "TRIAL", expiresAt: "2026-07-01T00:00:00Z" }),
+      signatureValid: false,
+      lastVerifiedAt: new Date("2026-06-15T00:00:00Z"),
+      storedStatus: "TRIAL",
+      offlineGraceDays: 14,
+      trustUnsignedLocal: true,
+    });
+    expect(evaluation.restricted).toBe(false);
+    expect(evaluation.effectiveStatus).toBe("TRIAL");
+  });
+
+  it("still rejects a signed licence whose signature does not verify", () => {
+    const evaluation = evaluateLicense({
+      now: new Date("2026-06-15T00:00:00Z"),
+      claims: claims(),
+      signatureValid: false,
+      lastVerifiedAt: new Date(),
+      storedStatus: "ACTIVE",
+      offlineGraceDays: 14,
+      trustUnsignedLocal: false,
+    });
+    expect(evaluation.restricted).toBe(true);
+    expect(evaluation.effectiveStatus).toBe("REVOKED");
   });
 
   it("moves into grace then expired without destroying access semantics", () => {

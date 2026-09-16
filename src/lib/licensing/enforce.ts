@@ -146,7 +146,16 @@ export async function resolveLicenseSchoolId(
     });
     return exists?.id ?? null;
   }
-  return session.schoolId;
+  if (session.schoolId) return session.schoolId;
+  if (session.role === UserRole.SUPER_ADMIN) {
+    const school = await prisma.school.findFirst({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true },
+    });
+    return school?.id ?? null;
+  }
+  return null;
 }
 
 export { isKnownFeature, trustUnsignedLocal };
