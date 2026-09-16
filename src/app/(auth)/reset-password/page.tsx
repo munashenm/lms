@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getFeaturedSchool } from "@/lib/public-site";
 import { BrandMark, SchoolLogo } from "@/components/layout/brand-mark";
 import { schoolThemeCssVars, toSchoolPortalBrand } from "@/lib/school-branding";
+import { availablePortalBrand } from "@/lib/brand-assets";
 
 interface PageProps {
   searchParams: Promise<{ token?: string }>;
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ResetPasswordPage({ searchParams }: PageProps) {
   const { token } = await searchParams;
-  const branding = toSchoolPortalBrand(await getFeaturedSchool());
+  const branding = availablePortalBrand(toSchoolPortalBrand(await getFeaturedSchool()));
 
   return (
     <div

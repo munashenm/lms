@@ -1,5 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME, DEFAULT_BRAND_LOGO_URL, DEFAULT_BRAND_MARK_URL } from "@/lib/constants";
 import { resolveBrandMark, schoolLogoAlt } from "@/lib/school-branding";
 
 const LOGO_SIZE = {
@@ -15,19 +18,28 @@ export function SchoolLogo({
   size = "md",
   framed = false,
   className,
+  fallbackSrc = DEFAULT_BRAND_LOGO_URL,
 }: {
   src?: string | null;
   name?: string | null;
   size?: keyof typeof LOGO_SIZE;
   framed?: boolean;
   className?: string;
+  fallbackSrc?: string;
 }) {
-  if (!src) return null;
+  const initialSrc = src?.trim() || fallbackSrc;
+  const [failedFor, setFailedFor] = useState<string | null>(null);
+  const displaySrc = failedFor === initialSrc ? fallbackSrc : initialSrc;
+  if (!displaySrc) return null;
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={displaySrc}
       alt={schoolLogoAlt(name)}
+      onError={() => {
+        if (initialSrc !== fallbackSrc) setFailedFor(initialSrc);
+      }}
       className={cn(
         "shrink-0 object-contain",
         LOGO_SIZE[size],
@@ -62,7 +74,13 @@ export function BrandMark({
         stacked && "flex-col text-center"
       )}
     >
-      <SchoolLogo src={resolveBrandMark(logoUrl)} name={title} size={size} framed={inverted} />
+      <SchoolLogo
+        src={resolveBrandMark(logoUrl)}
+        name={title}
+        size={size}
+        framed={inverted}
+        fallbackSrc={DEFAULT_BRAND_MARK_URL}
+      />
       <div className={cn("min-w-0", stacked && "space-y-1")}>
         <p
           className={cn(

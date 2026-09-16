@@ -1,7 +1,8 @@
 import { PublicHeader } from "./public-header";
 import { PublicFooter } from "./public-footer";
 import { publicSans, publicSerif } from "./public-fonts";
-import { schoolThemeCssVars, resolveBrandLogo } from "@/lib/school-branding";
+import { schoolThemeCssVars } from "@/lib/school-branding";
+import { resolveAvailableBrandLogo } from "@/lib/brand-assets";
 import {
   formatSchoolAddress,
   publicAcademicsHref,
@@ -28,7 +29,7 @@ export function PublicShell({
   accentColor,
 }: PublicShellProps) {
   const name = school?.name ?? schoolName;
-  const logo = resolveBrandLogo(school?.logoUrl ?? logoUrl);
+  const logo = resolveAvailableBrandLogo(school?.logoUrl ?? logoUrl);
   const primary = school?.primaryColor ?? primaryColor;
   const accent = school?.accentColor ?? accentColor;
   const academicsHref = publicAcademicsHref(school?.institutionType);
