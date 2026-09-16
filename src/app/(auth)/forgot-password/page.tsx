@@ -4,11 +4,12 @@ import { ArrowLeft } from "lucide-react";
 import { getFeaturedSchool } from "@/lib/public-site";
 import { BrandMark, SchoolLogo } from "@/components/layout/brand-mark";
 import { schoolThemeCssVars, toSchoolPortalBrand } from "@/lib/school-branding";
+import { availablePortalBrand } from "@/lib/brand-assets";
 
 export const dynamic = "force-dynamic";
 
 export default async function ForgotPasswordPage() {
-  const branding = toSchoolPortalBrand(await getFeaturedSchool());
+  const branding = availablePortalBrand(toSchoolPortalBrand(await getFeaturedSchool()));
 
   return (
     <div
