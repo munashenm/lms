@@ -128,6 +128,13 @@ export async function assertFeatureEnabled(schoolId: string, feature: LicenseFea
   return licenseWriteGuard({ schoolId, feature });
 }
 
+export function needsSuperAdminSchoolPicker(
+  session: Pick<SessionPayload, "role" | "schoolId">,
+  requestedSchoolId?: string | null
+): boolean {
+  return session.role === UserRole.SUPER_ADMIN && !session.schoolId && !requestedSchoolId;
+}
+
 export async function resolveLicenseSchoolId(
   session: SessionPayload,
   requestedSchoolId?: string | null

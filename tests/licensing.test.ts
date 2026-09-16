@@ -7,6 +7,7 @@ import { canAccessSchool, hasPermission } from "@/lib/rbac";
 import { UserRole } from "@prisma/client";
 import type { SessionPayload } from "@/lib/auth";
 import { isRestrictedPathAllowed } from "@/lib/licensing/restricted-paths";
+import { needsSuperAdminSchoolPicker } from "@/lib/licensing/enforce";
 import { filterNavByLicense, isFeatureEnabled, licenseBannerTone, navHrefFeature } from "@/lib/licensing/portal";
 import { getAdminNav, studentNav } from "@/lib/navigation";
 
@@ -182,6 +183,18 @@ describe("multi-tenancy isolation", () => {
     expect(hasPermission(UserRole.SCHOOL_ADMIN, "backup.restore")).toBe(true);
     expect(hasPermission(UserRole.TEACHER, "backup.delete")).toBe(false);
     expect(hasPermission(UserRole.SCHOOL_ADMIN, "sasams.execute")).toBe(true);
+  });
+
+  it("requires Super Admin to pick a school before loading a licence", () => {
+    expect(
+      needsSuperAdminSchoolPicker({ role: UserRole.SUPER_ADMIN, schoolId: null }, null)
+    ).toBe(true);
+    expect(
+      needsSuperAdminSchoolPicker({ role: UserRole.SUPER_ADMIN, schoolId: null }, "school-a")
+    ).toBe(false);
+    expect(
+      needsSuperAdminSchoolPicker({ role: UserRole.SCHOOL_ADMIN, schoolId: "school-a" }, null)
+    ).toBe(false);
   });
 });
 

@@ -56,23 +56,45 @@ function formatBytes(value: number) {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function errorMessage(payload: unknown, fallback: string) {
+  if (payload && typeof payload === "object" && "message" in payload) {
+    const message = (payload as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  return fallback;
+}
+
 export function LicenceManager({ schoolId }: { schoolId?: string }) {
   const [data, setData] = useState<LicensePayload | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [key, setKey] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function load() {
-    const qs = schoolId ? `?schoolId=${schoolId}` : "";
-    const res = await fetch(`/api/license${qs}`);
-    if (!res.ok) {
+    const qs = schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : "";
+    try {
+      const res = await fetch(`/api/license${qs}`);
+      const json: unknown = await res.json().catch(() => null);
+      if (!res.ok) {
+        const message = errorMessage(json, "Unable to load licence");
+        setData(null);
+        setError(message);
+        toast.error(message);
+        return;
+      }
+      setError(null);
+      setData(json as LicensePayload);
+    } catch {
+      setData(null);
+      setError("Unable to load licence");
       toast.error("Unable to load licence");
-      return;
     }
-    setData(await res.json());
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load remote licence on mount
+    setData(null);
+    setError(null);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load remote licence when school changes
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
@@ -106,12 +128,24 @@ export function LicenceManager({ schoolId }: { schoolId?: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ schoolId, force }),
       });
-      if (!res.ok) toast.error("Verification failed");
+      const json = await res.json().catch(() => null);
+      if (!res.ok) toast.error(errorMessage(json, "Verification failed"));
       else toast.success("Licence verified");
       await load();
     } finally {
       setLoading(false);
     }
+  }
+
+  if (error && !data) {
+    return (
+      <div className="rounded-lg border border-danger/30 bg-red-50 px-4 py-3 text-sm text-red-900">
+        <p className="font-medium">{error}</p>
+        <Button variant="outline" className="mt-3" onClick={() => void load()}>
+          Try again
+        </Button>
+      </div>
+    );
   }
 
   if (!data) return <p className="text-sm text-muted">Loading licence…</p>;
