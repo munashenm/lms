@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { COMPANY_NAME } from "@/lib/constants";
-import { BrandMark } from "@/components/layout/brand-mark";
-import { formatSchoolAddress, socialLinks, whatsappHref } from "@/lib/public-site";
+import { SchoolLogo } from "@/components/layout/brand-mark";
+import { socialLinks, whatsappHref } from "@/lib/public-site";
 
 interface PublicFooterProps {
   schoolName?: string;
@@ -40,89 +40,100 @@ export function PublicFooter({
 }: PublicFooterProps) {
   const social = socialLinks({ facebookUrl, instagramUrl, twitterUrl, linkedinUrl, youtubeUrl, website });
   const wa = whatsappHref(whatsapp);
+  const blurb = aboutText
+    ? aboutText.replace(/\s+/g, " ").trim().slice(0, 160)
+    : `${schoolName ?? "This institution"} — an independent South African campus.`;
 
   return (
-    <footer className="border-t border-border bg-primary text-white mt-auto">
-      <div className="mx-auto max-w-7xl px-4 py-12 lg:px-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
-          <div className="lg:col-span-2">
-            <BrandMark
-              logoUrl={logoUrl}
-              name={schoolName ?? "Institution"}
-              inverted
-              size="md"
-            />
-            {aboutText ? (
-              <p className="text-sm text-white/70 mt-3 max-w-md line-clamp-4">{aboutText}</p>
-            ) : null}
-          </div>
+    <footer className="mt-auto bg-[var(--site-footer)] text-white/70 text-[0.92rem] pt-16 pb-8">
+      <div className="mx-auto max-w-[1180px] px-7">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr] gap-9">
           <div>
-            <p className="font-semibold text-sm mb-3">Quick Links</p>
-            <ul className="space-y-2 text-sm text-white/70">
-              <li><Link href="/about" className="hover:text-white">About</Link></li>
-              <li><Link href={academicsHref} className="hover:text-white">{academicsLabel}</Link></li>
-              <li><Link href="/fees" className="hover:text-white">Fees</Link></li>
-              <li><Link href="/news" className="hover:text-white">News</Link></li>
-              <li><Link href="/calendar" className="hover:text-white">Calendar</Link></li>
-              <li><Link href="/gallery" className="hover:text-white">Gallery</Link></li>
-              <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
-            </ul>
-          </div>
-          <div>
-            <p className="font-semibold text-sm mb-3">Admissions</p>
-            <ul className="space-y-2 text-sm text-white/70">
-              <li><Link href="/admissions" className="hover:text-white">Admissions</Link></li>
-              <li><Link href="/apply" className="hover:text-white">Apply Online</Link></li>
-              <li><Link href="/apply/status" className="hover:text-white">Track Application</Link></li>
-            </ul>
-            <p className="font-semibold text-sm mb-3 mt-6">Portals</p>
-            <ul className="space-y-2 text-sm text-white/70">
-              <li><Link href="/student/login" className="hover:text-white">Student Portal</Link></li>
-              <li><Link href="/parent/login" className="hover:text-white">Parent Portal</Link></li>
-              <li><Link href="/login" className="hover:text-white">Staff Portal</Link></li>
-            </ul>
-          </div>
-          <div>
-            <p className="font-semibold text-sm mb-3">Contact</p>
-            <ul className="space-y-2 text-sm text-white/70">
-              {address ? <li>{address}</li> : null}
-              {phone ? (
-                <li>
-                  <a href={`tel:${phone.replace(/\s/g, "")}`} className="hover:text-white">{phone}</a>
-                </li>
-              ) : null}
-              {email ? (
-                <li>
-                  <a href={`mailto:${email}`} className="hover:text-white">{email}</a>
-                </li>
-              ) : null}
-              {wa ? (
-                <li>
-                  <a href={wa} target="_blank" rel="noreferrer" className="hover:text-white">
-                    WhatsApp
-                  </a>
-                </li>
-              ) : null}
-            </ul>
-            {social.length > 0 ? (
-              <ul className="flex flex-wrap gap-3 mt-4 text-sm text-white/70">
+            <Link href="/" className="inline-flex mb-3.5">
+              <span className="inline-block bg-white px-3.5 py-2 rounded-xl">
+                {logoUrl ? (
+                  <SchoolLogo src={logoUrl} name={schoolName} size="md" className="h-[46px] max-h-[46px] max-w-[160px]" />
+                ) : (
+                  <span className="font-[family-name:var(--site-serif)] text-primary font-semibold text-lg">
+                    {schoolName ?? "Institution"}
+                  </span>
+                )}
+              </span>
+            </Link>
+            <p className="max-w-[24em] leading-relaxed">{blurb}{aboutText && aboutText.length > 160 ? "…" : ""}</p>
+            {social.length ? (
+              <div className="flex flex-col gap-2 mt-4">
                 {social.map((item) => (
-                  <li key={item.href}>
-                    <a href={item.href} target="_blank" rel="noreferrer" className="hover:text-white">
-                      {item.label}
-                    </a>
-                  </li>
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex w-fit items-center gap-2 rounded-[10px] border border-white/20 px-3 py-1.5 text-[0.78rem] font-semibold hover:text-[var(--accent)] hover:border-[var(--accent)]"
+                  >
+                    {item.label}
+                  </a>
                 ))}
-              </ul>
+              </div>
             ) : null}
+          </div>
+          <div>
+            <h4 className="!font-[family-name:var(--site-sans)] !text-[0.8rem] uppercase tracking-[0.12em] !text-white mb-4 !font-bold">
+              Explore
+            </h4>
+            <Link href="/about" className="block py-1 hover:text-[var(--accent)]">About us</Link>
+            <Link href={academicsHref} className="block py-1 hover:text-[var(--accent)]">{academicsLabel}</Link>
+            <Link href="/news" className="block py-1 hover:text-[var(--accent)]">News</Link>
+            <Link href="/calendar" className="block py-1 hover:text-[var(--accent)]">Calendar</Link>
+            <Link href="/gallery" className="block py-1 hover:text-[var(--accent)]">Gallery</Link>
+          </div>
+          <div>
+            <h4 className="!font-[family-name:var(--site-sans)] !text-[0.8rem] uppercase tracking-[0.12em] !text-white mb-4 !font-bold">
+              Admissions
+            </h4>
+            <Link href="/apply" className="block py-1 hover:text-[var(--accent)]">Apply online</Link>
+            <Link href="/fees" className="block py-1 hover:text-[var(--accent)]">Fees</Link>
+            <Link href="/admissions" className="block py-1 hover:text-[var(--accent)]">Admissions</Link>
+            <Link href="/apply/status" className="block py-1 hover:text-[var(--accent)]">Track application</Link>
+            <Link href="/contact" className="block py-1 hover:text-[var(--accent)]">Book a visit</Link>
+            <p className="!font-[family-name:var(--site-sans)] !text-[0.8rem] uppercase tracking-[0.12em] !text-white mt-6 mb-3 font-bold">
+              Portals
+            </p>
+            <Link href="/student/login" className="block py-1 hover:text-[var(--accent)]">Student Portal</Link>
+            <Link href="/parent/login" className="block py-1 hover:text-[var(--accent)]">Parent Portal</Link>
+            <Link href="/login" className="block py-1 hover:text-[var(--accent)]">Staff Portal</Link>
+          </div>
+          <div>
+            <h4 className="!font-[family-name:var(--site-sans)] !text-[0.8rem] uppercase tracking-[0.12em] !text-white mb-4 !font-bold">
+              Contact
+            </h4>
+            {phone ? (
+              <a href={`tel:${phone.replace(/\s/g, "")}`} className="block py-1 hover:text-[var(--accent)]">
+                {phone}
+              </a>
+            ) : null}
+            {email ? (
+              <a href={`mailto:${email}`} className="block py-1 hover:text-[var(--accent)]">
+                {email}
+              </a>
+            ) : null}
+            {wa ? (
+              <a href={wa} target="_blank" rel="noreferrer" className="block py-1 hover:text-[var(--accent)]">
+                WhatsApp
+              </a>
+            ) : null}
+            {address ? <p className="py-1 leading-relaxed">{address}</p> : null}
           </div>
         </div>
-        <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between gap-2 text-xs text-white/50">
-          <p>© {new Date().getFullYear()} {schoolName ?? COMPANY_NAME}. All rights reserved.</p>
-          <p className="flex flex-wrap gap-x-4 gap-y-1">
-            <Link href="/privacy" className="hover:text-white">Privacy / POPIA</Link>
-            <span>Powered by {COMPANY_NAME}</span>
-          </p>
+        <div className="border-t border-white/12 mt-12 pt-5 flex flex-wrap gap-3.5 justify-between text-[0.84rem] text-white/50">
+          <span>
+            © {new Date().getFullYear()} {schoolName ?? COMPANY_NAME}. All rights reserved.
+          </span>
+          <span>
+            <Link href="/privacy" className="hover:text-[var(--accent)]">Privacy</Link>
+            {" · "}
+            Powered by {COMPANY_NAME}
+          </span>
         </div>
       </div>
     </footer>

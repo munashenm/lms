@@ -1,6 +1,6 @@
 import { getFeaturedSchool } from "@/lib/public-site";
 import { publicPageMetadata } from "@/lib/site-metadata";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmptyNote, PageHero, SiteSection } from "@/components/public/site-ui";
 
 export const metadata = publicPageMetadata("Gallery", "Campus and school gallery.");
 export const dynamic = "force-dynamic";
@@ -10,34 +10,37 @@ export default async function GalleryPage() {
   const items = school?.websiteGallery ?? [];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 lg:px-6 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Gallery</h1>
-        <p className="text-muted mt-2">Life at {school?.name ?? "our institution"}.</p>
-      </div>
-      {items.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-sm text-muted text-center">
-            Gallery images will appear here once published.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((item) => (
-            <figure key={item.id} className="overflow-hidden rounded-xl border border-border bg-surface">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={item.imageUrl}
-                alt={item.altText || item.caption || school?.name || "Gallery image"}
-                className="h-56 w-full object-cover"
-              />
-              {item.caption ? (
-                <figcaption className="px-3 py-2 text-sm text-muted">{item.caption}</figcaption>
-              ) : null}
-            </figure>
-          ))}
-        </div>
-      )}
-    </div>
+    <>
+      <PageHero
+        eyebrow="Gallery"
+        title={`Life at ${school?.name ?? "our institution"}.`}
+        description="A look at campus, classrooms and the community."
+        imageUrl={school?.heroImageUrl || items[0]?.imageUrl}
+      />
+      <SiteSection>
+        {items.length === 0 ? (
+          <EmptyNote>Gallery images will appear here once published.</EmptyNote>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {items.map((item, index) => (
+              <figure
+                key={item.id}
+                className={`overflow-hidden rounded-[14px] ${index === 0 ? "sm:col-span-2 sm:row-span-2" : ""}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.imageUrl}
+                  alt={item.altText || item.caption || school?.name || "Gallery image"}
+                  className={index === 0 ? "h-full min-h-[280px] w-full object-cover" : "h-56 w-full object-cover"}
+                />
+                {item.caption ? (
+                  <figcaption className="px-3 py-2 text-sm text-[var(--site-muted)] bg-white">{item.caption}</figcaption>
+                ) : null}
+              </figure>
+            ))}
+          </div>
+        )}
+      </SiteSection>
+    </>
   );
 }

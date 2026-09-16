@@ -1,5 +1,6 @@
 import { PublicHeader } from "./public-header";
 import { PublicFooter } from "./public-footer";
+import { publicSans, publicSerif } from "./public-fonts";
 import { schoolThemeCssVars } from "@/lib/school-branding";
 import {
   formatSchoolAddress,
@@ -7,7 +8,7 @@ import {
   publicAcademicsLabel,
   type PublicSchool,
 } from "@/lib/public-site";
-import { applyCtaLabel, admissionYearLabel } from "@/lib/admissions";
+import { cn } from "@/lib/utils";
 
 interface PublicShellProps {
   children: React.ReactNode;
@@ -32,11 +33,10 @@ export function PublicShell({
   const accent = school?.accentColor ?? accentColor;
   const academicsHref = publicAcademicsHref(school?.institutionType);
   const academicsLabel = publicAcademicsLabel(school?.institutionType);
-  const applyLabel = applyCtaLabel(admissionYearLabel(school?.admissionYear));
 
   return (
     <div
-      className="flex min-h-screen flex-col"
+      className={cn("public-site flex min-h-screen flex-col", publicSans.variable, publicSerif.variable)}
       style={schoolThemeCssVars(primary, accent)}
     >
       <PublicHeader
@@ -44,7 +44,6 @@ export function PublicShell({
         logoUrl={logo}
         academicsHref={academicsHref}
         academicsLabel={academicsLabel}
-        applyLabel={applyLabel}
       />
       <main className="flex-1">{children}</main>
       <PublicFooter
