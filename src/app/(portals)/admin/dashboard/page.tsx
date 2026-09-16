@@ -15,6 +15,7 @@ import { countLicenseUsage } from "@/lib/licensing/usage";
 import { getTerminology } from "@/lib/terminology";
 import { UserRole } from "@prisma/client";
 import Link from "next/link";
+import { SYSTEM_MODULES } from "@/lib/modules";
 
 async function getDashboardData(schoolId: string | null) {
   const filter = schoolId ? { schoolId } : {};
@@ -89,7 +90,7 @@ export default async function AdminDashboardPage() {
           prisma.student.count({ where: { status: "ACTIVE" } }),
           prisma.schoolModule.count({ where: { enabled: false } }),
           prisma.auditLog.findMany({
-            where: { action: { in: ["PERMISSIONS_UPDATE", "MODULES_UPDATE", "USER_ACTIVATED", "USER_DEACTIVATED", "UPDATE"] } },
+            where: { action: { in: ["PERMISSIONS_UPDATE", "MODULES_UPDATE", "USER_ACTIVATED", "USER_DEACTIVATED", "UPDATE", "PROMOTION", "PROMOTION_OVERRIDE"] } },
             include: { user: { select: { email: true } } },
             orderBy: { createdAt: "desc" },
             take: 8,
@@ -99,6 +100,7 @@ export default async function AdminDashboardPage() {
           activeInstitutions,
           users,
           activeStudents,
+          enabledModules: Math.max(0, institutions * SYSTEM_MODULES.length - disabledModules),
           disabledModules,
           recentAudit,
         }))
@@ -169,7 +171,7 @@ export default async function AdminDashboardPage() {
           <StatCard title="Total institutions" value={platform.institutions} subtitle={`${platform.activeInstitutions} active`} icon={Shield} />
           <StatCard title="Total users" value={platform.users} icon={Users} />
           <StatCard title="Active students" value={platform.activeStudents} icon={GraduationCap} />
-          <StatCard title="Disabled modules" value={platform.disabledModules} icon={Shield} />
+          <StatCard title="Enabled modules" value={platform.enabledModules} subtitle={`${platform.disabledModules} disabled`} icon={Shield} />
         </div>
       ) : null}
       {platform ? (
@@ -178,12 +180,22 @@ export default async function AdminDashboardPage() {
             <CardTitle>Recent audit activity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            {platform.recentAudit.map((row) => (
+            {platform.recentAudit.length === 0 ? (
+              <p className="text-muted">No recent user or permission changes.</p>
+            ) : platform.recentAudit.map((row) => (
               <div key={row.id} className="flex justify-between gap-4">
                 <span>{row.action} · {row.entity} · {row.user?.email ?? "system"}</span>
                 <Link className="text-primary" href="/admin/audit">View</Link>
               </div>
             ))}
+            <div className="flex flex-wrap gap-3 pt-2 text-sm">
+              <Link className="text-primary" href="/admin/institutions">Institutions</Link>
+              <Link className="text-primary" href="/admin/users">Users</Link>
+              <Link className="text-primary" href="/admin/roles">Roles & Permissions</Link>
+              <Link className="text-primary" href="/admin/modules">Modules</Link>
+              <Link className="text-primary" href="/admin/audit">Audit Logs</Link>
+              <Link className="text-primary" href="/admin/settings">System Settings</Link>
+            </div>
           </CardContent>
         </Card>
       ) : null}

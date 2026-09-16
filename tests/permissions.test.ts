@@ -112,6 +112,30 @@ describe("granular permissions", () => {
   it("exposes a stable 403 message", () => {
     expect(FORBIDDEN_MESSAGE).toBe("You do not have permission to perform this action.");
   });
+
+  it("builds a branded promotion PDF", async () => {
+    const { generatePromotionReportPdf } = await import("@/lib/pdf-promotion");
+    const bytes = await generatePromotionReportPdf({
+      brand: { name: "ABC Primary School" },
+      title: "2026 Grade 8 Promotion Report",
+      sessionName: "2026",
+      rows: [
+        {
+          learner: "Thabo Mokoena",
+          studentNumber: "ADM001",
+          grade: "Grade 8A",
+          average: 68,
+          attendance: 94,
+          resultStatus: "PASS",
+          eligibility: "Eligible",
+          decision: "Promoted",
+          destination: "Grade 9A",
+          overridden: false,
+        },
+      ],
+    });
+    expect(Buffer.from(bytes).subarray(0, 4).toString()).toBe("%PDF");
+  });
 });
 
 describe("promotion outcomes", () => {

@@ -212,6 +212,95 @@ export function outcomeToEnrolmentStatus(outcome: PromotionOutcome): EnrolmentSt
   }
 }
 
+export type PromotionReportRow = {
+  learner: string;
+  studentNumber: string;
+  grade: string;
+  average: number | null;
+  attendance: number | null;
+  resultStatus: string;
+  eligibility: string;
+  decision: string;
+  destination: string;
+  overridden: boolean;
+};
+
+const ELIGIBILITY_LABEL: Record<PromotionEligibility, string> = {
+  ELIGIBLE: "Eligible",
+  NOT_ELIGIBLE: "Not Eligible",
+  REVIEW_REQUIRED: "Review Required",
+};
+
+export async function buildPromotionReport(params: {
+  schoolId: string;
+  academicYearId: string;
+  gradeId?: string | null;
+}): Promise<{ title: string; sessionName: string; rows: PromotionReportRow[] }> {
+  const year = await prisma.academicYear.findFirst({
+    where: { id: params.academicYearId, schoolId: params.schoolId },
+    select: { name: true },
+  });
+  const grade = params.gradeId
+    ? await prisma.grade.findFirst({
+        where: { id: params.gradeId, schoolId: params.schoolId },
+        select: { name: true },
+      })
+    : null;
+
+  const students = await prisma.student.findMany({
+    where: {
+      schoolId: params.schoolId,
+      status: { in: ["ACTIVE", "SUSPENDED", "GRADUATED", "WITHDRAWN"] },
+      ...(params.gradeId ? { gradeId: params.gradeId } : {}),
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+  });
+
+  const decisions = await prisma.promotionDecision.findMany({
+    where: {
+      schoolId: params.schoolId,
+      fromAcademicYearId: params.academicYearId,
+      ...(params.gradeId ? { fromGradeId: params.gradeId } : {}),
+    },
+    include: { toGrade: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  const latest = new Map<string, (typeof decisions)[number]>();
+  for (const decision of decisions) {
+    if (!latest.has(decision.studentId)) latest.set(decision.studentId, decision);
+  }
+
+  const rows: PromotionReportRow[] = [];
+  for (const student of students) {
+    const check = await evaluateStudentPromotion({
+      schoolId: params.schoolId,
+      studentId: student.id,
+      academicYearId: params.academicYearId,
+    });
+    if (!check) continue;
+    const decision = latest.get(student.id);
+    rows.push({
+      learner: check.studentName,
+      studentNumber: check.studentNumber,
+      grade: check.gradeName ?? "",
+      average: check.average,
+      attendance: check.attendancePercent,
+      resultStatus: check.resultStatus,
+      eligibility: ELIGIBILITY_LABEL[check.eligibility],
+      decision: decision?.outcome ? PROMOTION_OUTCOME_LABELS[decision.outcome] : "",
+      destination: decision?.toGrade?.name ?? "",
+      overridden: Boolean(decision?.overridden),
+    });
+  }
+
+  const gradeLabel = grade?.name ? ` ${grade.name}` : "";
+  return {
+    title: `${year?.name ?? "Session"}${gradeLabel} Promotion Report`.trim(),
+    sessionName: year?.name ?? params.academicYearId,
+    rows,
+  };
+}
+
 export function continuesToTarget(outcome: PromotionOutcome): boolean {
   return (
     outcome === PromotionOutcome.PROMOTED ||

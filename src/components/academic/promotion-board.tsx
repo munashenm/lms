@@ -106,8 +106,7 @@ export function PromotionBoard({
     return true;
   }
 
-  async function promoteSelected() {
-    const chosen = rows.filter((row) => selected.has(row.studentId));
+  async function promoteRows(chosen: Check[]) {
     let ok = 0;
     for (const row of chosen) {
       const override = row.eligibility !== "ELIGIBLE";
@@ -171,8 +170,17 @@ export function PromotionBoard({
         <Badge variant="success">{summary.eligible} Eligible</Badge>
         <Badge variant="danger">{summary.notEligible} Not Eligible</Badge>
         <Badge variant="warning">{summary.review} Requires Review</Badge>
-        <a className="text-primary font-medium" href={`/api/promotion/report?academicYearId=${fromYearId}&format=csv`}>
+        <a
+          className="text-primary font-medium"
+          href={`/api/promotion/report?academicYearId=${fromYearId}&gradeId=${gradeId}&format=csv`}
+        >
           Export CSV
+        </a>
+        <a
+          className="text-primary font-medium"
+          href={`/api/promotion/report?academicYearId=${fromYearId}&gradeId=${gradeId}&format=pdf`}
+        >
+          Export PDF
         </a>
       </div>
 
@@ -181,9 +189,38 @@ export function PromotionBoard({
         <Input value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} />
       </div>
 
-      <div className="flex gap-2">
-        <Button type="button" onClick={promoteSelected} disabled={!selected.size}>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          onClick={() => {
+            if (!toYearId || !toGradeId) {
+              toast.error("Select the destination session and grade first");
+              return;
+            }
+            void promoteRows(rows.filter((row) => row.eligibility === "ELIGIBLE"));
+          }}
+          disabled={!rows.some((row) => row.eligibility === "ELIGIBLE")}
+        >
           Promote Eligible Students
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void promoteRows(rows.filter((row) => selected.has(row.studentId)))}
+          disabled={!selected.size}
+        >
+          Promote selected
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setSelected(
+              new Set(rows.filter((row) => row.eligibility !== "ELIGIBLE").map((row) => row.studentId))
+            );
+          }}
+        >
+          Review Exceptions
         </Button>
       </div>
 

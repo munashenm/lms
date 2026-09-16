@@ -92,6 +92,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
 
+  if (typeof parsed.data.isActive === "boolean") {
+    const deniedDisable = await denyUnless(session, "users.disable");
+    if (deniedDisable) return deniedDisable;
+  }
+
   if (parsed.data.isActive === false && existing.id === session!.userId) {
     return NextResponse.json({ message: "You cannot deactivate your own account" }, { status: 400 });
   }

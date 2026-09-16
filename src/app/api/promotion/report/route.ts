@@ -4,7 +4,10 @@ import { getSession } from "@/lib/auth";
 import { denyUnless } from "@/lib/access";
 import { requireSchoolId } from "@/lib/portal-data";
 import { csvDownloadHeaders, toCsv } from "@/lib/csv";
-import { PROMOTION_OUTCOME_LABELS } from "@/lib/promotion";
+import { buildPromotionReport } from "@/lib/promotion";
+import { generatePromotionReportPdf } from "@/lib/pdf-promotion";
+import { toSchoolBrand } from "@/lib/pdf-branding";
+import { pdfFileResponse } from "@/lib/pdf-response";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -12,24 +15,20 @@ export async function GET(request: NextRequest) {
   if (denied) return denied;
   const schoolId = await requireSchoolId(session!);
   const yearId = request.nextUrl.searchParams.get("academicYearId");
+  const gradeId = request.nextUrl.searchParams.get("gradeId");
   const format = request.nextUrl.searchParams.get("format") ?? "csv";
+  if (!yearId) return NextResponse.json({ message: "academicYearId is required" }, { status: 400 });
 
-  const decisions = await prisma.promotionDecision.findMany({
-    where: { schoolId, ...(yearId ? { fromAcademicYearId: yearId } : {}) },
-    include: {
-      student: { select: { firstName: true, lastName: true, studentNumber: true } },
-      fromGrade: { select: { name: true } },
-      toGrade: { select: { name: true } },
-      fromAcademicYear: { select: { name: true } },
-      toAcademicYear: { select: { name: true } },
-    },
-    orderBy: { createdAt: "asc" },
+  const report = await buildPromotionReport({
+    schoolId,
+    academicYearId: yearId,
+    gradeId: gradeId || null,
   });
 
   const headers = [
     "Learner",
     "Admission no",
-    "Session",
+    "Grade",
     "Average",
     "Attendance",
     "Result",
@@ -38,23 +37,34 @@ export async function GET(request: NextRequest) {
     "Destination",
     "Override",
   ];
-  const rows = decisions.map((row) => [
-    `${row.student.firstName} ${row.student.lastName}`,
-    row.student.studentNumber,
-    row.fromAcademicYear.name,
-    row.average != null ? Number(row.average) : "",
-    row.attendancePercent != null ? Number(row.attendancePercent) : "",
-    row.resultStatus ?? "",
+  const rows = report.rows.map((row) => [
+    row.learner,
+    row.studentNumber,
+    row.grade,
+    row.average ?? "",
+    row.attendance ?? "",
+    row.resultStatus,
     row.eligibility,
-    row.outcome ? PROMOTION_OUTCOME_LABELS[row.outcome] : "",
-    row.toGrade?.name ?? "",
-    row.overridden ? "Yes" : "No",
+    row.decision,
+    row.destination,
+    row.overridden ? "Yes" : "",
   ]);
 
-  if (format === "csv") {
+  if (format === "pdf") {
+    const school = await prisma.school.findUnique({ where: { id: schoolId } });
+    const pdf = await generatePromotionReportPdf({
+      brand: school ? toSchoolBrand(school) : { name: "SchoolHub SA" },
+      title: report.title,
+      sessionName: report.sessionName,
+      rows: report.rows,
+    });
+    return pdfFileResponse(pdf, "promotion-report.pdf");
+  }
+
+  if (format === "csv" || format === "xlsx") {
     const csv = toCsv(headers, rows);
     return new NextResponse(csv, { headers: csvDownloadHeaders("promotion-report.csv") });
   }
 
-  return NextResponse.json({ decisions, headers, rows });
+  return NextResponse.json({ title: report.title, sessionName: report.sessionName, headers, rows, decisions: report.rows });
 }
