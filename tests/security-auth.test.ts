@@ -3,7 +3,7 @@ import { DEV_JWT_FALLBACK, isWeakAuthSecret, resolveAuthSecret } from "@/lib/aut
 import { safeInternalPath } from "@/lib/safe-redirect";
 import { consumeIdempotency, rateLimit } from "@/lib/rate-limit";
 import { payFastAmountAcceptable, payFastItnSignature, verifyPayFastItnSignature } from "@/lib/payfast-itn";
-import { resolveSafeUploadRestoreDest } from "@/lib/upload-access";
+import { resolveSafeUploadRestoreDest } from "@/lib/upload-restore-path";
 import { validateLibraryDocument } from "@/lib/registration-docs";
 import { authorizeCron } from "@/lib/cron-auth";
 import { NextRequest } from "next/server";

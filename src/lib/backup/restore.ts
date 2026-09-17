@@ -11,7 +11,7 @@ import { checkBackupCompatibility, describeSnapshot, assertBackupBelongsToSchool
 import { runBackupJob } from "./engine";
 import { getBackupStorage } from "./storage";
 import { asInputJson } from "@/lib/json";
-import { resolveSafeUploadRestoreDest } from "@/lib/upload-access";
+import { resolveSafeUploadRestoreDest } from "@/lib/upload-restore-path";
 
 function asDate(value: unknown): Date | null {
   if (!value) return null;

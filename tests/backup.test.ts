@@ -79,7 +79,7 @@ describe("backup packages", () => {
   });
 
   it("rejects restore paths that escape the uploads directory", async () => {
-    const { resolveSafeUploadRestoreDest } = await import("@/lib/upload-access");
+    const { resolveSafeUploadRestoreDest } = await import("@/lib/upload-restore-path");
     expect(resolveSafeUploadRestoreDest("uploads/../../etc/passwd")).toBeNull();
   });
 
