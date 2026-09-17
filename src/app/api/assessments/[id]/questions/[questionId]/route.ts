@@ -5,7 +5,7 @@ import { requirePermission } from "@/lib/rbac";
 import { getTeacherForSession } from "@/lib/portal-data";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
 import { canAccessSchool } from "@/lib/rbac";
-import { assessmentSchoolId } from "@/lib/tenant";
+import { assessmentSchoolId, assessmentSchoolInclude } from "@/lib/tenant";
 import { tenantMiss } from "@/lib/authorize";
 
 interface RouteParams {
@@ -23,10 +23,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     where: { id: questionId, assessmentId: id },
     include: {
       assessment: {
-        include: {
-          subject: { select: { schoolId: true } },
-          module: { select: { course: { select: { schoolId: true } } } },
-        },
+        include: assessmentSchoolInclude,
       },
     },
   });

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter, canAccessSchool } from "@/lib/rbac";
+import { requireStaffPermission, getSchoolFilter, canAccessSchool } from "@/lib/rbac";
 import { paymentSchema } from "@/lib/validators";
 import { deriveInvoiceStatus } from "@/lib/finance";
 import { logAudit } from "@/lib/audit";
@@ -17,7 +17,7 @@ import { assertPaidAtAcceptable, parseCollectionPaidAt } from "@/lib/fee-collect
 
 export async function GET() {
   const session = await getSession();
-  if (!requirePermission(session, "finance:read")) {
+  if (!requireStaffPermission(session, "finance:read")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
@@ -40,7 +40,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!requirePermission(session, "finance:write")) {
+  if (!requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

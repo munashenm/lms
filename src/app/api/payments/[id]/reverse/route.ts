@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { StudentLedgerType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { canAccessSchool, requireStaffPermission } from "@/lib/rbac";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { createStudentLedgerEntry } from "@/lib/student-ledger";
@@ -15,7 +15,7 @@ interface Params {
 
 export async function POST(_request: NextRequest, { params }: Params) {
   const session = await getSession();
-  if (!session || !requirePermission(session, "finance.payments.reverse")) {
+  if (!session || !requireStaffPermission(session, "finance.payments.reverse")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;

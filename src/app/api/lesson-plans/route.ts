@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { hasPermission, getSchoolFilter } from "@/lib/rbac";
+import { sessionHasPermission, getSchoolFilter } from "@/lib/rbac";
 import { requireSchoolId, getTeacherForSession } from "@/lib/portal-data";
 import { lessonPlanSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
@@ -12,7 +12,7 @@ export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   if (
-    !hasPermission(session.role, "classes:read") &&
+    !sessionHasPermission(session, "classes:read") &&
     session.role !== UserRole.TEACHER
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   if (
-    !hasPermission(session.role, "classes:write") &&
+    !sessionHasPermission(session, "classes:write") &&
     session.role !== UserRole.TEACHER
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });

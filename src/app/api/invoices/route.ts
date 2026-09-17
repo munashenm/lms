@@ -9,7 +9,7 @@ import { logAudit } from "@/lib/audit";
 import { notifyUser, notifyStudentGuardians } from "@/lib/notifications";
 import { postInvoiceToStudentLedger } from "@/lib/student-ledger";
 import { UserRole } from "@prisma/client";
-import { studentInSchool } from "@/lib/tenant";
+import { studentInSchool, scopedStudentIdFilter } from "@/lib/tenant";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
@@ -22,16 +22,16 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get("status");
   const studentId = searchParams.get("studentId");
 
-  let studentFilter: { studentId?: string | { in: string[] } } = {};
+  let ownStudentId: string | null = null;
+  let childIds: string[] = [];
 
   if (session.role === UserRole.STUDENT) {
     const student = await getStudentForSession(session);
     if (!student) return NextResponse.json({ invoices: [] });
-    studentFilter = { studentId: student.id };
+    ownStudentId = student.id;
   } else if (session.role === UserRole.PARENT) {
-    const childIds = await getChildStudentIds(session);
+    childIds = await getChildStudentIds(session);
     if (childIds.length === 0) return NextResponse.json({ invoices: [] });
-    studentFilter = { studentId: { in: childIds } };
   } else if (!requirePermission(session, "finance:read")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
@@ -39,9 +39,8 @@ export async function GET(request: NextRequest) {
   const invoices = await prisma.invoice.findMany({
     where: {
       ...getSchoolFilter(session),
-      ...studentFilter,
+      ...scopedStudentIdFilter(session, studentId, { ownStudentId, childIds }),
       ...(status && { status: status as "SENT" | "PAID" | "OVERDUE" | "PARTIALLY_PAID" }),
-      ...(studentId && { studentId }),
       ...(session.role === UserRole.STUDENT || session.role === UserRole.PARENT
         ? { status: { not: "DRAFT" } }
         : {}),

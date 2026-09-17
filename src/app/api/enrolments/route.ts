@@ -12,6 +12,7 @@ import {
 } from "@/lib/academic-session";
 import { requireSchoolId } from "@/lib/portal-data";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { enrolmentIdentityWhere } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -99,11 +100,7 @@ export async function POST(request: NextRequest) {
   });
 
   const enrolment = await prisma.enrolment.findFirst({
-    where: {
-      studentId: student.id,
-      academicYearId: year.id,
-      ...(parsed.data.courseId ? { courseId: parsed.data.courseId } : {}),
-    },
+    where: enrolmentIdentityWhere(student.id, year.id, parsed.data.courseId),
     include: enrolmentListInclude,
     orderBy: { updatedAt: "desc" },
   });

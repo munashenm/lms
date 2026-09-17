@@ -5,6 +5,8 @@ import { getStudentForSession } from "@/lib/portal-data";
 import { submissionSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { saveHomeworkSubmissionFile } from "@/lib/homework-upload";
+import { assessmentSchoolInclude, studentCanAccessAssessment } from "@/lib/tenant";
+import { tenantMiss } from "@/lib/authorize";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -59,11 +61,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   const assignment = await prisma.assignment.findUnique({
     where: { id: assignmentId },
-    include: { assessment: true },
+    include: { assessment: { include: assessmentSchoolInclude } },
   });
 
-  if (!assignment || !assignment.assessment.isPublished) {
-    return NextResponse.json({ message: "Assignment not available" }, { status: 404 });
+  if (
+    !assignment ||
+    !assignment.assessment.isPublished ||
+    !studentCanAccessAssessment(student.schoolId, assignment.assessment)
+  ) {
+    return tenantMiss();
   }
 
   if (

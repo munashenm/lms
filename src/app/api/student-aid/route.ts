@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { StudentAidType, StudentLedgerType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter, requirePermission } from "@/lib/rbac";
+import { getSchoolFilter, requireStaffPermission } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { createStudentLedgerEntry } from "@/lib/student-ledger";
@@ -27,7 +27,7 @@ const LEDGER: Record<StudentAidType, StudentLedgerType> = {
 
 export async function GET() {
   const session = await getSession();
-  if (!requirePermission(session, "finance.view") && !requirePermission(session, "finance:read")) {
+  if (!requireStaffPermission(session, "finance.view") && !requireStaffPermission(session, "finance:read")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const awards = await prisma.studentAidAward.findMany({
@@ -41,7 +41,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!requirePermission(session, "finance.payments.create") && !requirePermission(session, "finance:write")) {
+  if (!requireStaffPermission(session, "finance.payments.create") && !requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const schoolId = await requireSchoolId(session!);

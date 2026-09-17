@@ -6,7 +6,7 @@ import { getTeacherForSession } from "@/lib/portal-data";
 import { examQuestionSchema } from "@/lib/validators";
 import { asInputJson } from "@/lib/json";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
-import { assessmentAccess, assessmentSchoolId } from "@/lib/tenant";
+import { assessmentAccess, assessmentSchoolId, assessmentSchoolInclude } from "@/lib/tenant";
 import { canAccessSchool } from "@/lib/rbac";
 import { tenantMiss } from "@/lib/authorize";
 
@@ -45,13 +45,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   const assessment = await prisma.assessment.findUnique({
     where: { id },
-    include: { subject: { select: { schoolId: true } }, module: { select: { course: { select: { schoolId: true } } } } },
+    include: assessmentSchoolInclude,
   });
   if (!assessment) return tenantMiss();
-  const schoolId =
-    assessment.subject?.schoolId ??
-    assessment.module?.course.schoolId ??
-    null;
+  const schoolId = assessmentSchoolId(assessment);
   if (!schoolId || !canAccessSchool(session!, schoolId)) {
     return tenantMiss();
   }

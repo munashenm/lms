@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter, canAccessAdmin, hasPermission } from "@/lib/rbac";
+import { getSchoolFilter, canAccessAdmin, sessionHasPermission } from "@/lib/rbac";
 import {
   canApplyForLeave,
   getStaffLeaveApplicant,
@@ -49,7 +49,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ leaveRequests });
   }
 
-  if (canApplyForLeave(session.role) && !canAccessAdmin(session.role) && !hasPermission(session.role, "hr.leave.manage")) {
+  if (
+    canApplyForLeave(session.role) &&
+    !canAccessAdmin(session.role) &&
+    !sessionHasPermission(session, "hr.leave.manage")
+  ) {
     const leaveRequests = await prisma.leaveRequest.findMany({
       where: { userId: session.userId },
       include,
@@ -58,7 +62,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ leaveRequests });
   }
 
-  if (!canAccessAdmin(session.role) && !hasPermission(session.role, "staff:read") && !hasPermission(session.role, "hr.leave.manage")) {
+  if (
+    !canAccessAdmin(session.role) &&
+    !sessionHasPermission(session, "staff:read") &&
+    !sessionHasPermission(session, "hr.leave.manage")
+  ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

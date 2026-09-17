@@ -1,6 +1,7 @@
-import { EnrolmentStatus, type Prisma } from "@prisma/client";
+import { EnrolmentStatus, Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { applyEnrolmentFees, syncEnrolmentModules } from "./fee-engine";
+import { enrolmentIdentityWhere } from "./tenant";
 
 /** Ensure a student has a session enrolment for the given (or current) academic year. */
 export async function ensureStudentEnrolment(params: {
@@ -27,11 +28,7 @@ export async function ensureStudentEnrolment(params: {
   if (!academicYearId) return;
 
   const existing = await prisma.enrolment.findFirst({
-    where: {
-      studentId: params.studentId,
-      academicYearId,
-      ...(params.courseId ? { courseId: params.courseId } : { courseId: null }),
-    },
+    where: enrolmentIdentityWhere(params.studentId, academicYearId, params.courseId),
   });
 
   let enrolmentId: string;
@@ -52,19 +49,30 @@ export async function ensureStudentEnrolment(params: {
     });
     enrolmentId = updated.id;
   } else {
-    const created = await prisma.enrolment.create({
-      data: {
-        studentId: params.studentId,
-        academicYearId,
-        courseId: params.courseId ?? null,
-        gradeId: params.gradeId ?? null,
-        classId: params.classId ?? null,
-        status: params.status ?? EnrolmentStatus.ENROLLED,
-        hostel,
-        transport,
-      },
-    });
-    enrolmentId = created.id;
+    try {
+      const created = await prisma.enrolment.create({
+        data: {
+          studentId: params.studentId,
+          academicYearId,
+          courseId: params.courseId ?? null,
+          gradeId: params.gradeId ?? null,
+          classId: params.classId ?? null,
+          status: params.status ?? EnrolmentStatus.ENROLLED,
+          hostel,
+          transport,
+        },
+      });
+      enrolmentId = created.id;
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+        throw error;
+      }
+      const raced = await prisma.enrolment.findFirst({
+        where: enrolmentIdentityWhere(params.studentId, academicYearId, params.courseId),
+      });
+      if (!raced) throw error;
+      enrolmentId = raced.id;
+    }
   }
 
   if (params.moduleIds) {

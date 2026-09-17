@@ -50,12 +50,58 @@ export async function assessmentAccess(assessmentId: string) {
   });
 }
 
+export const assessmentSchoolInclude = {
+  subject: { select: { schoolId: true } },
+  module: { select: { course: { select: { schoolId: true } } } },
+  teacher: { select: { schoolId: true } },
+} as const;
+
 export function assessmentSchoolId(assessment: {
   subject?: { schoolId: string } | null;
   module?: { course: { schoolId: string } } | null;
   teacher?: { schoolId: string } | null;
 }): string | null {
   return assessment.subject?.schoolId ?? assessment.module?.course.schoolId ?? assessment.teacher?.schoolId ?? null;
+}
+
+export function studentCanAccessAssessment(
+  studentSchoolId: string,
+  assessment: Parameters<typeof assessmentSchoolId>[0]
+): boolean {
+  const schoolId = assessmentSchoolId(assessment);
+  return Boolean(schoolId && schoolId === studentSchoolId);
+}
+
+/** Learners may only query their own (or their children's) records. */
+export function scopedStudentIdFilter(
+  session: SessionPayload,
+  queryStudentId: string | null | undefined,
+  opts: { ownStudentId?: string | null; childIds?: string[] } = {}
+): { studentId: string | { in: string[] } } | Record<string, never> {
+  if (session.role === UserRole.STUDENT) {
+    return { studentId: opts.ownStudentId || "__none__" };
+  }
+  if (session.role === UserRole.PARENT) {
+    const childIds = opts.childIds ?? [];
+    if (queryStudentId && childIds.includes(queryStudentId)) {
+      return { studentId: queryStudentId };
+    }
+    return { studentId: { in: childIds.length ? childIds : ["__none__"] } };
+  }
+  if (queryStudentId) return { studentId: queryStudentId };
+  return {};
+}
+
+export function enrolmentIdentityWhere(
+  studentId: string,
+  academicYearId: string,
+  courseId?: string | null
+) {
+  return {
+    studentId,
+    academicYearId,
+    courseId: courseId ?? null,
+  };
 }
 
 export function denyCrossTenant(

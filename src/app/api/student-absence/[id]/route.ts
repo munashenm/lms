@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { hasPermission, canAccessSchool } from "@/lib/rbac";
+import { sessionHasPermission, canAccessSchool } from "@/lib/rbac";
 import { studentAbsenceReviewSchema } from "@/lib/validators";
 import { nextAbsenceStatus } from "@/lib/learner-portal";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
@@ -17,8 +17,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   if (
-    !hasPermission(session.role, "attendance:write") &&
-    !hasPermission(session.role, "students:write") &&
+    !sessionHasPermission(session, "attendance:write") &&
+    !sessionHasPermission(session, "students:write") &&
     session.role !== UserRole.TEACHER
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { IssuedLetterType, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessAdmin, getSchoolFilter, hasPermission } from "@/lib/rbac";
+import { canAccessAdmin, getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { issuedLetterSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { toSchoolBrand } from "@/lib/pdf-branding";
@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
   }
   if (
     !canAccessAdmin(session.role) &&
-    !hasPermission(session.role, "marks:write") &&
-    !hasPermission(session.role, "finance:write")
+    !requirePermission(session, "marks:write") &&
+    !requirePermission(session, "finance:write")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }

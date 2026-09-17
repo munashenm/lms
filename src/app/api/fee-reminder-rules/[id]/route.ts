@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requireStaffPermission, getSchoolFilter } from "@/lib/rbac";
 import { feeReminderRuleUpdateSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { describeDaysOffset } from "@/lib/fee-reminder-rules";
@@ -12,7 +12,7 @@ interface RouteParams {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
-  if (!requirePermission(session, "finance:write")) {
+  if (!requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
@@ -78,7 +78,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
-  if (!requirePermission(session, "finance:write")) {
+  if (!requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

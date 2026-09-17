@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requirePermission, getSchoolFilter, canAccessSchool } from "@/lib/rbac";
 import { getChildStudentIds, getStudentForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { PAYMENT_METHOD_LABELS, getOutstandingBalance } from "@/lib/finance";
@@ -53,10 +53,12 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
   if (session.role === UserRole.STUDENT) {
     const student = await getStudentForSession(session);
-    allowed = student?.id === invoice.studentId;
+    allowed = Boolean(
+      student && student.id === invoice.studentId && student.schoolId === invoice.schoolId
+    );
   } else if (session.role === UserRole.PARENT) {
     const childIds = await getChildStudentIds(session);
-    allowed = childIds.includes(invoice.studentId);
+    allowed = childIds.includes(invoice.studentId) && canAccessSchool(session, invoice.schoolId);
   } else if (requirePermission(session, "finance:read")) {
     const filter = getSchoolFilter(session);
     allowed =

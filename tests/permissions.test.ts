@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { UserRole } from "@prisma/client";
-import { hasPermission, requirePermission, rolePermissionSet } from "@/lib/rbac";
+import { hasPermission, requirePermission, requireStaffPermission, rolePermissionSet } from "@/lib/rbac";
 import {
   defaultActionPermissionsForRole,
   roleHasLegacy,
@@ -111,6 +111,33 @@ describe("granular permissions", () => {
 
   it("exposes a stable 403 message", () => {
     expect(FORBIDDEN_MESSAGE).toBe("You do not have permission to perform this action.");
+  });
+
+  it("does not treat parent finance:read as staff desk access", () => {
+    const parent = {
+      userId: "p1",
+      email: "parent@school.co.za",
+      role: UserRole.PARENT,
+      schoolId: "s1",
+      firstName: "P",
+      lastName: "Q",
+    };
+    expect(requirePermission(parent, "finance:read")).toBe(true);
+    expect(requireStaffPermission(parent, "finance:read")).toBe(false);
+    expect(
+      requireStaffPermission(
+        {
+          userId: "t1",
+          email: "teacher@school.co.za",
+          role: UserRole.TEACHER,
+          schoolId: "s1",
+          firstName: "T",
+          lastName: "R",
+          permissionGrants: ["hr.leave.manage"],
+        },
+        "hr.leave.manage"
+      )
+    ).toBe(true);
   });
 
   it("builds a branded promotion PDF", async () => {

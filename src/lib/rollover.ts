@@ -285,7 +285,7 @@ export async function commitRollover(params: {
           where: {
             studentId: sourceEnrolment.studentId,
             academicYearId: params.targetYearId,
-            ...(targetCourseId ? { courseId: targetCourseId } : { courseId: null }),
+            courseId: targetCourseId,
           },
         });
 
