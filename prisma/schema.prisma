@@ -639,6 +639,7 @@ model User {
   emailVerified Boolean  @default(false)
   lastLoginAt  DateTime?
   mustResetPassword Boolean @default(false)
+  sessionVersion Int @default(1)
   permissionGrants String[] @default([])
   permissionDenies String[] @default([])
   createdAt    DateTime  @default(now())

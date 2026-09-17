@@ -91,6 +91,21 @@ export function validateStudentPhoto(file: RegistrationFileInput | null): string
   return null;
 }
 
+const LIBRARY_EXT = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".zip", ".txt"]);
+const BLOCKED_EXT = new Set([".exe", ".bat", ".cmd", ".sh", ".js", ".mjs", ".html", ".htm", ".php", ".svg"]);
+
+export function validateLibraryDocument(file: RegistrationFileInput | null): string | null {
+  if (!file) return "File required";
+  if (file.size > REGISTRATION_DOC_MAX_BYTES) return "Document must be under 10 MB";
+  const ext = fileExtension(file.name);
+  if (BLOCKED_EXT.has(ext)) return "This file type is not allowed";
+  if (LIBRARY_EXT.has(ext)) return null;
+  if (file.type && (REGISTRATION_DOC_TYPES.includes(file.type) || file.type === "application/zip" || file.type === "text/plain" || file.type === "image/gif")) {
+    return null;
+  }
+  return "Upload a PDF, Word, ZIP, text or image file";
+}
+
 export function registrationFilesFromForm(
   form: FormData,
   slots: readonly { type: string; title: string; name: string }[]

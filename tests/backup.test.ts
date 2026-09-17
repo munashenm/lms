@@ -78,6 +78,11 @@ describe("backup packages", () => {
     expect(SECRET_BACKUP_FIELDS).toContain("yocoSecretKey");
   });
 
+  it("rejects restore paths that escape the uploads directory", async () => {
+    const { resolveSafeUploadRestoreDest } = await import("@/lib/upload-access");
+    expect(resolveSafeUploadRestoreDest("uploads/../../etc/passwd")).toBeNull();
+  });
+
   it("rejects restoring Institution A backup into Institution B", () => {
     expect(assertBackupBelongsToSchool("school-a", "school-b")).toContain("different institution");
     expect(assertBackupBelongsToSchool("school-a", "school-a")).toBeNull();

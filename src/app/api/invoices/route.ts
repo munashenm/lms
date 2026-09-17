@@ -9,6 +9,7 @@ import { logAudit } from "@/lib/audit";
 import { notifyUser, notifyStudentGuardians } from "@/lib/notifications";
 import { postInvoiceToStudentLedger } from "@/lib/student-ledger";
 import { UserRole } from "@prisma/client";
+import { studentInSchool } from "@/lib/tenant";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
@@ -69,9 +70,13 @@ export async function POST(request: NextRequest) {
   }
 
   const schoolId = await requireSchoolId(session!);
+  const data = parsed.data;
+  const student = await studentInSchool(data.studentId, schoolId);
+  if (!student) {
+    return NextResponse.json({ message: "Student not found" }, { status: 404 });
+  }
   const guard = await licenseWriteGuard({ schoolId, feature: "finance", action: "write" });
   if (!guard.ok) return licenseDeniedResponse(guard);
-  const data = parsed.data;
   const { subtotal, total } = calculateInvoiceTotals(
     data.lineItems.map((i) => ({ quantity: i.quantity, unitPrice: i.unitPrice })),
     data.discount

@@ -6,6 +6,9 @@ import { marksBulkSchema } from "@/lib/validators";
 import { percentageToSymbol } from "@/lib/grading";
 import { logAudit } from "@/lib/audit";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { assessmentAccess, assessmentSchoolId, assertStudentsInSchool } from "@/lib/tenant";
+import { canAccessSchool } from "@/lib/rbac";
+import { tenantMiss } from "@/lib/authorize";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -24,15 +27,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
 
-  const assessment = await prisma.assessment.findUnique({ where: { id: assessmentId } });
-  if (!assessment) {
-    return NextResponse.json({ message: "Assessment not found" }, { status: 404 });
+  const assessmentRow = await prisma.assessment.findUnique({ where: { id: assessmentId } });
+  const access = await assessmentAccess(assessmentId);
+  const schoolId = access ? assessmentSchoolId(access) : null;
+  if (!assessmentRow || !access || !schoolId || !canAccessSchool(session!, schoolId)) {
+    return tenantMiss();
   }
 
-  const denied = await requireLicenseWrite(session!.schoolId, { feature: "assessments" });
+  const studentIds = parsed.data.marks.map((m) => m.studentId);
+  if (!(await assertStudentsInSchool(studentIds, schoolId))) {
+    return tenantMiss();
+  }
+
+  const denied = await requireLicenseWrite(schoolId, { feature: "assessments" });
   if (denied) return denied;
 
-  const maxMarks = Number(assessment.maxMarks);
+  const maxMarks = Number(assessmentRow.maxMarks);
   const results = await Promise.all(
     parsed.data.marks.map((m) => {
       const pct = (m.score / maxMarks) * 100;
@@ -59,7 +69,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   );
 
   await logAudit({
-    schoolId: session!.schoolId,
+    schoolId,
     userId: session!.userId,
     action: "BULK_UPDATE",
     entity: "Mark",

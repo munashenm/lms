@@ -1,6 +1,5 @@
 import { prisma } from "./db";
 import type { SessionPayload } from "./auth";
-import { UserRole } from "@prisma/client";
 
 export async function getTeacherForSession(session: SessionPayload) {
   return prisma.teacher.findFirst({
@@ -126,12 +125,9 @@ export function resolveSchoolId(session: SessionPayload): string | null {
   return session.schoolId;
 }
 
+/** Institution for writes must come from the session — never the first school in the database. */
 export async function requireSchoolId(session: SessionPayload): Promise<string> {
   if (session.schoolId) return session.schoolId;
-  if (session.role === UserRole.SUPER_ADMIN) {
-    const school = await prisma.school.findFirst({ where: { isActive: true } });
-    if (school) return school.id;
-  }
   throw new Error("School context required");
 }
 

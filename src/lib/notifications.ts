@@ -99,7 +99,7 @@ export async function sendOutboundMessage(
   subject: string,
   body: string
 ) {
-  const payload = { schoolId, channel, to, subject, bodyLength: body.length, preview: body.slice(0, 120) };
+  const payload = { schoolId, channel, to, subject, bodyLength: body.length };
   console.info(`[outbound:${channel}]`, JSON.stringify(payload));
 
   const config = await getResolvedIntegrations(schoolId);

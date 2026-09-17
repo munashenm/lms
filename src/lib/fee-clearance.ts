@@ -3,6 +3,7 @@ import type { SessionPayload } from "./auth";
 import { prisma } from "./db";
 import { outstandingOf, toCents, fromCents } from "./money";
 import { getChildStudentIds, getStudentForSession } from "./portal-data";
+import { canAccessSchool } from "./rbac";
 
 const COLLECTABLE: InvoiceStatus[] = [
   InvoiceStatus.SENT,
@@ -118,7 +119,7 @@ export async function authorizeAcademicDocument(opts: {
 
   // Learners also have marks:read — never treat STUDENT/PARENT as staff for the fee hold.
   if (!isLearnerPortalRole(session.role)) {
-    if (session.role !== UserRole.SUPER_ADMIN && session.schoolId && session.schoolId !== schoolId) {
+    if (!canAccessSchool(session, schoolId)) {
       return { ok: false, status: 403, message: "Unauthorized" };
     }
     return { ok: true };

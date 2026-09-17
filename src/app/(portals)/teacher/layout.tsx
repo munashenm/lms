@@ -7,6 +7,7 @@ import { getPortalSessionContext } from "@/lib/portal-session";
 import { isCollegeLike } from "@/lib/terminology";
 import { filterNavByLicense, isFeatureEnabled } from "@/lib/licensing/portal";
 import { PortalUnavailable } from "@/components/enterprise/license-banner";
+import { enforceForcedPasswordReset } from "@/lib/force-password-reset-server";
 
 export default async function TeacherLayout({
   children,
@@ -20,6 +21,7 @@ export default async function TeacherLayout({
   ) {
     redirect("/login");
   }
+  enforceForcedPasswordReset(session);
 
   const ctx = await getPortalSessionContext(session);
   const terms = ctx.terminology;

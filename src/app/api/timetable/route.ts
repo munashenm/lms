@@ -5,6 +5,9 @@ import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { timetableSlotSchema } from "@/lib/validators";
 import { findTimetableConflicts } from "@/lib/timetable-conflicts";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
+import { classInSchool } from "@/lib/tenant";
+import { tenantMiss } from "@/lib/authorize";
+import { requireSchoolId } from "@/lib/portal-data";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -20,9 +23,7 @@ export async function GET(request: NextRequest) {
     where: {
       ...(classId && { classId }),
       ...(teacherId && { teacherId }),
-      ...(!classId && !teacherId
-        ? { class: getSchoolFilter(session) }
-        : {}),
+      class: getSchoolFilter(session!),
     },
     include: {
       class: { select: { name: true } },
@@ -48,11 +49,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
 
-  const schoolId = session!.schoolId;
-  if (schoolId) {
-    const guard = await licenseWriteGuard({ schoolId, feature: "timetable", action: "write" });
-    if (!guard.ok) return licenseDeniedResponse(guard);
-  }
+  const schoolId = await requireSchoolId(session!);
+  const klass = await classInSchool(parsed.data.classId, schoolId);
+  if (!klass) return tenantMiss();
+
+  const guard = await licenseWriteGuard({ schoolId, feature: "timetable", action: "write" });
+  if (!guard.ok) return licenseDeniedResponse(guard);
 
   const existing = await prisma.timetableSlot.findMany({
     where: { class: getSchoolFilter(session!) },

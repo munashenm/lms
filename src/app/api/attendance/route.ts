@@ -7,6 +7,9 @@ import { logAudit } from "@/lib/audit";
 import { getTeacherForSession } from "@/lib/portal-data";
 import { buildAttendanceSessionKey } from "@/lib/attendance";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
+import { assertStudentsInSchool, classInSchool } from "@/lib/tenant";
+import { requireSchoolId } from "@/lib/portal-data";
+import { tenantMiss } from "@/lib/authorize";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -66,11 +69,22 @@ export async function POST(request: NextRequest) {
     records,
   } = parsed.data;
 
-  const schoolId = session!.schoolId ?? (await getTeacherForSession(session!))?.schoolId;
-  if (schoolId) {
-    const guard = await licenseWriteGuard({ schoolId, feature: "attendance", action: "write" });
-    if (!guard.ok) return licenseDeniedResponse(guard);
+  const schoolId =
+    session!.schoolId ?? (await getTeacherForSession(session!))?.schoolId ?? (await requireSchoolId(session!).catch(() => null));
+  if (!schoolId) {
+    return NextResponse.json({ message: "School context required" }, { status: 400 });
   }
+  if (classId) {
+    const klass = await classInSchool(classId, schoolId);
+    if (!klass) return tenantMiss();
+  }
+  const studentIds = records.map((record) => record.studentId);
+  if (!(await assertStudentsInSchool(studentIds, schoolId))) {
+    return tenantMiss();
+  }
+
+  const guard = await licenseWriteGuard({ schoolId, feature: "attendance", action: "write" });
+  if (!guard.ok) return licenseDeniedResponse(guard);
 
   const attendanceDate = new Date(date);
   const teacher = await getTeacherForSession(session);
@@ -127,7 +141,7 @@ export async function POST(request: NextRequest) {
   );
 
   await logAudit({
-    schoolId: session!.schoolId,
+    schoolId,
     userId: session!.userId,
     action: "BULK_UPDATE",
     entity: "AttendanceRecord",
@@ -141,14 +155,14 @@ export async function POST(request: NextRequest) {
   });
 
   let absenceNotifications: { sent: number; skipped: boolean } | undefined;
-  if (session!.schoolId) {
+  if (schoolId) {
     const { notifyAbsenceAlerts } = await import("@/lib/communications");
     const absences = records.filter(
       (r) => r.status === "ABSENT" || r.status === "SICK"
     );
     if (absences.length > 0) {
       absenceNotifications = await notifyAbsenceAlerts({
-        schoolId: session!.schoolId,
+        schoolId,
         date,
         absences,
       });

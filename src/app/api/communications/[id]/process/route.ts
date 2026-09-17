@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, hasPermission } from "@/lib/rbac";
+import { canAccessSchool, requirePermission } from "@/lib/rbac";
 import { processCommunicationBatch } from "@/lib/bulk-fee-comms";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
@@ -15,9 +15,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
   if (
-    !hasPermission(session.role, "announcements:write") &&
-    !hasPermission(session.role, "settings:write") &&
-    !hasPermission(session.role, "finance:write")
+    !requirePermission(session, "announcements:write") &&
+    !requirePermission(session, "settings:write") &&
+    !requirePermission(session, "finance:write")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }

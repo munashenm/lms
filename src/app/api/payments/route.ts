@@ -12,6 +12,7 @@ import { postPaymentToStudentLedger } from "@/lib/student-ledger";
 import { nextReceiptNumber } from "@/lib/finance-catalog";
 import { allocatePaymentManual, allocatePaymentToOldest } from "@/lib/payment-allocation";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { consumeIdempotency } from "@/lib/rate-limit";
 import { assertPaidAtAcceptable, parseCollectionPaidAt } from "@/lib/fee-collection";
 
 export async function GET() {
@@ -88,6 +89,21 @@ export async function POST(request: NextRequest) {
 
   if (newAmountPaid > total + 0.01) {
     return NextResponse.json({ message: "Payment exceeds invoice total" }, { status: 400 });
+  }
+
+  const idempotencyKey = `payment:${invoice.id}:${session!.userId}:${amount}:${reference || ""}:${paidAt?.toISOString() ?? ""}`;
+  if (!consumeIdempotency(idempotencyKey, 15_000)) {
+    return NextResponse.json({ message: "Payment is already being recorded" }, { status: 409 });
+  }
+
+  if (reference) {
+    const duplicate = await prisma.payment.findFirst({
+      where: { invoiceId, reference, reversedAt: null, reversalOfId: null },
+      select: { id: true },
+    });
+    if (duplicate) {
+      return NextResponse.json({ message: "A payment with this reference already exists" }, { status: 409 });
+    }
   }
 
   let payment;

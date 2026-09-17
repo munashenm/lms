@@ -15,6 +15,7 @@ import {
 } from "@/lib/admissions";
 import { saveRegistrationFile } from "@/lib/registration-uploads";
 import { validateRegistrationDocument } from "@/lib/registration-docs";
+import { clientIp, rateLimit, rateLimitedJson } from "@/lib/rate-limit";
 
 async function readApplicationPayload(request: NextRequest) {
   const contentType = request.headers.get("content-type") ?? "";
@@ -53,6 +54,13 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const ip = clientIp(request.headers);
+  const limited = rateLimit({ key: `apply:${ip}`, limit: 5, windowMs: 15 * 60 * 1000 });
+  if (!limited.ok) {
+    const body = rateLimitedJson(limited.retryAfterSec);
+    return NextResponse.json(body.body, { status: body.status, headers: body.headers });
+  }
+
   const { raw, files, types } = await readApplicationPayload(request);
   const parsed = applicationSchema.safeParse(raw);
   if (!parsed.success) {

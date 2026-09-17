@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ApprovalStatus, StudentLedgerType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, hasPermission } from "@/lib/rbac";
+import { canAccessSchool, requirePermission } from "@/lib/rbac";
 import { refundPatchSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { createStudentLedgerEntry } from "@/lib/student-ledger";
@@ -20,8 +20,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
   if (
-    !hasPermission(session.role, "finance.payments.reverse") &&
-    !hasPermission(session.role, "finance:write")
+    !requirePermission(session, "finance.payments.reverse") &&
+    !requirePermission(session, "finance:write")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }

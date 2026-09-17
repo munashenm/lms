@@ -6,6 +6,7 @@ import { financeNav } from "@/lib/navigation";
 import { getPortalSessionContext } from "@/lib/portal-session";
 import { filterNavByLicense, isFeatureEnabled } from "@/lib/licensing/portal";
 import { PortalUnavailable } from "@/components/enterprise/license-banner";
+import { enforceForcedPasswordReset } from "@/lib/force-password-reset-server";
 
 export default async function FinanceLayout({
   children,
@@ -16,6 +17,7 @@ export default async function FinanceLayout({
   if (!session || !canAccessFinance(session.role)) {
     redirect("/login");
   }
+  enforceForcedPasswordReset(session);
 
   const ctx = await getPortalSessionContext(session);
 

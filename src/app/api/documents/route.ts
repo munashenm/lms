@@ -8,6 +8,8 @@ import { requireSchoolId, getStudentForSession } from "@/lib/portal-data";
 import { DocumentType } from "@prisma/client";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { documentVisibleToLearner } from "@/lib/learner-portal";
+import { validateLibraryDocument } from "@/lib/registration-docs";
+import { assertDocumentTargets } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -74,7 +76,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "File and title required" }, { status: 400 });
   }
 
+  const fileError = validateLibraryDocument({ name: file.name, size: file.size, type: file.type });
+  if (fileError) {
+    return NextResponse.json({ message: fileError }, { status: 400 });
+  }
+
   const schoolId = await requireSchoolId(session!);
+  const targetError = await assertDocumentTargets({
+    schoolId,
+    targetStudentId,
+    targetGradeId,
+    targetClassId,
+    targetCampusId,
+    targetCourseId,
+  });
+  if (targetError) {
+    return NextResponse.json({ message: targetError }, { status: 404 });
+  }
   const denied = await requireLicenseWrite(schoolId);
   if (denied) return denied;
   const bytes = await file.arrayBuffer();

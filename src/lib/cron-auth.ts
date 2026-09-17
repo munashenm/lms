@@ -10,5 +10,5 @@ export function authorizeCron(request: NextRequest): boolean {
   const header = request.headers.get("x-cron-secret");
   if (header === secret) return true;
 
-  return request.nextUrl.searchParams.get("secret") === secret;
+  return false;
 }
