@@ -1,5 +1,12 @@
+import { readFileSync } from "fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { SignJWT } from "jose";
 import { DEV_JWT_FALLBACK, isWeakAuthSecret, resolveAuthSecret } from "@/lib/auth-secret";
+import {
+  getSessionFromRequest,
+  jwtSecretBytes,
+  SESSION_COOKIE_NAME,
+} from "@/lib/session";
 import { safeInternalPath } from "@/lib/safe-redirect";
 import { consumeIdempotency, rateLimit } from "@/lib/rate-limit";
 import { payFastAmountAcceptable, payFastItnSignature, verifyPayFastItnSignature } from "@/lib/payfast-itn";
@@ -58,6 +65,44 @@ describe("authentication hardening", () => {
     expect(isForcedPasswordPathAllowed("/api/auth/change-password")).toBe(true);
     expect(isForcedPasswordPathAllowed("/admin/finance")).toBe(false);
     expect(isForcedPasswordPathAllowed("/api/payments")).toBe(false);
+  });
+
+  it("reads a session JWT from the cookie header without loading prisma", async () => {
+    vi.stubEnv("JWT_SECRET", "unit-test-jwt-secret-not-for-production");
+    const token = await new SignJWT({
+      userId: "user-1",
+      email: "admin@example.com",
+      role: "SCHOOL_ADMIN",
+      schoolId: "school-1",
+      firstName: "Ada",
+      lastName: "Admin",
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("8h")
+      .sign(jwtSecretBytes());
+
+    const session = await getSessionFromRequest(`${SESSION_COOKIE_NAME}=${token}`);
+    expect(session?.userId).toBe("user-1");
+    expect(session?.schoolId).toBe("school-1");
+    expect(await getSessionFromRequest(null)).toBeNull();
+  });
+
+  it("keeps Edge middleware and client timetable forms off Node crypto", () => {
+    const middleware = readFileSync("src/middleware.ts", "utf8");
+    expect(middleware).not.toMatch(/from ["']@\/lib\/auth["']/);
+    expect(middleware).toMatch(/from ["']@\/lib\/session["']/);
+
+    const session = readFileSync("src/lib/session.ts", "utf8");
+    expect(session).not.toMatch(/from ["']\.\/db["']/);
+    expect(session).not.toMatch(/from ["']crypto["']/);
+
+    const days = readFileSync("src/lib/timetable-days.ts", "utf8");
+    expect(days).not.toMatch(/from ["']\.\/db["']/);
+
+    const form = readFileSync("src/components/academics/timetable-form.tsx", "utf8");
+    expect(form).not.toMatch(/from ["']@\/lib\/portal-data["']/);
+    expect(form).toMatch(/from ["']@\/lib\/timetable-days["']/);
   });
 });
 

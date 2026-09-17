@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getSessionFromRequest } from "@/lib/auth";
+import { getSessionFromRequest } from "@/lib/session";
 import { canAccessAdmin, canAccessFinance, canAccessHr } from "@/lib/rbac";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { canApplyForLeave } from "@/lib/staff-leave-access";

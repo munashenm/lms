@@ -131,20 +131,4 @@ export async function requireSchoolId(session: SessionPayload): Promise<string> 
   throw new Error("School context required");
 }
 
-export const DAY_LABELS: Record<string, string> = {
-  MONDAY: "Monday",
-  TUESDAY: "Tuesday",
-  WEDNESDAY: "Wednesday",
-  THURSDAY: "Thursday",
-  FRIDAY: "Friday",
-  SATURDAY: "Saturday",
-};
-
-export const DAYS_ORDER = [
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-] as const;
+export { DAY_LABELS, DAYS_ORDER } from "./timetable-days";

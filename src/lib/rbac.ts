@@ -1,5 +1,5 @@
 import { UserRole } from "@prisma/client";
-import type { SessionPayload } from "./auth";
+import type { SessionPayload } from "./session";
 import { forbiddenJson } from "./http";
 import { roleHasLegacy, type AnyPermission } from "./permissions";
 import { permissionModule } from "./modules";

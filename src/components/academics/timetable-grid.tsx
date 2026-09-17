@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { DAY_LABELS, DAYS_ORDER } from "@/lib/portal-data";
+import { DAY_LABELS, DAYS_ORDER } from "@/lib/timetable-days";
 import { orderDaysWithTodayFirst } from "@/lib/timetable-conflicts";
 import type { DayOfWeek } from "@prisma/client";
 
