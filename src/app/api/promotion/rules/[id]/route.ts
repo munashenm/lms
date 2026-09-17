@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool } from "@/lib/rbac";
+import { scopedId } from "@/lib/tenant";
 import { denyUnless } from "@/lib/access";
 import { promotionRuleSchema } from "@/lib/validators";
 import { emptyToNull } from "@/lib/class-teachers";
@@ -16,8 +16,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const denied = await denyUnless(session, "settings.manage");
   if (denied) return denied;
   const { id } = await params;
-  const existing = await prisma.promotionRule.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session!, existing.schoolId)) {
+  const existing = await prisma.promotionRule.findFirst({ where: scopedId(session!, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   const parsed = promotionRuleSchema.partial().safeParse(await request.json());
@@ -53,8 +53,8 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   const denied = await denyUnless(session, "settings.manage");
   if (denied) return denied;
   const { id } = await params;
-  const existing = await prisma.promotionRule.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session!, existing.schoolId)) {
+  const existing = await prisma.promotionRule.findFirst({ where: scopedId(session!, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   await prisma.promotionRule.delete({ where: { id } });

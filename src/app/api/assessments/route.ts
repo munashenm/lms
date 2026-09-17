@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { getTeacherForSession, requireSchoolId } from "@/lib/portal-data";
 import { assessmentSchema } from "@/lib/validators";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
-import { assertSchoolFks } from "@/lib/tenant";
+import { assertSchoolFks, institutionScope } from "@/lib/tenant";
 import { tenantMiss } from "@/lib/authorize";
 
 export async function GET(request: NextRequest) {
@@ -25,10 +25,7 @@ export async function GET(request: NextRequest) {
       ...(subjectId && { subjectId }),
       ...(publishedOnly && { isPublished: true }),
       ...(teacher && { teacherId: teacher.id }),
-      OR: [
-        { subject: getSchoolFilter(session!) },
-        { module: { course: getSchoolFilter(session!) } },
-      ],
+      ...institutionScope(session!),
     },
     include: {
       subject: { select: { name: true, code: true } },
@@ -76,6 +73,7 @@ export async function POST(request: NextRequest) {
 
   const assessment = await prisma.assessment.create({
     data: {
+      schoolId,
       title: data.title,
       description: data.description || null,
       type: data.type,

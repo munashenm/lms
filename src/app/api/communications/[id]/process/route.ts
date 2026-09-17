@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requireStaffPermission } from "@/lib/rbac";
+import { scopedId } from "@/lib/tenant";
+import { requireStaffPermission } from "@/lib/rbac";
 import { processCommunicationBatch } from "@/lib/bulk-fee-comms";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
@@ -23,8 +24,8 @@ export async function POST(request: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
-  const batch = await prisma.communicationBatch.findUnique({ where: { id } });
-  if (!batch || !canAccessSchool(session, batch.schoolId)) {
+  const batch = await prisma.communicationBatch.findFirst({ where: scopedId(session, id) });
+  if (!batch) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 

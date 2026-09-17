@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requireStaffPermission } from "@/lib/rbac";
+import { scopedId } from "@/lib/tenant";
+import { requireStaffPermission } from "@/lib/rbac";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
@@ -29,8 +30,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
-  const existing = await prisma.feeStructure.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session, existing.schoolId)) {
+  const existing = await prisma.feeStructure.findFirst({ where: scopedId(session, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   const denied = await requireLicenseWrite(existing.schoolId, { feature: "finance" });

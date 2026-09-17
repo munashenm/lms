@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { Gender, StudentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool } from "@/lib/rbac";
 import { denyUnless } from "@/lib/access";
 import { studentPatchSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { emptyToNull } from "@/lib/class-teachers";
 import { recordStudentChanges } from "@/lib/student-history";
+import { scopedId } from "@/lib/tenant";
 import {
   learnerPortalShouldBeActive,
   provisionExistingStudent,
@@ -25,8 +25,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const actor = session!;
 
   const { id } = await params;
-  const existing = await prisma.student.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(actor, existing.schoolId)) {
+  const existing = await prisma.student.findFirst({ where: scopedId(actor, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 

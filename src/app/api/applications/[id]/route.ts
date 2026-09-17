@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { applicationStatusSchema } from "@/lib/validators";
 import { sendApplicationStatusUpdate } from "@/lib/application-notify";
 import { APPLICATION_STATUS_LABELS } from "@/lib/application-status";
@@ -12,6 +12,7 @@ import {
   shouldCreateStudentOnAccept,
 } from "@/lib/application-enrolment";
 import { provisionPortalAccounts } from "@/lib/portal-provision";
+import { scopedId } from "@/lib/tenant";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -30,11 +31,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: "Invalid status" }, { status: 400 });
   }
 
-  const existing = await prisma.application.findUnique({
-    where: { id },
+  const existing = await prisma.application.findFirst({
+    where: scopedId(session!, id),
     include: { school: { select: { name: true } } },
   });
-  if (!existing || !canAccessSchool(session, existing.schoolId)) {
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 

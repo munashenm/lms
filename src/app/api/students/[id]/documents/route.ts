@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { StudentDocumentType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { scopedId } from "@/lib/tenant";
+import { requirePermission } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { validateRegistrationDocument } from "@/lib/registration-docs";
 import { saveRegistrationFile } from "@/lib/registration-uploads";
@@ -19,11 +20,11 @@ export async function GET(_request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
-  const student = await prisma.student.findUnique({
-    where: { id },
+  const student = await prisma.student.findFirst({
+    where: scopedId(session!, id),
     include: { documents: { orderBy: { createdAt: "desc" } } },
   });
-  if (!student || !canAccessSchool(session, student.schoolId)) {
+  if (!student) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   return NextResponse.json({ documents: student.documents });
@@ -35,8 +36,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
-  const student = await prisma.student.findUnique({ where: { id } });
-  if (!student || !canAccessSchool(session!, student.schoolId)) {
+  const student = await prisma.student.findFirst({ where: scopedId(session!, id) });
+  if (!student) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 

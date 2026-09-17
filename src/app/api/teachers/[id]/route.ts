@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { StaffStatus, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { teacherPatchSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
@@ -10,6 +10,7 @@ import { emptyToNull } from "@/lib/class-teachers";
 import { syncEmployeeEmploymentStatus } from "@/lib/employee-sync";
 import { provisionStaffAccount, setLinkedUserActive } from "@/lib/portal-provision";
 import { staffPortalShouldBeActive } from "@/lib/portal-lifecycle";
+import { scopedId } from "@/lib/tenant";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -22,8 +23,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
-  const existing = await prisma.teacher.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session, existing.schoolId)) {
+  const existing = await prisma.teacher.findFirst({ where: scopedId(session!, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 

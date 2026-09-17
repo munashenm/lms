@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
 
   const slot = await prisma.timetableSlot.create({
     data: {
+      schoolId,
       classId: parsed.data.classId,
       subjectId: parsed.data.subjectId || null,
       moduleId: parsed.data.moduleId || null,

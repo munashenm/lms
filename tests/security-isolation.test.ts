@@ -12,6 +12,7 @@ import {
   scopedStudentIdFilter,
   studentCanAccessAssessment,
   scopedTimetableWhere,
+  scopedId,
 } from "@/lib/tenant";
 import { canAccessUploadPath, isPublicUploadPath, parseUploadPath } from "@/lib/upload-access";
 import { publicApplicationStatus } from "@/lib/application-public";
@@ -118,9 +119,11 @@ describe("multi-tenant isolation", () => {
     const schoolB = { subject: { schoolId: "school-b" }, module: null, teacher: null };
     const schoolA = { subject: null, module: { course: { schoolId: "school-a" } }, teacher: null };
     expect(assessmentSchoolId(orphan)).toBeNull();
+    expect(assessmentSchoolId({ schoolId: "school-a", ...orphan })).toBe("school-a");
     expect(studentCanAccessAssessment("school-a", orphan)).toBe(false);
     expect(studentCanAccessAssessment("school-a", schoolB)).toBe(false);
     expect(studentCanAccessAssessment("school-a", schoolA)).toBe(true);
+    expect(studentCanAccessAssessment("school-a", { schoolId: "school-b" })).toBe(false);
     expect(denyCrossTenant(schoolUser("school-a"), null)).toBe(true);
     expect(denyCrossTenant(schoolUser("school-a"), "school-a")).toBe(false);
   });
@@ -164,10 +167,18 @@ describe("multi-tenant isolation", () => {
   it("always joins timetable lookups through the session school", () => {
     expect(scopedTimetableWhere(schoolA, "class-from-b")).toEqual({
       classId: "class-from-b",
-      class: { schoolId: "school-a" },
+      schoolId: "school-a",
     });
     expect(scopedTimetableWhere(schoolA)).toEqual({
-      class: { schoolId: "school-a" },
+      schoolId: "school-a",
+    });
+  });
+
+  it("scopes id lookups to the session institution", () => {
+    expect(scopedId(schoolA, "row-1")).toEqual({ id: "row-1", schoolId: "school-a" });
+    expect(scopedId(schoolB, "row-1")).toEqual({ id: "row-1", schoolId: "school-b" });
+    expect(scopedId({ ...schoolA, role: UserRole.SUPER_ADMIN, schoolId: null }, "row-1")).toEqual({
+      id: "row-1",
     });
   });
 });

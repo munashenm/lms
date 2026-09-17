@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { classPatchSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { assignPrimaryClassTeacher, emptyToNull } from "@/lib/class-teachers";
+import { scopedId } from "@/lib/tenant";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -18,8 +19,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
-  const existing = await prisma.class.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session, existing.schoolId)) {
+  const existing = await prisma.class.findFirst({ where: scopedId(session!, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 

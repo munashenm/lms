@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { ApprovalStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { sumTimesheetHours } from "@/lib/timesheet-hours";
 import { z } from "zod";
+import { institutionScope } from "@/lib/tenant";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -30,11 +31,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const timesheet = await prisma.timesheet.findUnique({
-    where: { id },
+  const timesheet = await prisma.timesheet.findFirst({
+    where: { id, employee: institutionScope(session) },
     include: { employee: true, entries: true },
   });
-  if (!timesheet || !canAccessSchool(session, timesheet.employee.schoolId)) {
+  if (!timesheet) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   const denied = await requireLicenseWrite(timesheet.employee.schoolId, { feature: "hr_payroll" });

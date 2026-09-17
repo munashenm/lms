@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { scopedId } from "@/lib/tenant";
+import { requirePermission } from "@/lib/rbac";
 import { campusPatchSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
@@ -18,8 +19,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
-  const existing = await prisma.campus.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session, existing.schoolId)) {
+  const existing = await prisma.campus.findFirst({ where: scopedId(session!, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 

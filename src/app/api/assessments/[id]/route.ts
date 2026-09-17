@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, canAccessSchool } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
-import { assessmentAccess, assessmentSchoolId } from "@/lib/tenant";
+import { assessmentSchoolId, scopedId } from "@/lib/tenant";
 import { tenantMiss } from "@/lib/authorize";
 
 interface RouteParams {
@@ -17,14 +17,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   }
 
   const { id } = await params;
-  const access = await assessmentAccess(id);
-  const schoolId = access ? assessmentSchoolId(access) : null;
-  if (!access || !schoolId || !canAccessSchool(session!, schoolId)) {
-    return tenantMiss();
-  }
-
-  const assessment = await prisma.assessment.findUnique({
-    where: { id },
+  const assessment = await prisma.assessment.findFirst({
+    where: scopedId(session!, id),
     include: {
       subject: true,
       module: true,
@@ -35,7 +29,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     },
   });
 
-  if (!assessment) {
+  if (!assessment || !assessmentSchoolId({ schoolId: assessment.schoolId, subject: assessment.subject, teacher: assessment.teacher })) {
     return tenantMiss();
   }
 
@@ -49,9 +43,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 
   const { id } = await params;
-  const access = await assessmentAccess(id);
-  const schoolId = access ? assessmentSchoolId(access) : null;
-  if (!access || !schoolId || !canAccessSchool(session!, schoolId)) {
+  const existing = await prisma.assessment.findFirst({ where: scopedId(session!, id) });
+  const schoolId = existing ? assessmentSchoolId(existing) : null;
+  if (!existing || !schoolId) {
     return tenantMiss();
   }
 

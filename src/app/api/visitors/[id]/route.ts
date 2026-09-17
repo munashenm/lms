@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool } from "@/lib/rbac";
 import { visitorSignOutSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { asInputJson } from "@/lib/json";
+import { scopedId } from "@/lib/tenant";
 import {
   canSignOutVisitor,
   canWriteVisitorBook,
@@ -23,8 +23,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
-  const existing = await prisma.visitorEntry.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session, existing.schoolId)) {
+  const existing = await prisma.visitorEntry.findFirst({ where: scopedId(session, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 

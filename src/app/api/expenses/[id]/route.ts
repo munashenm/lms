@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { ApprovalStatus, LedgerEntryType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requireStaffPermission } from "@/lib/rbac";
+import { requireStaffPermission } from "@/lib/rbac";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
+import { scopedId } from "@/lib/tenant";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -21,8 +22,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
-  const expense = await prisma.expense.findUnique({ where: { id }, include: { category: true } });
-  if (!expense || !canAccessSchool(session!, expense.schoolId)) {
+  const expense = await prisma.expense.findFirst({ where: scopedId(session!, id), include: { category: true } });
+  if (!expense) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   const denied = await requireLicenseWrite(expense.schoolId, { feature: "finance" });

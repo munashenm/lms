@@ -1,12 +1,17 @@
 import { UserRole } from "@prisma/client";
 import { prisma } from "./db";
 import type { SessionPayload } from "./auth";
-import { canAccessSchool, getSchoolFilter } from "./rbac";
+import { canAccessSchool } from "./rbac";
 
 export function institutionScope(session: SessionPayload): { schoolId: string } | Record<string, never> {
   if (session.role === UserRole.SUPER_ADMIN) return {};
   if (!session.schoolId) return { schoolId: "__none__" };
   return { schoolId: session.schoolId };
+}
+
+/** Look up a tenant row by id without a follow-up canAccessSchool check. */
+export function scopedId(session: SessionPayload, id: string) {
+  return { id, ...institutionScope(session) };
 }
 
 export function requireBoundSchoolId(session: SessionPayload): string {
@@ -42,6 +47,7 @@ export async function assessmentAccess(assessmentId: string) {
     where: { id: assessmentId },
     select: {
       id: true,
+      schoolId: true,
       teacherId: true,
       subject: { select: { schoolId: true } },
       module: { select: { course: { select: { schoolId: true } } } },
@@ -57,11 +63,18 @@ export const assessmentSchoolInclude = {
 } as const;
 
 export function assessmentSchoolId(assessment: {
+  schoolId?: string | null;
   subject?: { schoolId: string } | null;
   module?: { course: { schoolId: string } } | null;
   teacher?: { schoolId: string } | null;
 }): string | null {
-  return assessment.subject?.schoolId ?? assessment.module?.course.schoolId ?? assessment.teacher?.schoolId ?? null;
+  return (
+    assessment.schoolId ??
+    assessment.subject?.schoolId ??
+    assessment.module?.course.schoolId ??
+    assessment.teacher?.schoolId ??
+    null
+  );
 }
 
 export function studentCanAccessAssessment(
@@ -112,14 +125,14 @@ export function denyCrossTenant(
   return !canAccessSchool(session, resourceSchoolId);
 }
 
-/** Always join through class.schoolId — never look up a classId from another tenant. */
+/** Always filter timetable rows by denormalized schoolId. */
 export function scopedTimetableWhere(
   session: SessionPayload,
   classId?: string | null
 ) {
   return {
     ...(classId ? { classId } : {}),
-    class: getSchoolFilter(session),
+    ...institutionScope(session),
   };
 }
 

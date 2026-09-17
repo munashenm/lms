@@ -6,8 +6,7 @@ import { marksBulkSchema } from "@/lib/validators";
 import { percentageToSymbol } from "@/lib/grading";
 import { logAudit } from "@/lib/audit";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
-import { assessmentAccess, assessmentSchoolId, assertStudentsInSchool } from "@/lib/tenant";
-import { canAccessSchool } from "@/lib/rbac";
+import { assessmentSchoolId, assertStudentsInSchool, scopedId } from "@/lib/tenant";
 import { tenantMiss } from "@/lib/authorize";
 
 interface RouteParams {
@@ -27,10 +26,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
 
-  const assessmentRow = await prisma.assessment.findUnique({ where: { id: assessmentId } });
-  const access = await assessmentAccess(assessmentId);
-  const schoolId = access ? assessmentSchoolId(access) : null;
-  if (!assessmentRow || !access || !schoolId || !canAccessSchool(session!, schoolId)) {
+  const assessmentRow = await prisma.assessment.findFirst({
+    where: scopedId(session!, assessmentId),
+    include: {
+      subject: { select: { schoolId: true } },
+      module: { include: { course: { select: { schoolId: true } } } },
+      teacher: { select: { schoolId: true } },
+    },
+  });
+  const schoolId = assessmentRow ? assessmentSchoolId(assessmentRow) : null;
+  if (!assessmentRow || !schoolId) {
     return tenantMiss();
   }
 

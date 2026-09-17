@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { sessionHasPermission, canAccessSchool } from "@/lib/rbac";
+import { scopedId } from "@/lib/tenant";
+import { sessionHasPermission } from "@/lib/rbac";
 import { curriculumTopicSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { emptyToNull } from "@/lib/class-teachers";
@@ -22,8 +23,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
-  const existing = await prisma.curriculumTopic.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session, existing.schoolId)) {
+  const existing = await prisma.curriculumTopic.findFirst({ where: scopedId(session, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 

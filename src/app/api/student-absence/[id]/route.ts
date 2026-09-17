@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { sessionHasPermission, canAccessSchool } from "@/lib/rbac";
+import { sessionHasPermission } from "@/lib/rbac";
 import { studentAbsenceReviewSchema } from "@/lib/validators";
 import { nextAbsenceStatus } from "@/lib/learner-portal";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { getTeacherForSession, classIdsForTeacher } from "@/lib/portal-data";
 import { notifyUser } from "@/lib/notifications";
+import { scopedId } from "@/lib/tenant";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -25,11 +26,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
-  const existing = await prisma.studentAbsenceRequest.findUnique({
-    where: { id },
+  const existing = await prisma.studentAbsenceRequest.findFirst({
+    where: scopedId(session, id),
     include: { student: { select: { id: true, classId: true, userId: true, firstName: true, lastName: true } } },
   });
-  if (!existing || !canAccessSchool(session, existing.schoolId)) {
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
