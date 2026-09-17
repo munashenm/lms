@@ -135,27 +135,30 @@ export function needsSuperAdminSchoolPicker(
   return session.role === UserRole.SUPER_ADMIN && !session.schoolId && !requestedSchoolId;
 }
 
+/** Super Admin must send schoolId — never fall back to the first tenant in the database. */
+export function licenseSchoolSelection(
+  session: Pick<SessionPayload, "role" | "schoolId">,
+  requestedSchoolId?: string | null
+): { requested: string } | { session: string } | { missing: true } {
+  if (session.role === UserRole.SUPER_ADMIN && requestedSchoolId) {
+    return { requested: requestedSchoolId };
+  }
+  if (session.schoolId) return { session: session.schoolId };
+  return { missing: true };
+}
+
 export async function resolveLicenseSchoolId(
   session: SessionPayload,
   requestedSchoolId?: string | null
 ): Promise<string | null> {
-  if (session.role === UserRole.SUPER_ADMIN && requestedSchoolId) {
-    const exists = await prisma.school.findUnique({
-      where: { id: requestedSchoolId },
-      select: { id: true },
-    });
-    return exists?.id ?? null;
-  }
-  if (session.schoolId) return session.schoolId;
-  if (session.role === UserRole.SUPER_ADMIN) {
-    const school = await prisma.school.findFirst({
-      where: { isActive: true },
-      orderBy: { name: "asc" },
-      select: { id: true },
-    });
-    return school?.id ?? null;
-  }
-  return null;
+  const selected = licenseSchoolSelection(session, requestedSchoolId);
+  if ("missing" in selected) return null;
+  if ("session" in selected) return selected.session;
+  const exists = await prisma.school.findUnique({
+    where: { id: selected.requested },
+    select: { id: true },
+  });
+  return exists?.id ?? null;
 }
 
 export { isKnownFeature, trustUnsignedLocal };

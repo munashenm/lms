@@ -1,5 +1,5 @@
-import { UserRole } from "@prisma/client";
-import { hasPermission } from "./rbac";
+import { sessionHasPermission } from "./rbac";
+import type { SessionPayload } from "./session";
 import { maskIdentityNumber } from "./learner-portal";
 
 export const VISITOR_HOST_KIND_LABELS: Record<string, string> = {
@@ -26,12 +26,12 @@ export const VISITOR_IDENTITY_TYPE_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
-export function canViewVisitorBook(role: UserRole): boolean {
-  return hasPermission(role, "visitors:read");
+export function canViewVisitorBook(session: SessionPayload): boolean {
+  return sessionHasPermission(session, "visitors:read");
 }
 
-export function canWriteVisitorBook(role: UserRole): boolean {
-  return hasPermission(role, "visitors:write");
+export function canWriteVisitorBook(session: SessionPayload): boolean {
+  return sessionHasPermission(session, "visitors:write");
 }
 
 export function visitorIsOnSite(signedOutAt: Date | string | null | undefined): boolean {

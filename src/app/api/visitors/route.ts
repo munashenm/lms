@@ -11,7 +11,7 @@ import { canViewVisitorBook, canWriteVisitorBook, toPublicVisitorEntry } from "@
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
-  if (!session || !canViewVisitorBook(session.role)) {
+  if (!session || !canViewVisitorBook(session)) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session?.schoolId || !canWriteVisitorBook(session.role)) {
+  if (!session?.schoolId || !canWriteVisitorBook(session)) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

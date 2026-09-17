@@ -11,6 +11,7 @@ import {
   requireBoundSchoolId,
   scopedStudentIdFilter,
   studentCanAccessAssessment,
+  scopedTimetableWhere,
 } from "@/lib/tenant";
 import { canAccessUploadPath, isPublicUploadPath, parseUploadPath } from "@/lib/upload-access";
 import { publicApplicationStatus } from "@/lib/application-public";
@@ -158,5 +159,15 @@ describe("multi-tenant isolation", () => {
     expect(requireStaffPermission(parent, "finance:read")).toBe(false);
     expect(requireStaffPermission(schoolA, "finance:read")).toBe(true);
     expect(requireStaffPermission(teacherA, "finance:read")).toBe(false);
+  });
+
+  it("always joins timetable lookups through the session school", () => {
+    expect(scopedTimetableWhere(schoolA, "class-from-b")).toEqual({
+      classId: "class-from-b",
+      class: { schoolId: "school-a" },
+    });
+    expect(scopedTimetableWhere(schoolA)).toEqual({
+      class: { schoolId: "school-a" },
+    });
   });
 });

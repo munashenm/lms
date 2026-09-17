@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { findTimetableConflicts } from "@/lib/timetable-conflicts";
+import { scopedTimetableWhere } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
   const classId = searchParams.get("classId");
 
   const slots = await prisma.timetableSlot.findMany({
-    where: classId ? { classId } : { class: getSchoolFilter(session!) },
+    where: scopedTimetableWhere(session!, classId),
     include: {
       class: { select: { name: true } },
       teacher: { select: { firstName: true, lastName: true } },

@@ -1,7 +1,7 @@
 import { UserRole } from "@prisma/client";
 import { prisma } from "./db";
 import type { SessionPayload } from "./auth";
-import { canAccessSchool } from "./rbac";
+import { canAccessSchool, getSchoolFilter } from "./rbac";
 
 export function institutionScope(session: SessionPayload): { schoolId: string } | Record<string, never> {
   if (session.role === UserRole.SUPER_ADMIN) return {};
@@ -110,6 +110,115 @@ export function denyCrossTenant(
 ): boolean {
   if (!resourceSchoolId) return true;
   return !canAccessSchool(session, resourceSchoolId);
+}
+
+/** Always join through class.schoolId — never look up a classId from another tenant. */
+export function scopedTimetableWhere(
+  session: SessionPayload,
+  classId?: string | null
+) {
+  return {
+    ...(classId ? { classId } : {}),
+    class: getSchoolFilter(session),
+  };
+}
+
+export async function assertUsersInSchool(userIds: string[], schoolId: string): Promise<boolean> {
+  const unique = [...new Set(userIds)];
+  if (unique.length === 0) return true;
+  const count = await prisma.user.count({
+    where: { id: { in: unique }, schoolId },
+  });
+  return count === unique.length;
+}
+
+/** Reject cross-tenant foreign keys on create/update. Empty/null ids are skipped. */
+export async function assertSchoolFks(
+  schoolId: string,
+  fks: {
+    campusId?: string | null;
+    subjectId?: string | null;
+    teacherId?: string | null;
+    termId?: string | null;
+    moduleId?: string | null;
+    userId?: string | null;
+    supplierId?: string | null;
+    expenseCategoryId?: string | null;
+    incomeCategoryId?: string | null;
+    financialAccountId?: string | null;
+  }
+): Promise<string | null> {
+  if (fks.campusId) {
+    const row = await prisma.campus.findFirst({
+      where: { id: fks.campusId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Campus is not in this institution";
+  }
+  if (fks.subjectId) {
+    const row = await prisma.subject.findFirst({
+      where: { id: fks.subjectId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Subject is not in this institution";
+  }
+  if (fks.teacherId) {
+    const row = await prisma.teacher.findFirst({
+      where: { id: fks.teacherId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Staff member is not in this institution";
+  }
+  if (fks.termId) {
+    const row = await prisma.term.findFirst({
+      where: { id: fks.termId, academicYear: { schoolId } },
+      select: { id: true },
+    });
+    if (!row) return "Term is not in this institution";
+  }
+  if (fks.moduleId) {
+    const row = await prisma.module.findFirst({
+      where: { id: fks.moduleId, course: { schoolId } },
+      select: { id: true },
+    });
+    if (!row) return "Module is not in this institution";
+  }
+  if (fks.userId) {
+    const row = await prisma.user.findFirst({
+      where: { id: fks.userId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "User is not in this institution";
+  }
+  if (fks.supplierId) {
+    const row = await prisma.supplier.findFirst({
+      where: { id: fks.supplierId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Supplier is not in this institution";
+  }
+  if (fks.expenseCategoryId) {
+    const row = await prisma.expenseCategory.findFirst({
+      where: { id: fks.expenseCategoryId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Expense category is not in this institution";
+  }
+  if (fks.incomeCategoryId) {
+    const row = await prisma.incomeCategory.findFirst({
+      where: { id: fks.incomeCategoryId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Income category is not in this institution";
+  }
+  if (fks.financialAccountId) {
+    const row = await prisma.financialAccount.findFirst({
+      where: { id: fks.financialAccountId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Account is not in this institution";
+  }
+  return null;
 }
 
 export async function assertDocumentTargets(opts: {

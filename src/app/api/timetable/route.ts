@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { timetableSlotSchema } from "@/lib/validators";
 import { findTimetableConflicts } from "@/lib/timetable-conflicts";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
-import { classInSchool } from "@/lib/tenant";
+import { classInSchool, assertSchoolFks, scopedTimetableWhere } from "@/lib/tenant";
 import { tenantMiss } from "@/lib/authorize";
 import { requireSchoolId } from "@/lib/portal-data";
 
@@ -21,9 +21,8 @@ export async function GET(request: NextRequest) {
 
   const slots = await prisma.timetableSlot.findMany({
     where: {
-      ...(classId && { classId }),
+      ...scopedTimetableWhere(session!, classId),
       ...(teacherId && { teacherId }),
-      class: getSchoolFilter(session!),
     },
     include: {
       class: { select: { name: true } },
@@ -52,12 +51,18 @@ export async function POST(request: NextRequest) {
   const schoolId = await requireSchoolId(session!);
   const klass = await classInSchool(parsed.data.classId, schoolId);
   if (!klass) return tenantMiss();
+  const fkError = await assertSchoolFks(schoolId, {
+    teacherId: parsed.data.teacherId || null,
+    subjectId: parsed.data.subjectId || null,
+    moduleId: parsed.data.moduleId || null,
+  });
+  if (fkError) return tenantMiss();
 
   const guard = await licenseWriteGuard({ schoolId, feature: "timetable", action: "write" });
   if (!guard.ok) return licenseDeniedResponse(guard);
 
   const existing = await prisma.timetableSlot.findMany({
-    where: { class: getSchoolFilter(session!) },
+    where: scopedTimetableWhere(session!),
     include: { teacher: { select: { firstName: true, lastName: true } } },
   });
 

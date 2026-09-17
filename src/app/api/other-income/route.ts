@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter, requireStaffPermission } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
+import { tenantMiss } from "@/lib/authorize";
+import { assertSchoolFks } from "@/lib/tenant";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { ensureFinanceCatalog } from "@/lib/finance-catalog";
@@ -90,6 +92,11 @@ export async function POST(request: NextRequest) {
   }
   const parsed = schema.safeParse(raw);
   if (!parsed.success) return NextResponse.json({ message: "Invalid data" }, { status: 400 });
+  const fkError = await assertSchoolFks(schoolId, {
+    incomeCategoryId: parsed.data.categoryId ?? null,
+    financialAccountId: parsed.data.financialAccountId ?? null,
+  });
+  if (fkError) return tenantMiss();
   const income = await prisma.otherIncome.create({
     data: {
       schoolId,

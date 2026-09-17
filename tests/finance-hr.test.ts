@@ -539,6 +539,13 @@ describe("invoice payment authorization", () => {
     expect(canInitiateInvoicePayment({ ...base, role: UserRole.TEACHER })).toBe(false);
     expect(canInitiateInvoicePayment({ ...base, role: UserRole.STAFF })).toBe(false);
     expect(canInitiateInvoicePayment({ ...base, role: UserRole.FINANCE_OFFICER })).toBe(true);
+    expect(
+      canInitiateInvoicePayment({
+        ...base,
+        role: UserRole.FINANCE_OFFICER,
+        permissionDenies: ["finance.payments.create", "finance:write"],
+      })
+    ).toBe(false);
   });
 });
 

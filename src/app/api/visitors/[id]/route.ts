@@ -18,7 +18,7 @@ interface Params {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await getSession();
-  if (!session || !canWriteVisitorBook(session.role)) {
+  if (!session || !canWriteVisitorBook(session)) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

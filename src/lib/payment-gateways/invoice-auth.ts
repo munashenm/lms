@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, hasPermission } from "@/lib/rbac";
+import { canAccessSchool, sessionHasPermission } from "@/lib/rbac";
 import { getOutstandingBalance } from "@/lib/finance";
 import { getChildStudentIds } from "@/lib/portal-data";
 
@@ -14,6 +14,9 @@ export function canInitiateInvoicePayment(input: {
   sessionUserId: string;
   studentUserId: string | null;
   childStudentIds: string[];
+  permissionGrants?: string[];
+  permissionDenies?: string[];
+  disabledModules?: string[];
 }): boolean {
   if (input.role === UserRole.SUPER_ADMIN) return true;
   if (input.sessionSchoolId && input.sessionSchoolId !== input.invoiceSchoolId) return false;
@@ -23,9 +26,20 @@ export function canInitiateInvoicePayment(input: {
   if (input.role === UserRole.PARENT) {
     return input.childStudentIds.includes(input.invoiceStudentId);
   }
+  const session = {
+    userId: input.sessionUserId,
+    email: "",
+    role: input.role,
+    schoolId: input.sessionSchoolId,
+    firstName: "",
+    lastName: "",
+    permissionGrants: input.permissionGrants,
+    permissionDenies: input.permissionDenies,
+    disabledModules: input.disabledModules,
+  };
   return (
-    hasPermission(input.role, "finance.payments.create") ||
-    hasPermission(input.role, "finance:write")
+    sessionHasPermission(session, "finance.payments.create") ||
+    sessionHasPermission(session, "finance:write")
   );
 }
 
@@ -64,6 +78,9 @@ export async function authorizeInvoiceForPayment(invoiceId: string | undefined) 
       sessionUserId: session.userId,
       studentUserId: invoice.student.userId,
       childStudentIds,
+      permissionGrants: session.permissionGrants,
+      permissionDenies: session.permissionDenies,
+      disabledModules: session.disabledModules,
     })
   ) {
     return { error: NextResponse.json({ message: "Unauthorized" }, { status: 403 }) };

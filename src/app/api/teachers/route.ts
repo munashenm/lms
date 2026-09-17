@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
+import { tenantMiss } from "@/lib/authorize";
+import { assertSchoolFks } from "@/lib/tenant";
 import { teacherSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { licenseDeniedResponse, licenseWriteGuard, requireLicenseWrite } from "@/lib/licensing/enforce";
@@ -63,6 +65,11 @@ export async function POST(request: NextRequest) {
   if (existing) {
     return NextResponse.json({ message: "Employee number already exists" }, { status: 400 });
   }
+
+  const campusError = await assertSchoolFks(schoolId, {
+    campusId: parsed.data.campusId || null,
+  });
+  if (campusError) return tenantMiss();
 
   const teacher = await prisma.teacher.create({
     data: {

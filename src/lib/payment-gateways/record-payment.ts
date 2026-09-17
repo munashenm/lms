@@ -4,7 +4,6 @@ import { deriveInvoiceStatus } from "../finance";
 import { notifyUser, notifySchoolRoles } from "../notifications";
 import { notifyDocumentsReleasedIfClear } from "../academic-document-notice";
 import { getDocumentRelease } from "../fee-clearance";
-import { nextReceiptNumber } from "../finance-catalog";
 import { postPaymentToStudentLedger } from "../student-ledger";
 import { allocatePaymentToOldest } from "../payment-allocation";
 import { logAudit } from "../audit";
@@ -18,58 +17,81 @@ interface RecordGatewayPaymentParams {
 }
 
 export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: params.invoiceId },
-    include: {
-      student: { select: { userId: true, firstName: true, lastName: true } },
-    },
+  const settled = await prisma.$transaction(async (tx) => {
+    const locked = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM invoices WHERE id = ${params.invoiceId} FOR UPDATE
+    `;
+    if (!locked[0]) {
+      return { ok: false as const, reason: "invoice_not_found" as const };
+    }
+
+    const invoice = await tx.invoice.findUnique({
+      where: { id: params.invoiceId },
+      include: {
+        student: { select: { userId: true, firstName: true, lastName: true } },
+      },
+    });
+    if (!invoice) {
+      return { ok: false as const, reason: "invoice_not_found" as const };
+    }
+
+    const outstanding = Number(invoice.total) - Number(invoice.amountPaid);
+    if (params.amount > outstanding + 0.01) {
+      return { ok: false as const, reason: "amount_mismatch" as const };
+    }
+
+    const existing = await tx.payment.findFirst({
+      where: {
+        reference: params.reference,
+        invoiceId: params.invoiceId,
+        reversedAt: null,
+      },
+    });
+    if (existing) {
+      return { ok: true as const, duplicate: true as const };
+    }
+
+    const year = new Date().getFullYear();
+    const prefix = `RCP-${year}-`;
+    const last = await tx.payment.findFirst({
+      where: { schoolId: invoice.schoolId, receiptNumber: { startsWith: prefix } },
+      orderBy: { receiptNumber: "desc" },
+      select: { receiptNumber: true },
+    });
+    const seq = last?.receiptNumber ? Number(last.receiptNumber.slice(prefix.length)) + 1 : 1;
+    const receiptNumber = `${prefix}${String(Number.isFinite(seq) ? seq : 1).padStart(5, "0")}`;
+    const newAmountPaid = Number(invoice.amountPaid) + params.amount;
+    const total = Number(invoice.total);
+
+    const payment = await tx.payment.create({
+      data: {
+        schoolId: invoice.schoolId,
+        invoiceId: params.invoiceId,
+        amount: params.amount,
+        method: params.method,
+        reference: params.reference,
+        notes: params.notes,
+        receiptNumber,
+        gatewayProvider: params.method.toLowerCase(),
+      },
+    });
+
+    await tx.invoice.update({
+      where: { id: params.invoiceId },
+      data: {
+        amountPaid: newAmountPaid,
+        status: deriveInvoiceStatus(total, newAmountPaid, invoice.dueDate, invoice.status),
+      },
+    });
+
+    return { ok: true as const, duplicate: false as const, invoice, payment };
   });
 
-  if (!invoice) {
-    return { ok: false as const, reason: "invoice_not_found" };
-  }
+  if (!settled.ok) return settled;
+  if (settled.duplicate) return { ok: true as const, duplicate: true };
 
-  const outstanding = Number(invoice.total) - Number(invoice.amountPaid);
-  if (params.amount > outstanding + 0.01) {
-    return { ok: false as const, reason: "amount_mismatch" };
-  }
-
-  const existing = await prisma.payment.findFirst({
-    where: { reference: params.reference, invoiceId: params.invoiceId },
-  });
-  if (existing) {
-    return { ok: true as const, duplicate: true };
-  }
-
+  const { invoice, payment } = settled;
   const previousRelease = await getDocumentRelease(invoice.studentId);
-
-  const newAmountPaid = Number(invoice.amountPaid) + params.amount;
-  const total = Number(invoice.total);
-
-  const payment = await prisma.payment.create({
-    data: {
-      schoolId: invoice.schoolId,
-      invoiceId: params.invoiceId,
-      amount: params.amount,
-      method: params.method,
-      reference: params.reference,
-      notes: params.notes,
-      receiptNumber: await nextReceiptNumber(invoice.schoolId),
-      gatewayProvider: params.method.toLowerCase(),
-    },
-  });
-
-  const newStatus = deriveInvoiceStatus(
-    total,
-    newAmountPaid,
-    invoice.dueDate,
-    invoice.status
-  );
-
-  await prisma.invoice.update({
-    where: { id: params.invoiceId },
-    data: { amountPaid: newAmountPaid, status: newStatus },
-  });
 
   await allocatePaymentToOldest({
     schoolId: invoice.schoolId,

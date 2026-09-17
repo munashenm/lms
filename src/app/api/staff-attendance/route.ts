@@ -15,6 +15,7 @@ import {
   resolveEmployeeIdForUser,
 } from "@/lib/staff-attendance";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { assertUsersInSchool } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -146,6 +147,10 @@ export async function POST(request: NextRequest) {
   const { date, records } = parsed.data;
   const attendanceDate = new Date(date);
   attendanceDate.setHours(0, 0, 0, 0);
+  const memberIds = records.map((record) => record.userId);
+  if (!(await assertUsersInSchool(memberIds, session.schoolId))) {
+    return NextResponse.json({ message: "Staff member is not in this institution" }, { status: 400 });
+  }
   const onLeaveIds = await getApprovedLeaveUserIds(session.schoolId, attendanceDate);
   const employees = await prisma.employee.findMany({
     where: { schoolId: session.schoolId, userId: { in: records.map((r) => r.userId) } },
