@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { StudentLedgerType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requireStaffPermission } from "@/lib/rbac";
+import { requireStaffPermission } from "@/lib/rbac";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { createStudentLedgerEntry } from "@/lib/student-ledger";
 import { nextReceiptNumber } from "@/lib/finance-catalog";
 import { deriveInvoiceStatus } from "@/lib/finance";
+import { scopedId } from "@/lib/tenant";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -19,11 +20,11 @@ export async function POST(_request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
-  const payment = await prisma.payment.findUnique({
-    where: { id },
+  const payment = await prisma.payment.findFirst({
+    where: scopedId(session, id),
     include: { invoice: true, allocations: true },
   });
-  if (!payment || !canAccessSchool(session, payment.schoolId)) {
+  if (!payment) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   if (payment.reversedAt) {

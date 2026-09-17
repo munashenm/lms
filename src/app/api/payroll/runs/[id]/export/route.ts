@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { csvDownloadHeaders } from "@/lib/csv";
 import { payrollListingCsv } from "@/lib/payroll-listing";
+import { scopedId } from "@/lib/tenant";
 
 export async function GET(
   _request: NextRequest,
@@ -14,8 +15,8 @@ export async function GET(
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
-  const run = await prisma.payrollRun.findUnique({
-    where: { id },
+  const run = await prisma.payrollRun.findFirst({
+    where: scopedId(session!, id),
     include: {
       items: {
         include: {
@@ -33,7 +34,7 @@ export async function GET(
       },
     },
   });
-  if (!run || !canAccessSchool(session, run.schoolId)) {
+  if (!run) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   const csv = payrollListingCsv(run.items);

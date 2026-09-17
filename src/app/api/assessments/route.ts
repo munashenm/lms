@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { getTeacherForSession, requireSchoolId } from "@/lib/portal-data";
 import { assessmentSchema } from "@/lib/validators";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
+import { assertSchoolFks, institutionScope } from "@/lib/tenant";
+import { tenantMiss } from "@/lib/authorize";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -23,10 +25,7 @@ export async function GET(request: NextRequest) {
       ...(subjectId && { subjectId }),
       ...(publishedOnly && { isPublished: true }),
       ...(teacher && { teacherId: teacher.id }),
-      OR: [
-        { subject: getSchoolFilter(session!) },
-        { module: { course: getSchoolFilter(session!) } },
-      ],
+      ...institutionScope(session!),
     },
     include: {
       subject: { select: { name: true, code: true } },
@@ -55,15 +54,26 @@ export async function POST(request: NextRequest) {
   }
 
   const teacher = await getTeacherForSession(session!);
-  const schoolId = session!.schoolId ?? teacher?.schoolId ?? (await requireSchoolId(session!).catch(() => null));
-  if (schoolId) {
-    const guard = await licenseWriteGuard({ schoolId, feature: "assessments", action: "write" });
-    if (!guard.ok) return licenseDeniedResponse(guard);
-  }
+  const schoolId = await requireSchoolId(session!);
+  const guard = await licenseWriteGuard({ schoolId, feature: "assessments", action: "write" });
+  if (!guard.ok) return licenseDeniedResponse(guard);
   const data = parsed.data;
+  if (!data.subjectId && !data.moduleId && !teacher) {
+    return NextResponse.json(
+      { message: "Subject or programme module is required" },
+      { status: 400 }
+    );
+  }
+  const fkError = await assertSchoolFks(schoolId, {
+    subjectId: data.subjectId || null,
+    moduleId: data.moduleId || null,
+    termId: data.termId || null,
+  });
+  if (fkError) return tenantMiss();
 
   const assessment = await prisma.assessment.create({
     data: {
+      schoolId,
       title: data.title,
       description: data.description || null,
       type: data.type,

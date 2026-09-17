@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
+import { scopedId } from "@/lib/tenant";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { approvePayrollRun, calculatePayrollRun, finalisePayrollRun, reversePayrollRun } from "@/lib/payroll-run";
 import { z } from "zod";
@@ -20,14 +21,14 @@ export async function GET(_request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
-  const run = await prisma.payrollRun.findUnique({
-    where: { id },
+  const run = await prisma.payrollRun.findFirst({
+    where: scopedId(session!, id),
     include: {
       items: { include: { employee: true, payslip: true } },
       ruleSet: true,
     },
   });
-  if (!run || !canAccessSchool(session!, run.schoolId)) {
+  if (!run) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   return NextResponse.json({
@@ -49,8 +50,8 @@ export async function POST(request: NextRequest, { params }: Params) {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const run = await prisma.payrollRun.findUnique({ where: { id } });
-  if (!run || !canAccessSchool(session, run.schoolId)) {
+  const run = await prisma.payrollRun.findFirst({ where: scopedId(session, id) });
+  if (!run) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   const denied = await requireLicenseWrite(run.schoolId, { feature: "hr_payroll" });

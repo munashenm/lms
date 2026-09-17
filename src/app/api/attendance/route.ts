@@ -13,7 +13,7 @@ import {
 } from "@/lib/portal-data";
 import { buildAttendanceSessionKey } from "@/lib/attendance";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
-import { assertStudentsInSchool, classInSchool, scopedStudentIdFilter } from "@/lib/tenant";
+import { assertStudentsInSchool, classInSchool, institutionScope, scopedStudentIdFilter } from "@/lib/tenant";
 import { tenantMiss } from "@/lib/authorize";
 
 export async function GET(request: NextRequest) {
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         childIds,
       }),
       ...(date && { date: new Date(date) }),
-      student: getSchoolFilter(session),
+      ...institutionScope(session),
     },
     include: {
       student: { select: { firstName: true, lastName: true, studentNumber: true } },
@@ -125,6 +125,7 @@ export async function POST(request: NextRequest) {
           },
         },
         create: {
+          schoolId,
           studentId: record.studentId,
           classId: classId || null,
           moduleId: moduleId || null,
@@ -139,6 +140,7 @@ export async function POST(request: NextRequest) {
           markedBy,
         },
         update: {
+          schoolId,
           status: record.status,
           notes: record.notes ?? null,
           markedBy,

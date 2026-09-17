@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { ApprovalStatus, StudentLedgerType } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requireStaffPermission } from "@/lib/rbac";
+import { requireStaffPermission } from "@/lib/rbac";
 import { refundPatchSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { createStudentLedgerEntry } from "@/lib/student-ledger";
 import { logAudit } from "@/lib/audit";
 import { nextRefundStatus } from "@/lib/refund-approval";
 import { roundMoney } from "@/lib/money";
+import { scopedId } from "@/lib/tenant";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -27,8 +28,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
-  const existing = await prisma.refund.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session, existing.schoolId)) {
+  const existing = await prisma.refund.findFirst({ where: scopedId(session, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 

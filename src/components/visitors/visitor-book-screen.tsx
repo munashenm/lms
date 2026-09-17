@@ -16,7 +16,7 @@ interface VisitorBookScreenProps {
 
 export async function VisitorBookScreen({ searchParams }: VisitorBookScreenProps) {
   const session = await getSession();
-  if (!session || !canViewVisitorBook(session.role)) {
+  if (!session || !canViewVisitorBook(session)) {
     redirect(session ? ROLE_DASHBOARD[session.role] : "/login");
   }
 
@@ -38,7 +38,7 @@ export async function VisitorBookScreen({ searchParams }: VisitorBookScreenProps
   const { date } = await searchParams;
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Johannesburg" });
   const selectedDate = date ?? today;
-  const canWrite = canWriteVisitorBook(session.role);
+  const canWrite = canWriteVisitorBook(session);
 
   const dayStart = new Date(`${selectedDate}T00:00:00+02:00`);
   const dayEnd = new Date(`${selectedDate}T23:59:59.999+02:00`);

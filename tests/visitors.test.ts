@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { UserRole } from "@prisma/client";
+import type { SessionPayload } from "@/lib/auth";
 import { hasPermission } from "@/lib/rbac";
 import { navHrefFeature } from "@/lib/licensing/portal";
 import { getAdminNav, getTeacherNav } from "@/lib/navigation";
@@ -14,13 +15,34 @@ import {
 } from "@/lib/visitors";
 
 describe("visitor book access", () => {
+  function session(role: UserRole, extra: Partial<SessionPayload> = {}): SessionPayload {
+    return {
+      userId: "u1",
+      email: "office@school.co.za",
+      role,
+      schoolId: "school-a",
+      firstName: "A",
+      lastName: "B",
+      ...extra,
+    };
+  }
+
   it("lets office and teaching staff use the register, not learners or parents", () => {
-    expect(canViewVisitorBook(UserRole.SCHOOL_ADMIN)).toBe(true);
-    expect(canWriteVisitorBook(UserRole.STAFF)).toBe(true);
-    expect(canWriteVisitorBook(UserRole.TEACHER)).toBe(true);
-    expect(canViewVisitorBook(UserRole.STUDENT)).toBe(false);
-    expect(canWriteVisitorBook(UserRole.PARENT)).toBe(false);
+    expect(canViewVisitorBook(session(UserRole.SCHOOL_ADMIN))).toBe(true);
+    expect(canWriteVisitorBook(session(UserRole.STAFF))).toBe(true);
+    expect(canWriteVisitorBook(session(UserRole.TEACHER))).toBe(true);
+    expect(canViewVisitorBook(session(UserRole.STUDENT))).toBe(false);
+    expect(canWriteVisitorBook(session(UserRole.PARENT))).toBe(false);
     expect(hasPermission(UserRole.STUDENT, "visitors:read")).toBe(false);
+  });
+
+  it("honours an explicit visitors permission deny on the session", () => {
+    expect(
+      canWriteVisitorBook(session(UserRole.STAFF, { permissionDenies: ["visitors:write"] }))
+    ).toBe(false);
+    expect(
+      canViewVisitorBook(session(UserRole.TEACHER, { permissionDenies: ["visitors:read"] }))
+    ).toBe(false);
   });
 
   it("maps visitor routes to the visitor_management licence", () => {

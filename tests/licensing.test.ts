@@ -7,7 +7,7 @@ import { canAccessSchool, hasPermission } from "@/lib/rbac";
 import { UserRole } from "@prisma/client";
 import type { SessionPayload } from "@/lib/auth";
 import { isRestrictedPathAllowed } from "@/lib/licensing/restricted-paths";
-import { needsSuperAdminSchoolPicker } from "@/lib/licensing/enforce";
+import { needsSuperAdminSchoolPicker, licenseSchoolSelection } from "@/lib/licensing/enforce";
 import { shouldTrustUnsignedLicense } from "@/lib/licensing/service";
 import { filterNavByLicense, isFeatureEnabled, licenseBannerTone, navHrefFeature } from "@/lib/licensing/portal";
 import { getAdminNav, studentNav } from "@/lib/navigation";
@@ -227,6 +227,15 @@ describe("multi-tenancy isolation", () => {
     expect(
       needsSuperAdminSchoolPicker({ role: UserRole.SCHOOL_ADMIN, schoolId: "school-a" }, null)
     ).toBe(false);
+    expect(licenseSchoolSelection({ role: UserRole.SUPER_ADMIN, schoolId: null }, null)).toEqual({
+      missing: true,
+    });
+    expect(
+      licenseSchoolSelection({ role: UserRole.SUPER_ADMIN, schoolId: null }, "school-a")
+    ).toEqual({ requested: "school-a" });
+    expect(
+      licenseSchoolSelection({ role: UserRole.SCHOOL_ADMIN, schoolId: "school-a" }, null)
+    ).toEqual({ session: "school-a" });
   });
 });
 

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { StaffStatus, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
+import { scopedId } from "@/lib/tenant";
 import { licenseDeniedResponse, licenseWriteGuard, requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { syncEmployeeEmploymentStatus } from "@/lib/employee-sync";
@@ -33,8 +34,8 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const employee = await prisma.employee.findUnique({
-    where: { id },
+  const employee = await prisma.employee.findFirst({
+    where: scopedId(session, id),
     include: {
       contracts: true,
       salaryStructures: { orderBy: { effectiveFrom: "desc" } },
@@ -43,7 +44,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
       campus: true,
     },
   });
-  if (!employee || !canAccessSchool(session, employee.schoolId)) {
+  if (!employee) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   const own = employee.userId === session.userId;
@@ -61,8 +62,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
-  const existing = await prisma.employee.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session!, existing.schoolId)) {
+  const existing = await prisma.employee.findFirst({ where: scopedId(session!, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   const denied = await requireLicenseWrite(existing.schoolId, { feature: "hr_payroll" });

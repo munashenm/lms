@@ -9,6 +9,11 @@ export function institutionScope(session: SessionPayload): { schoolId: string } 
   return { schoolId: session.schoolId };
 }
 
+/** Look up a tenant row by id without a follow-up canAccessSchool check. */
+export function scopedId(session: SessionPayload, id: string) {
+  return { id, ...institutionScope(session) };
+}
+
 export function requireBoundSchoolId(session: SessionPayload): string {
   if (session.schoolId) return session.schoolId;
   throw new Error("School context required");
@@ -42,6 +47,7 @@ export async function assessmentAccess(assessmentId: string) {
     where: { id: assessmentId },
     select: {
       id: true,
+      schoolId: true,
       teacherId: true,
       subject: { select: { schoolId: true } },
       module: { select: { course: { select: { schoolId: true } } } },
@@ -57,11 +63,18 @@ export const assessmentSchoolInclude = {
 } as const;
 
 export function assessmentSchoolId(assessment: {
+  schoolId?: string | null;
   subject?: { schoolId: string } | null;
   module?: { course: { schoolId: string } } | null;
   teacher?: { schoolId: string } | null;
 }): string | null {
-  return assessment.subject?.schoolId ?? assessment.module?.course.schoolId ?? assessment.teacher?.schoolId ?? null;
+  return (
+    assessment.schoolId ??
+    assessment.subject?.schoolId ??
+    assessment.module?.course.schoolId ??
+    assessment.teacher?.schoolId ??
+    null
+  );
 }
 
 export function studentCanAccessAssessment(
@@ -110,6 +123,115 @@ export function denyCrossTenant(
 ): boolean {
   if (!resourceSchoolId) return true;
   return !canAccessSchool(session, resourceSchoolId);
+}
+
+/** Always filter timetable rows by denormalized schoolId. */
+export function scopedTimetableWhere(
+  session: SessionPayload,
+  classId?: string | null
+) {
+  return {
+    ...(classId ? { classId } : {}),
+    ...institutionScope(session),
+  };
+}
+
+export async function assertUsersInSchool(userIds: string[], schoolId: string): Promise<boolean> {
+  const unique = [...new Set(userIds)];
+  if (unique.length === 0) return true;
+  const count = await prisma.user.count({
+    where: { id: { in: unique }, schoolId },
+  });
+  return count === unique.length;
+}
+
+/** Reject cross-tenant foreign keys on create/update. Empty/null ids are skipped. */
+export async function assertSchoolFks(
+  schoolId: string,
+  fks: {
+    campusId?: string | null;
+    subjectId?: string | null;
+    teacherId?: string | null;
+    termId?: string | null;
+    moduleId?: string | null;
+    userId?: string | null;
+    supplierId?: string | null;
+    expenseCategoryId?: string | null;
+    incomeCategoryId?: string | null;
+    financialAccountId?: string | null;
+  }
+): Promise<string | null> {
+  if (fks.campusId) {
+    const row = await prisma.campus.findFirst({
+      where: { id: fks.campusId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Campus is not in this institution";
+  }
+  if (fks.subjectId) {
+    const row = await prisma.subject.findFirst({
+      where: { id: fks.subjectId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Subject is not in this institution";
+  }
+  if (fks.teacherId) {
+    const row = await prisma.teacher.findFirst({
+      where: { id: fks.teacherId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Staff member is not in this institution";
+  }
+  if (fks.termId) {
+    const row = await prisma.term.findFirst({
+      where: { id: fks.termId, academicYear: { schoolId } },
+      select: { id: true },
+    });
+    if (!row) return "Term is not in this institution";
+  }
+  if (fks.moduleId) {
+    const row = await prisma.module.findFirst({
+      where: { id: fks.moduleId, course: { schoolId } },
+      select: { id: true },
+    });
+    if (!row) return "Module is not in this institution";
+  }
+  if (fks.userId) {
+    const row = await prisma.user.findFirst({
+      where: { id: fks.userId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "User is not in this institution";
+  }
+  if (fks.supplierId) {
+    const row = await prisma.supplier.findFirst({
+      where: { id: fks.supplierId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Supplier is not in this institution";
+  }
+  if (fks.expenseCategoryId) {
+    const row = await prisma.expenseCategory.findFirst({
+      where: { id: fks.expenseCategoryId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Expense category is not in this institution";
+  }
+  if (fks.incomeCategoryId) {
+    const row = await prisma.incomeCategory.findFirst({
+      where: { id: fks.incomeCategoryId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Income category is not in this institution";
+  }
+  if (fks.financialAccountId) {
+    const row = await prisma.financialAccount.findFirst({
+      where: { id: fks.financialAccountId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Account is not in this institution";
+  }
+  return null;
 }
 
 export async function assertDocumentTargets(opts: {

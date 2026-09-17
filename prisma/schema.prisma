@@ -582,6 +582,9 @@ model School {
   studentChangeLogs      StudentChangeLog[]
   promotionRules         PromotionRule[]
   promotionDecisions     PromotionDecision[]
+  assessments            Assessment[]
+  attendanceRecords      AttendanceRecord[]
+  timetableSlots         TimetableSlot[]
   admissionYear          AcademicYear? @relation("SchoolAdmissionYear", fields: [admissionYearId], references: [id], onDelete: SetNull)
 
   @@index([slug])
@@ -1216,6 +1219,7 @@ model WebsiteGalleryItem {
 
 model AttendanceRecord {
   id           String           @id @default(cuid())
+  schoolId     String?
   studentId    String
   classId      String?
   subjectId    String?
@@ -1231,6 +1235,7 @@ model AttendanceRecord {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
+  school    School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   class     Class?   @relation(fields: [classId], references: [id])
   subject   Subject? @relation(fields: [subjectId], references: [id])
@@ -1238,6 +1243,7 @@ model AttendanceRecord {
   term      Term?    @relation(fields: [termId], references: [id])
 
   @@unique([studentId, date, sessionKey])
+  @@index([schoolId, date])
   @@index([studentId, date])
   @@index([classId, date])
   @@index([moduleId, date])
@@ -1249,6 +1255,7 @@ model AttendanceRecord {
 
 model TimetableSlot {
   id        String    @id @default(cuid())
+  schoolId  String?
   classId   String
   subjectId String?
   moduleId  String?
@@ -1261,11 +1268,13 @@ model TimetableSlot {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
+  school    School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
   subject   Subject? @relation(fields: [subjectId], references: [id])
   module    Module?  @relation(fields: [moduleId], references: [id])
   teacher   Teacher? @relation(fields: [teacherId], references: [id])
 
+  @@index([schoolId])
   @@index([classId])
   @@map("timetable_slots")
 }
@@ -1274,6 +1283,7 @@ model TimetableSlot {
 
 model Assessment {
   id          String         @id @default(cuid())
+  schoolId    String?
   subjectId   String?
   moduleId    String?
   termId      String?
@@ -1291,6 +1301,7 @@ model Assessment {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
+  school      School?   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   subject     Subject?  @relation(fields: [subjectId], references: [id])
   module      Module?   @relation(fields: [moduleId], references: [id])
   term        Term?     @relation(fields: [termId], references: [id])
@@ -1300,6 +1311,7 @@ model Assessment {
   questions   ExamQuestion[]
   attempts    ExamAttempt[]
 
+  @@index([schoolId])
   @@index([subjectId])
   @@index([moduleId])
   @@map("assessments")

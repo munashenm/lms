@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
+import { tenantMiss } from "@/lib/authorize";
+import { assertSchoolFks } from "@/lib/tenant";
 import { licenseDeniedResponse, licenseWriteGuard, requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { encryptSecret } from "@/lib/secret-crypto";
@@ -87,6 +89,12 @@ export async function POST(request: NextRequest) {
   }
   const employeeNumber = parsed.data.employeeNumber?.trim() || (await nextHrEmployeeNumber(schoolId));
   const last4 = parsed.data.bankAccountNumber ? parsed.data.bankAccountNumber.slice(-4) : null;
+  const linkError = await assertSchoolFks(schoolId, {
+    campusId: parsed.data.campusId ?? null,
+    userId: parsed.data.userId ?? null,
+    teacherId: parsed.data.teacherId ?? null,
+  });
+  if (linkError) return tenantMiss();
   const employee = await prisma.employee.create({
     data: {
       schoolId,

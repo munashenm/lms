@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { scopedId } from "@/lib/tenant";
+import { requirePermission } from "@/lib/rbac";
 import { websiteGallerySchema } from "@/lib/validators";
 
 interface Params {
@@ -14,8 +15,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
-  const existing = await prisma.websiteGalleryItem.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session, existing.schoolId)) {
+  const existing = await prisma.websiteGalleryItem.findFirst({ where: scopedId(session, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   const parsed = websiteGallerySchema.safeParse(await request.json());
@@ -32,8 +33,8 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
-  const existing = await prisma.websiteGalleryItem.findUnique({ where: { id } });
-  if (!existing || !canAccessSchool(session, existing.schoolId)) {
+  const existing = await prisma.websiteGalleryItem.findFirst({ where: scopedId(session, id) });
+  if (!existing) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   await prisma.websiteGalleryItem.delete({ where: { id } });

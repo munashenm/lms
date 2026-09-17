@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
+import { scopedId } from "@/lib/tenant";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -24,8 +25,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
-  const employee = await prisma.employee.findUnique({ where: { id } });
-  if (!employee || !canAccessSchool(session!, employee.schoolId)) {
+  const employee = await prisma.employee.findFirst({ where: scopedId(session!, id) });
+  if (!employee) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   const denied = await requireLicenseWrite(employee.schoolId, { feature: "hr_payroll" });

@@ -2,14 +2,12 @@ import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { denyUnless } from "@/lib/access";
 import { SYSTEM_MODULES } from "@/lib/modules";
 
 export async function GET() {
   const session = await getSession();
   if (session?.role !== UserRole.SUPER_ADMIN) {
-    const denied = await denyUnless(session, "settings.manage");
-    if (denied) return denied;
+    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
   const schools = await prisma.school.findMany({

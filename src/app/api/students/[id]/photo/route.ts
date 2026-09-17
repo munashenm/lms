@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { scopedId } from "@/lib/tenant";
+import { requirePermission } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { validateStudentPhoto } from "@/lib/registration-docs";
 import { saveRegistrationFile } from "@/lib/registration-uploads";
@@ -16,8 +17,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
-  const student = await prisma.student.findUnique({ where: { id } });
-  if (!student || !canAccessSchool(session!, student.schoolId)) {
+  const student = await prisma.student.findFirst({ where: scopedId(session!, id) });
+  if (!student) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
