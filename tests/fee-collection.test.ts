@@ -43,7 +43,7 @@ describe("fee collection search", () => {
     expect(digitsOnly("800101 5009087")).toBe("8001015009087");
     expect(or).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ saIdNumber: { contains: "8001015009087" } }),
+        expect.objectContaining({ saIdNumber: "8001015009087" }),
         expect.objectContaining({
           AND: [
             expect.objectContaining({ firstName: expect.objectContaining({ contains: "Thabo" }) }),
@@ -52,6 +52,7 @@ describe("fee collection search", () => {
         }),
       ])
     );
+    expect(or.some((clause) => "saIdNumberHash" in clause)).toBe(true);
   });
 
   it("lists a class without a text query", () => {

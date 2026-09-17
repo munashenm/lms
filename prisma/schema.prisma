@@ -917,6 +917,7 @@ model Student {
   classId         String?
   studentNumber   String
   saIdNumber      String?
+  saIdNumberHash  String?
   passportNumber  String?
   alternativeId   String?
   firstName       String
@@ -976,6 +977,7 @@ model Student {
 
   @@unique([schoolId, studentNumber])
   @@index([schoolId])
+  @@index([schoolId, saIdNumberHash])
   @@index([status])
   @@map("students")
 }
@@ -1003,6 +1005,7 @@ model Teacher {
   campusId      String?
   employeeNumber String
   saIdNumber    String?
+  saIdNumberHash String?
   firstName     String
   lastName      String
   email         String?
@@ -1028,6 +1031,7 @@ model Teacher {
 
   @@unique([schoolId, employeeNumber])
   @@index([schoolId])
+  @@index([schoolId, saIdNumberHash])
   @@map("teachers")
 }
 
@@ -1040,6 +1044,7 @@ model Guardian {
   email        String?
   phone        String?
   saIdNumber   String?
+  saIdNumberHash String?
   relationship String?
   address      String?
   createdAt    DateTime @default(now())
@@ -1050,6 +1055,7 @@ model Guardian {
   students     StudentGuardian[]
 
   @@index([schoolId])
+  @@index([schoolId, saIdNumberHash])
   @@map("guardians")
 }
 
@@ -1114,6 +1120,7 @@ model Application {
   firstName       String
   lastName        String
   saIdNumber      String?
+  saIdNumberHash  String?
   dateOfBirth     DateTime?         @db.Date
   gender          Gender?
   nationality     String?
@@ -1149,6 +1156,7 @@ model Application {
 
   @@unique([schoolId, referenceNo])
   @@index([schoolId, status])
+  @@index([schoolId, saIdNumberHash])
   @@index([academicYearId])
   @@index([campusId])
   @@map("applications")
@@ -2949,6 +2957,7 @@ model Employee {
   email              String?
   phone              String?
   saIdNumber         String?
+  saIdNumberHash     String?
   dateOfBirth        DateTime?
   gender             Gender?
   address            String?
@@ -2985,6 +2994,7 @@ model Employee {
   @@unique([schoolId, employeeNumber])
   @@index([schoolId, status])
   @@index([schoolId, campusId])
+  @@index([schoolId, saIdNumberHash])
   @@map("employees")
 }
 
