@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { attendanceBulkSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
-import { getTeacherForSession } from "@/lib/portal-data";
+import {
+  getTeacherForSession,
+  getStudentForSession,
+  getChildStudentIds,
+  requireSchoolId,
+} from "@/lib/portal-data";
 import { buildAttendanceSessionKey } from "@/lib/attendance";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
+import { assertStudentsInSchool, classInSchool, scopedStudentIdFilter } from "@/lib/tenant";
+import { tenantMiss } from "@/lib/authorize";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -20,11 +28,19 @@ export async function GET(request: NextRequest) {
   const studentId = searchParams.get("studentId");
   const date = searchParams.get("date");
 
+  const ownStudent =
+    session.role === UserRole.STUDENT ? await getStudentForSession(session) : null;
+  const childIds =
+    session.role === UserRole.PARENT ? await getChildStudentIds(session) : [];
+
   const records = await prisma.attendanceRecord.findMany({
     where: {
       ...(classId && { classId }),
       ...(moduleId && { moduleId }),
-      ...(studentId && { studentId }),
+      ...scopedStudentIdFilter(session, studentId, {
+        ownStudentId: ownStudent?.id,
+        childIds,
+      }),
       ...(date && { date: new Date(date) }),
       student: getSchoolFilter(session),
     },
@@ -66,11 +82,22 @@ export async function POST(request: NextRequest) {
     records,
   } = parsed.data;
 
-  const schoolId = session!.schoolId ?? (await getTeacherForSession(session!))?.schoolId;
-  if (schoolId) {
-    const guard = await licenseWriteGuard({ schoolId, feature: "attendance", action: "write" });
-    if (!guard.ok) return licenseDeniedResponse(guard);
+  const schoolId =
+    session!.schoolId ?? (await getTeacherForSession(session!))?.schoolId ?? (await requireSchoolId(session!).catch(() => null));
+  if (!schoolId) {
+    return NextResponse.json({ message: "School context required" }, { status: 400 });
   }
+  if (classId) {
+    const klass = await classInSchool(classId, schoolId);
+    if (!klass) return tenantMiss();
+  }
+  const studentIds = records.map((record) => record.studentId);
+  if (!(await assertStudentsInSchool(studentIds, schoolId))) {
+    return tenantMiss();
+  }
+
+  const guard = await licenseWriteGuard({ schoolId, feature: "attendance", action: "write" });
+  if (!guard.ok) return licenseDeniedResponse(guard);
 
   const attendanceDate = new Date(date);
   const teacher = await getTeacherForSession(session);
@@ -127,7 +154,7 @@ export async function POST(request: NextRequest) {
   );
 
   await logAudit({
-    schoolId: session!.schoolId,
+    schoolId,
     userId: session!.userId,
     action: "BULK_UPDATE",
     entity: "AttendanceRecord",
@@ -141,14 +168,14 @@ export async function POST(request: NextRequest) {
   });
 
   let absenceNotifications: { sent: number; skipped: boolean } | undefined;
-  if (session!.schoolId) {
+  if (schoolId) {
     const { notifyAbsenceAlerts } = await import("@/lib/communications");
     const absences = records.filter(
       (r) => r.status === "ABSENT" || r.status === "SICK"
     );
     if (absences.length > 0) {
       absenceNotifications = await notifyAbsenceAlerts({
-        schoolId: session!.schoolId,
+        schoolId,
         date,
         absences,
       });

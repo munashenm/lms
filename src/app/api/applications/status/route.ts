@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { clientIp, rateLimit, rateLimitedJson } from "@/lib/rate-limit";
+import { publicApplicationStatus } from "@/lib/application-public";
 
 export async function GET(request: NextRequest) {
+  const ip = clientIp(request.headers);
+  const limited = rateLimit({ key: `app-status:${ip}`, limit: 20, windowMs: 15 * 60 * 1000 });
+  if (!limited.ok) {
+    const body = rateLimitedJson(limited.retryAfterSec);
+    return NextResponse.json(body.body, { status: body.status, headers: body.headers });
+  }
+
   const ref = request.nextUrl.searchParams.get("ref")?.trim();
   if (!ref) {
     return NextResponse.json({ message: "Reference number required" }, { status: 400 });
@@ -9,7 +18,12 @@ export async function GET(request: NextRequest) {
 
   const application = await prisma.application.findFirst({
     where: { referenceNo: { equals: ref, mode: "insensitive" } },
-    include: { school: { select: { name: true } } },
+    select: {
+      referenceNo: true,
+      status: true,
+      submittedAt: true,
+      school: { select: { name: true } },
+    },
   });
 
   if (!application) {
@@ -17,16 +31,6 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({
-    application: {
-      referenceNo: application.referenceNo,
-      firstName: application.firstName,
-      lastName: application.lastName,
-      status: application.status,
-      gradeApplied: application.gradeApplied,
-      courseApplied: application.courseApplied,
-      submittedAt: application.submittedAt.toISOString(),
-      reviewedAt: application.reviewedAt?.toISOString() ?? null,
-      schoolName: application.school.name,
-    },
+    application: publicApplicationStatus(application),
   });
 }

@@ -5,6 +5,7 @@ import { getStudentForSession } from "@/lib/portal-data";
 import { examSubmitSchema } from "@/lib/validators";
 import { examTimeRemainingMs, scoreExamResponse } from "@/lib/online-exams";
 import { percentageToSymbol } from "@/lib/grading";
+import { assessmentSchoolInclude, studentCanAccessAssessment } from "@/lib/tenant";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -25,11 +26,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const attempt = await prisma.examAttempt.findUnique({
     where: { assessmentId_studentId: { assessmentId: id, studentId: student.id } },
     include: {
-      assessment: { include: { questions: true } },
+      assessment: { include: { questions: true, ...assessmentSchoolInclude } },
     },
   });
 
-  if (!attempt || attempt.status === "SUBMITTED") {
+  if (
+    !attempt ||
+    attempt.status === "SUBMITTED" ||
+    !studentCanAccessAssessment(student.schoolId, attempt.assessment)
+  ) {
     return NextResponse.json({ message: "No open attempt" }, { status: 400 });
   }
 

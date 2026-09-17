@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requireStaffPermission, getSchoolFilter } from "@/lib/rbac";
 import { getOutstandingBalance } from "@/lib/finance";
 
 export async function GET() {
   const session = await getSession();
-  if (!requirePermission(session, "finance:read")) {
+  if (!requireStaffPermission(session, "finance:read")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter, hasPermission } from "@/lib/rbac";
+import { getSchoolFilter, requireStaffPermission } from "@/lib/rbac";
 import { financeOpsSectionCsv, getFinanceOpsReport } from "@/lib/finance-ops-report";
 import { csvDownloadHeaders } from "@/lib/csv";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  if (!hasPermission(session.role, "finance.reports.view") && !hasPermission(session.role, "finance:read")) {
+  if (!requireStaffPermission(session, "finance.reports.view") && !requireStaffPermission(session, "finance:read")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const filter = getSchoolFilter(session);

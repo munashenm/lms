@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requireStaffPermission, getSchoolFilter } from "@/lib/rbac";
 import {
   COLLECTABLE_INVOICE_STATUSES,
   FEE_COLLECTION_MIN_QUERY,
@@ -30,7 +30,7 @@ const studentInclude = {
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
-  if (!requirePermission(session, "finance:read")) {
+  if (!requireStaffPermission(session, "finance:read")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

@@ -29,6 +29,11 @@ export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
     return { ok: false as const, reason: "invoice_not_found" };
   }
 
+  const outstanding = Number(invoice.total) - Number(invoice.amountPaid);
+  if (params.amount > outstanding + 0.01) {
+    return { ok: false as const, reason: "amount_mismatch" };
+  }
+
   const existing = await prisma.payment.findFirst({
     where: { reference: params.reference, invoiceId: params.invoiceId },
   });

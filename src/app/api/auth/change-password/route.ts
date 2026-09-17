@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, issueSession } from "@/lib/auth";
 import { changePasswordSchema } from "@/lib/validators";
 import { changePassword } from "@/lib/password-reset";
 import { logAudit } from "@/lib/audit";
+import { ROLE_DASHBOARD } from "@/lib/constants";
+import { requestMeta } from "@/lib/request-meta";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -29,14 +31,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Current password is incorrect" }, { status: 400 });
   }
 
+  await issueSession({
+    userId: result.user.id,
+    email: result.user.email,
+    role: result.user.role,
+    schoolId: result.user.schoolId,
+    firstName: result.user.firstName,
+    lastName: result.user.lastName,
+    mustResetPassword: false,
+    sessionVersion: result.user.sessionVersion,
+  });
+
   await logAudit({
     schoolId: session.schoolId,
     userId: session.userId,
-    action: "UPDATE",
+    action: "PASSWORD_CHANGED",
     entity: "User",
     entityId: session.userId,
-    metadata: { field: "password" },
+    metadata: { field: "password", sessionsRevoked: true },
+    ...requestMeta(request),
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    redirect: ROLE_DASHBOARD[result.user.role],
+  });
 }

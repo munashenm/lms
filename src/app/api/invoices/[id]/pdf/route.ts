@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requirePermission, canAccessSchool } from "@/lib/rbac";
 import { getChildStudentIds, getStudentForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import {
@@ -46,7 +46,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     },
   });
 
-  if (!invoice) {
+  if (!invoice || !canAccessSchool(session, invoice.schoolId)) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
@@ -58,9 +58,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     const childIds = await getChildStudentIds(session);
     allowed = childIds.includes(invoice.studentId);
   } else if (requirePermission(session, "finance:read")) {
-    const filter = getSchoolFilter(session);
-    allowed =
-      !("schoolId" in filter) || filter.schoolId === invoice.schoolId;
+    allowed = true;
   }
 
   if (!allowed) {

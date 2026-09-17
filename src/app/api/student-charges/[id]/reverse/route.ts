@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { hasPermission } from "@/lib/rbac";
+import { requireStaffPermission } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { reverseStudentCharge } from "@/lib/fee-engine";
@@ -21,9 +21,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   if (
-    !hasPermission(session.role, "finance.fees.manage") &&
-    !hasPermission(session.role, "finance:write") &&
-    !hasPermission(session.role, "finance.payments.reverse")
+    !requireStaffPermission(session, "finance.fees.manage") &&
+    !requireStaffPermission(session, "finance:write") &&
+    !requireStaffPermission(session, "finance.payments.reverse")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }

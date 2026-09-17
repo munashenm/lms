@@ -7,6 +7,7 @@ import { ROLE_DASHBOARD } from "@/lib/constants";
 import { staffNav } from "@/lib/navigation";
 import { getPortalSessionContext } from "@/lib/portal-session";
 import { filterNavByLicense } from "@/lib/licensing/portal";
+import { enforceForcedPasswordReset } from "@/lib/force-password-reset-server";
 
 export default async function StaffLayout({
   children,
@@ -17,6 +18,7 @@ export default async function StaffLayout({
   if (!session || !canApplyForLeave(session.role)) {
     redirect("/login");
   }
+  enforceForcedPasswordReset(session);
 
   const ctx = await getPortalSessionContext(session);
 

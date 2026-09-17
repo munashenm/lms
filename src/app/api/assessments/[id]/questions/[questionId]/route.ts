@@ -4,6 +4,9 @@ import { getSession } from "@/lib/auth";
 import { requirePermission } from "@/lib/rbac";
 import { getTeacherForSession } from "@/lib/portal-data";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
+import { canAccessSchool } from "@/lib/rbac";
+import { assessmentSchoolId, assessmentSchoolInclude } from "@/lib/tenant";
+import { tenantMiss } from "@/lib/authorize";
 
 interface RouteParams {
   params: Promise<{ id: string; questionId: string }>;
@@ -20,15 +23,17 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     where: { id: questionId, assessmentId: id },
     include: {
       assessment: {
-        include: {
-          subject: { select: { schoolId: true } },
-          module: { select: { course: { select: { schoolId: true } } } },
-        },
+        include: assessmentSchoolInclude,
       },
     },
   });
   if (!question) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
+    return tenantMiss();
+  }
+
+  const schoolId = assessmentSchoolId(question.assessment);
+  if (!schoolId || !canAccessSchool(session!, schoolId)) {
+    return tenantMiss();
   }
 
   const teacher = session!.role === "TEACHER" ? await getTeacherForSession(session!) : null;
@@ -44,14 +49,8 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     );
   }
 
-  const schoolId =
-    question.assessment.subject?.schoolId ??
-    question.assessment.module?.course.schoolId ??
-    session!.schoolId;
-  if (schoolId) {
-    const guard = await licenseWriteGuard({ schoolId, feature: "online_exams", action: "write" });
-    if (!guard.ok) return licenseDeniedResponse(guard);
-  }
+  const guard = await licenseWriteGuard({ schoolId, feature: "online_exams", action: "write" });
+  if (!guard.ok) return licenseDeniedResponse(guard);
 
   await prisma.examQuestion.delete({ where: { id: questionId } });
   return NextResponse.json({ ok: true });

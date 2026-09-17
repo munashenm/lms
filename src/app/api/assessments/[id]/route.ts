@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission } from "@/lib/rbac";
+import { requirePermission, canAccessSchool } from "@/lib/rbac";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { assessmentAccess, assessmentSchoolId } from "@/lib/tenant";
+import { tenantMiss } from "@/lib/authorize";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -15,6 +17,12 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   }
 
   const { id } = await params;
+  const access = await assessmentAccess(id);
+  const schoolId = access ? assessmentSchoolId(access) : null;
+  if (!access || !schoolId || !canAccessSchool(session!, schoolId)) {
+    return tenantMiss();
+  }
+
   const assessment = await prisma.assessment.findUnique({
     where: { id },
     include: {
@@ -28,7 +36,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   });
 
   if (!assessment) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
+    return tenantMiss();
   }
 
   return NextResponse.json({ assessment });
@@ -40,10 +48,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
-  const denied = await requireLicenseWrite(session!.schoolId, { feature: "assessments" });
+  const { id } = await params;
+  const access = await assessmentAccess(id);
+  const schoolId = access ? assessmentSchoolId(access) : null;
+  if (!access || !schoolId || !canAccessSchool(session!, schoolId)) {
+    return tenantMiss();
+  }
+
+  const denied = await requireLicenseWrite(schoolId, { feature: "assessments" });
   if (denied) return denied;
 
-  const { id } = await params;
   const body = await request.json();
 
   const assessment = await prisma.assessment.update({

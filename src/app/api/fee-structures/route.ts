@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { BillingFrequency, FeeChargeSource } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter, requirePermission } from "@/lib/rbac";
+import { getSchoolFilter, requireStaffPermission } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
@@ -31,12 +31,12 @@ const schema = z.object({
 });
 
 function canManage(session: NonNullable<Awaited<ReturnType<typeof getSession>>>) {
-  return requirePermission(session, "finance.fees.manage") || requirePermission(session, "finance:write");
+  return requireStaffPermission(session, "finance.fees.manage") || requireStaffPermission(session, "finance:write");
 }
 
 export async function GET() {
   const session = await getSession();
-  if (!requirePermission(session, "finance.view") && !requirePermission(session, "finance:read")) {
+  if (!requireStaffPermission(session, "finance.view") && !requireStaffPermission(session, "finance:read")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const items = await prisma.feeStructure.findMany({

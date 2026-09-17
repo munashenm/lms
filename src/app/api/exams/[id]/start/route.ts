@@ -7,6 +7,7 @@ import { examWindow } from "@/lib/learner-portal";
 import { isFeatureEnabled } from "@/lib/licensing/portal";
 import { evaluateStoredLicense } from "@/lib/licensing/service";
 import { publicExamQuestion } from "@/lib/online-exams";
+import { assessmentSchoolInclude, studentCanAccessAssessment } from "@/lib/tenant";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -28,8 +29,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     where: { id },
     include: {
       questions: { orderBy: { sortOrder: "asc" } },
-      subject: { select: { schoolId: true } },
-      module: { select: { course: { select: { schoolId: true } } } },
+      ...assessmentSchoolInclude,
     },
   });
 
@@ -37,13 +37,9 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     !assessment ||
     assessment.type !== AssessmentType.EXAM ||
     !assessment.isPublished ||
-    assessment.questions.length === 0
+    assessment.questions.length === 0 ||
+    !studentCanAccessAssessment(student.schoolId, assessment)
   ) {
-    return NextResponse.json({ message: "Exam not available" }, { status: 404 });
-  }
-
-  const schoolId = assessment.subject?.schoolId ?? assessment.module?.course.schoolId;
-  if (schoolId && schoolId !== student.schoolId) {
     return NextResponse.json({ message: "Exam not available" }, { status: 404 });
   }
 

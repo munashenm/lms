@@ -91,6 +91,8 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
       passwordHash,
       passwordResetTokenHash: null,
       passwordResetExpires: null,
+      mustResetPassword: false,
+      sessionVersion: { increment: 1 },
     },
   });
 
@@ -109,14 +111,26 @@ export async function changePassword(
   if (!valid) return { ok: false as const, reason: "invalid_current" };
 
   const passwordHash = await hashPassword(newPassword);
-  await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: userId },
     data: {
       passwordHash,
       passwordResetTokenHash: null,
       passwordResetExpires: null,
+      mustResetPassword: false,
+      sessionVersion: { increment: 1 },
+    },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      schoolId: true,
+      firstName: true,
+      lastName: true,
+      sessionVersion: true,
+      mustResetPassword: true,
     },
   });
 
-  return { ok: true as const };
+  return { ok: true as const, user: updated };
 }

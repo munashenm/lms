@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission } from "@/lib/rbac";
-import { getTeacherForSession, requireSchoolId } from "@/lib/portal-data";
+import { getTeacherForSession } from "@/lib/portal-data";
 import { examQuestionSchema } from "@/lib/validators";
 import { asInputJson } from "@/lib/json";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
+import { assessmentAccess, assessmentSchoolId, assessmentSchoolInclude } from "@/lib/tenant";
+import { canAccessSchool } from "@/lib/rbac";
+import { tenantMiss } from "@/lib/authorize";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -17,6 +20,11 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
+  const access = await assessmentAccess(id);
+  const schoolId = access ? assessmentSchoolId(access) : null;
+  if (!access || !schoolId || !canAccessSchool(session!, schoolId)) {
+    return tenantMiss();
+  }
   const questions = await prisma.examQuestion.findMany({
     where: { assessmentId: id },
     orderBy: { sortOrder: "asc" },
@@ -37,24 +45,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   const assessment = await prisma.assessment.findUnique({
     where: { id },
-    include: { subject: { select: { schoolId: true } }, module: { select: { course: { select: { schoolId: true } } } } },
+    include: assessmentSchoolInclude,
   });
-  if (!assessment) return NextResponse.json({ message: "Not found" }, { status: 404 });
+  if (!assessment) return tenantMiss();
+  const schoolId = assessmentSchoolId(assessment);
+  if (!schoolId || !canAccessSchool(session!, schoolId)) {
+    return tenantMiss();
+  }
 
   const teacher = session!.role === "TEACHER" ? await getTeacherForSession(session!) : null;
   if (teacher && assessment.teacherId && assessment.teacherId !== teacher.id) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
-  const schoolId =
-    assessment.subject?.schoolId ??
-    assessment.module?.course.schoolId ??
-    session!.schoolId ??
-    (await requireSchoolId(session!).catch(() => null));
-  if (schoolId) {
-    const guard = await licenseWriteGuard({ schoolId, feature: "online_exams", action: "write" });
-    if (!guard.ok) return licenseDeniedResponse(guard);
-  }
+  const guard = await licenseWriteGuard({ schoolId, feature: "online_exams", action: "write" });
+  if (!guard.ok) return licenseDeniedResponse(guard);
 
   const count = await prisma.examQuestion.count({ where: { assessmentId: id } });
   const options = (parsed.data.options ?? []).map((opt) => opt.trim()).filter(Boolean);

@@ -17,13 +17,8 @@ import {
 
 interface ApplicationStatus {
   referenceNo: string;
-  firstName: string;
-  lastName: string;
   status: string;
-  gradeApplied: string | null;
-  courseApplied: string | null;
   submittedAt: string;
-  reviewedAt: string | null;
   schoolName: string;
 }
 
@@ -134,37 +129,15 @@ export function ApplicationStatusTracker() {
 
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-muted">Applicant</dt>
-                <dd className="font-medium">{result.firstName} {result.lastName}</dd>
-              </div>
-              <div>
                 <dt className="text-muted">Institution</dt>
                 <dd className="font-medium">{result.schoolName}</dd>
               </div>
-              {result.gradeApplied && (
-                <div>
-                  <dt className="text-muted">Grade</dt>
-                  <dd>{result.gradeApplied}</dd>
-                </div>
-              )}
-              {result.courseApplied && (
-                <div>
-                  <dt className="text-muted">Programme</dt>
-                  <dd>{result.courseApplied}</dd>
-                </div>
-              )}
               <div>
                 <dt className="text-muted flex items-center gap-1">
                   <Clock className="h-3 w-3" /> Submitted
                 </dt>
                 <dd>{new Date(result.submittedAt).toLocaleDateString("en-ZA")}</dd>
               </div>
-              {result.reviewedAt && (
-                <div>
-                  <dt className="text-muted">Last updated</dt>
-                  <dd>{new Date(result.reviewedAt).toLocaleDateString("en-ZA")}</dd>
-                </div>
-              )}
             </dl>
 
             {result.status === "ACCEPTED" && (

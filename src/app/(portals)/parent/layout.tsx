@@ -6,6 +6,7 @@ import { UserRole } from "@prisma/client";
 import { getPortalSessionContext } from "@/lib/portal-session";
 import { filterNavByLicense, isFeatureEnabled } from "@/lib/licensing/portal";
 import { PortalUnavailable } from "@/components/enterprise/license-banner";
+import { enforceForcedPasswordReset } from "@/lib/force-password-reset-server";
 
 export default async function ParentLayout({
   children,
@@ -19,6 +20,7 @@ export default async function ParentLayout({
   ) {
     redirect("/parent/login");
   }
+  enforceForcedPasswordReset(session);
 
   const ctx = await getPortalSessionContext(session);
 

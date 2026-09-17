@@ -30,6 +30,9 @@ export function ChangePasswordForm() {
       if (!res.ok) throw new Error(data.message);
       toast.success("Password updated");
       e.currentTarget.reset();
+      if (data.redirect) {
+        window.location.assign(data.redirect);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not update password");
     } finally {

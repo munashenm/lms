@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter, hasPermission } from "@/lib/rbac";
+import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import {
   getAttendanceReport,
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   if (!REPORT_TYPES.includes(type as (typeof REPORT_TYPES)[number])) {
     return NextResponse.json({ message: "Invalid report type" }, { status: 400 });
   }
-  if (type === "hr" && !hasPermission(session.role, "hr.view")) {
+  if (type === "hr" && !requirePermission(session, "hr.view")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

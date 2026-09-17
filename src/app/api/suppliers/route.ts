@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter, requirePermission } from "@/lib/rbac";
+import { getSchoolFilter, requireStaffPermission } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
@@ -19,7 +19,7 @@ const schema = z.object({
 
 export async function GET() {
   const session = await getSession();
-  if (!requirePermission(session, "finance.view") && !requirePermission(session, "finance:read")) {
+  if (!requireStaffPermission(session, "finance.view") && !requireStaffPermission(session, "finance:read")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const schoolId = session!.schoolId;
@@ -33,7 +33,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!requirePermission(session, "finance.expenses.manage") && !requirePermission(session, "finance:write")) {
+  if (!requireStaffPermission(session, "finance.expenses.manage") && !requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const schoolId = await requireSchoolId(session!);

@@ -12,14 +12,24 @@ export default async function AccountPasswordPage() {
     <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
-          <Link
-            href={ROLE_DASHBOARD[session.role]}
-            className="text-sm text-muted hover:text-primary"
-          >
-            ← Back to dashboard
-          </Link>
+          {session.mustResetPassword ? (
+            <p className="text-sm text-amber-700">
+              You must set a new password before continuing.
+            </p>
+          ) : (
+            <Link
+              href={ROLE_DASHBOARD[session.role]}
+              className="text-sm text-muted hover:text-primary"
+            >
+              ← Back to dashboard
+            </Link>
+          )}
           <h1 className="text-2xl font-bold mt-2">Account security</h1>
-          <p className="text-muted text-sm mt-1">Update your portal password</p>
+          <p className="text-muted text-sm mt-1">
+            {session.mustResetPassword
+              ? "Choose a new password for your SchoolHub SA account"
+              : "Update your portal password"}
+          </p>
         </div>
         <ChangePasswordForm />
       </div>

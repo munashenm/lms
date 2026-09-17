@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter, requirePermission } from "@/lib/rbac";
+import { getSchoolFilter, requireStaffPermission } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { ensureFinanceCatalog } from "@/lib/finance-catalog";
 
 export async function GET() {
   const session = await getSession();
-  if (!requirePermission(session, "finance.view") && !requirePermission(session, "finance:read")) {
+  if (!requireStaffPermission(session, "finance.view") && !requireStaffPermission(session, "finance:read")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const schoolId = session!.schoolId ?? (await requireSchoolId(session!).catch(() => null));

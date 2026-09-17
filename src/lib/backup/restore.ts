@@ -11,6 +11,7 @@ import { checkBackupCompatibility, describeSnapshot, assertBackupBelongsToSchool
 import { runBackupJob } from "./engine";
 import { getBackupStorage } from "./storage";
 import { asInputJson } from "@/lib/json";
+import { resolveSafeUploadRestoreDest } from "@/lib/upload-restore-path";
 
 function asDate(value: unknown): Date | null {
   if (!value) return null;
@@ -216,8 +217,8 @@ export async function executeRestore(opts: {
 
 async function restoreFiles(snapshot: BackupSnapshot) {
   for (const file of snapshot.files) {
-    if (!file.relativePath.startsWith("uploads/")) continue;
-    const dest = path.join(process.cwd(), "public", file.relativePath);
+    const dest = resolveSafeUploadRestoreDest(file.relativePath);
+    if (!dest) continue;
     await mkdir(path.dirname(dest), { recursive: true });
     await writeFile(dest, Buffer.from(file.contentBase64, "base64"));
   }

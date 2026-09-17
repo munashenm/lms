@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { safeInternalPath } from "@/lib/safe-redirect";
 import type { LoginPortal } from "@/lib/login-portals";
 
 interface LoginFormProps {
@@ -58,8 +59,8 @@ export function LoginForm({
       }
 
       toast.success(`Welcome back, ${data.user.firstName}!`);
-      const next = searchParams.get("redirect");
-      router.push(next && next.startsWith("/") ? next : data.redirect);
+      const next = safeInternalPath(searchParams.get("redirect"));
+      router.push(next && !data.mustResetPassword ? next : data.redirect);
       router.refresh();
     } catch {
       toast.error("Connection error. Please try again.");

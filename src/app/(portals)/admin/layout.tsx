@@ -7,6 +7,7 @@ import { getAdminNav } from "@/lib/navigation";
 import { getPortalSessionContext } from "@/lib/portal-session";
 import { filterNavByLicense } from "@/lib/licensing/portal";
 import { filterNavByModules } from "@/lib/access";
+import { enforceForcedPasswordReset } from "@/lib/force-password-reset-server";
 
 export default async function AdminLayout({
   children,
@@ -17,6 +18,7 @@ export default async function AdminLayout({
   if (!session || !canAccessAdmin(session.role)) {
     redirect("/login");
   }
+  enforceForcedPasswordReset(session);
 
   const ctx = await getPortalSessionContext(session);
   const nav = await filterNavByModules(

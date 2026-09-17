@@ -5,9 +5,19 @@ import { loginSchema } from "@/lib/validators";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { logAudit } from "@/lib/audit";
 import { portalMismatchMessage, roleAllowedForPortal } from "@/lib/login-portals";
+import { clientIp, rateLimit, rateLimitedJson } from "@/lib/rate-limit";
+import { requestMeta } from "@/lib/request-meta";
+import { FORCE_PASSWORD_PATH } from "@/lib/force-password-reset";
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = clientIp(request.headers);
+    const ipLimit = rateLimit({ key: `login:ip:${ip}`, limit: 20, windowMs: 15 * 60 * 1000 });
+    if (!ipLimit.ok) {
+      const limited = rateLimitedJson(ipLimit.retryAfterSec);
+      return NextResponse.json(limited.body, { status: limited.status, headers: limited.headers });
+    }
+
     const body = await request.json();
     const parsed = loginSchema.safeParse(body);
 
@@ -21,12 +31,30 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, password, portal } = parsed.data;
+    const emailKey = email.toLowerCase();
+    const emailLimit = rateLimit({
+      key: `login:email:${ip}:${emailKey}`,
+      limit: 5,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (!emailLimit.ok) {
+      const limited = rateLimitedJson(emailLimit.retryAfterSec);
+      return NextResponse.json(limited.body, { status: limited.status, headers: limited.headers });
+    }
 
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: emailKey },
     });
 
+    const meta = requestMeta(request);
+
     if (!user || !user.isActive) {
+      await logAudit({
+        action: "LOGIN_FAILED",
+        entity: "User",
+        metadata: { reason: "invalid_credentials" },
+        ...meta,
+      });
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 }
@@ -35,6 +63,15 @@ export async function POST(request: NextRequest) {
 
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
+      await logAudit({
+        schoolId: user.schoolId,
+        userId: user.id,
+        action: "LOGIN_FAILED",
+        entity: "User",
+        entityId: user.id,
+        metadata: { reason: "invalid_credentials" },
+        ...meta,
+      });
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 }
@@ -61,6 +98,8 @@ export async function POST(request: NextRequest) {
       schoolId: user.schoolId,
       firstName: user.firstName,
       lastName: user.lastName,
+      mustResetPassword: user.mustResetPassword,
+      sessionVersion: user.sessionVersion,
     };
 
     const token = await createToken(session);
@@ -72,8 +111,7 @@ export async function POST(request: NextRequest) {
       action: "LOGIN",
       entity: "User",
       entityId: user.id,
-      ipAddress: request.headers.get("x-forwarded-for") ?? undefined,
-      userAgent: request.headers.get("user-agent") ?? undefined,
+      ...meta,
     });
 
     return NextResponse.json({
@@ -84,7 +122,7 @@ export async function POST(request: NextRequest) {
         lastName: user.lastName,
         role: user.role,
       },
-      redirect: user.mustResetPassword ? "/reset-password" : ROLE_DASHBOARD[user.role],
+      redirect: user.mustResetPassword ? FORCE_PASSWORD_PATH : ROLE_DASHBOARD[user.role],
       mustResetPassword: user.mustResetPassword,
     });
   } catch (error) {

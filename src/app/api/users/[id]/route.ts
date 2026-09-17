@@ -130,6 +130,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (parsed.data.role) data.role = parsed.data.role;
   if (parsed.data.campusId !== undefined) data.campusId = emptyToNull(parsed.data.campusId);
   if (parsed.data.mustResetPassword !== undefined) data.mustResetPassword = parsed.data.mustResetPassword;
+  if (parsed.data.isActive === false || parsed.data.mustResetPassword === true) {
+    data.sessionVersion = { increment: 1 };
+  }
   if (session!.role === UserRole.SUPER_ADMIN && parsed.data.schoolId !== undefined) {
     data.schoolId = emptyToNull(parsed.data.schoolId);
   }
@@ -168,7 +171,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     });
     await prisma.user.update({
       where: { id: user.id },
-      data: { mustResetPassword: true },
+      data: { mustResetPassword: true, sessionVersion: { increment: 1 } },
     });
     invitesSent = 1;
   }

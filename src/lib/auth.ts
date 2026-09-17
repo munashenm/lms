@@ -3,10 +3,11 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { UserRole } from "@prisma/client";
 import { prisma } from "./db";
+import { resolveAuthSecret } from "./auth-secret";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "schoolhub-dev-secret-change-in-production"
-);
+function jwtSecretBytes(): Uint8Array {
+  return new TextEncoder().encode(resolveAuthSecret());
+}
 
 const COOKIE_NAME = "schoolhub_session";
 const SESSION_DURATION = "8h";
@@ -22,6 +23,7 @@ export interface SessionPayload {
   permissionDenies?: string[];
   mustResetPassword?: boolean;
   disabledModules?: string[];
+  sessionVersion?: number;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -36,19 +38,28 @@ export async function verifyPassword(
 }
 
 export async function createToken(payload: SessionPayload): Promise<string> {
-  const { permissionGrants: _g, permissionDenies: _d, mustResetPassword: _m, ...safe } = payload;
-  return new SignJWT({ ...safe })
+  const safe = {
+    userId: payload.userId,
+    email: payload.email,
+    role: payload.role,
+    schoolId: payload.schoolId,
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+    mustResetPassword: payload.mustResetPassword ?? false,
+    sessionVersion: payload.sessionVersion ?? 1,
+  };
+  return new SignJWT(safe)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(SESSION_DURATION)
-    .sign(JWT_SECRET);
+    .sign(jwtSecretBytes());
 }
 
 export async function verifyToken(
   token: string
 ): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, jwtSecretBytes());
     return payload as unknown as SessionPayload;
   } catch {
     return null;
@@ -94,9 +105,12 @@ async function attachLiveAccess(payload: SessionPayload): Promise<SessionPayload
         permissionGrants: true,
         permissionDenies: true,
         mustResetPassword: true,
+        sessionVersion: true,
       },
     });
     if (!user?.isActive) return null;
+    const tokenVersion = payload.sessionVersion ?? 1;
+    if (user.sessionVersion !== tokenVersion) return null;
     const disabledModules = user.schoolId
       ? (
           await prisma.schoolModule.findMany({
@@ -115,11 +129,26 @@ async function attachLiveAccess(payload: SessionPayload): Promise<SessionPayload
       permissionGrants: user.permissionGrants,
       permissionDenies: user.permissionDenies,
       mustResetPassword: user.mustResetPassword,
+      sessionVersion: user.sessionVersion,
       disabledModules,
     };
   } catch {
-    return payload;
+    return null;
   }
+}
+
+export async function bumpSessionVersion(userId: string): Promise<number> {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { sessionVersion: { increment: 1 } },
+    select: { sessionVersion: true },
+  });
+  return user.sessionVersion;
+}
+
+export async function issueSession(payload: SessionPayload): Promise<void> {
+  const token = await createToken(payload);
+  await setSessionCookie(token);
 }
 
 export function getSessionFromRequest(
@@ -128,5 +157,9 @@ export function getSessionFromRequest(
   if (!cookieHeader) return Promise.resolve(null);
   const match = cookieHeader.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
   if (!match) return Promise.resolve(null);
-  return verifyToken(match[1]);
+  try {
+    return verifyToken(decodeURIComponent(match[1]));
+  } catch {
+    return verifyToken(match[1]);
+  }
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission } from "@/lib/rbac";
+import { requireStaffPermission } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { feeReminderRuleSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
@@ -15,7 +15,7 @@ import { requireLicenseWrite } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
-  if (!requirePermission(session, "finance:read")) {
+  if (!requireStaffPermission(session, "finance:read")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!requirePermission(session, "finance:write")) {
+  if (!requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

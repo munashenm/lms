@@ -1,11 +1,11 @@
 import crypto from "crypto";
+import { resolveAuthSecret } from "./auth-secret";
 
 const ALGO = "aes-256-gcm";
 const PREFIX = "enc:v1:";
 
 function getKey(): Buffer {
-  const secret = process.env.JWT_SECRET || "schoolhub-dev-secret-change-in-production";
-  return crypto.createHash("sha256").update(secret).digest();
+  return crypto.createHash("sha256").update(resolveAuthSecret()).digest();
 }
 
 export function encryptSecret(value: string): string {

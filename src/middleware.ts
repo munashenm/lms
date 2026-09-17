@@ -6,6 +6,9 @@ import { ROLE_DASHBOARD } from "@/lib/constants";
 import { canApplyForLeave } from "@/lib/staff-leave-access";
 import { UserRole } from "@prisma/client";
 import { unauthenticatedLoginPath } from "@/lib/login-portals";
+import { canAccessUploadPath, isPublicUploadPath } from "@/lib/upload-access";
+import { isForcedPasswordPathAllowed } from "@/lib/force-password-reset";
+import { readOrCreateRequestId, requestIdHeaderName } from "@/lib/request-id";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -29,7 +32,6 @@ const PUBLIC_PATHS = [
   "/privacy",
   "/brand",
   "/apple-touch-icon",
-  "/uploads",
   "/api/webhooks",
   "/api/cron",
   "/api/contact",
@@ -40,8 +42,18 @@ const PUBLIC_PATHS = [
 
 const STATIC_ASSET = /\.(?:png|jpe?g|gif|webp|svg|ico|woff2?|ttf|css|map)$/i;
 
+function withRequestId(request: NextRequest, response: NextResponse) {
+  const requestId = readOrCreateRequestId(request.headers.get(requestIdHeaderName()));
+  response.headers.set(requestIdHeaderName(), requestId);
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (pathname.includes("..")) {
+    return withRequestId(request, NextResponse.json({ message: "Not found" }, { status: 404 }));
+  }
 
   // Academic PDFs are fee-gated — only serve via authenticated API routes.
   if (
@@ -49,11 +61,22 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/uploads/certificates") ||
     pathname.startsWith("/uploads/letters")
   ) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
+    return withRequestId(request, NextResponse.json({ message: "Not found" }, { status: 404 }));
+  }
+
+  if (pathname.startsWith("/uploads")) {
+    if (isPublicUploadPath(pathname)) {
+      return withRequestId(request, NextResponse.next());
+    }
+    const session = await getSessionFromRequest(request.headers.get("cookie"));
+    if (!session || !canAccessUploadPath(session, pathname)) {
+      return withRequestId(request, NextResponse.json({ message: "Not found" }, { status: 404 }));
+    }
+    return withRequestId(request, NextResponse.next());
   }
 
   if (STATIC_ASSET.test(pathname)) {
-    return NextResponse.next();
+    return withRequestId(request, NextResponse.next());
   }
 
   if (
@@ -62,7 +85,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon")
   ) {
-    return NextResponse.next();
+    return withRequestId(request, NextResponse.next());
   }
 
   const session = await getSessionFromRequest(
@@ -71,45 +94,58 @@ export async function middleware(request: NextRequest) {
 
   if (!session) {
     if (pathname === "/api/applications" && request.method === "POST") {
-      return NextResponse.next();
+      return withRequestId(request, NextResponse.next());
     }
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return withRequestId(
+        request,
+        NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      );
     }
     const loginUrl = new URL(unauthenticatedLoginPath(pathname), request.url);
     loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+    return withRequestId(request, NextResponse.redirect(loginUrl));
+  }
+
+  if (session.mustResetPassword && !isForcedPasswordPathAllowed(pathname)) {
+    if (pathname.startsWith("/api/")) {
+      return withRequestId(
+        request,
+        NextResponse.json({ message: "Password change required" }, { status: 403 })
+      );
+    }
+    return withRequestId(request, NextResponse.redirect(new URL("/account/password", request.url)));
   }
 
   if (pathname.startsWith("/admin") && !canAccessAdmin(session.role)) {
-    return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
+    return withRequestId(request, NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url)));
   }
 
   if (pathname.startsWith("/finance") && !canAccessFinance(session.role)) {
-    return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
+    return withRequestId(request, NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url)));
   }
 
   if (pathname.startsWith("/hr") && !canAccessHr(session.role)) {
-    return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
+    return withRequestId(request, NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url)));
   }
 
   if (pathname.startsWith("/teacher") && session.role !== UserRole.TEACHER && session.role !== UserRole.SUPER_ADMIN) {
-    return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
+    return withRequestId(request, NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url)));
   }
 
   if (pathname.startsWith("/student") && pathname !== "/student/login" && session.role !== UserRole.STUDENT && session.role !== UserRole.SUPER_ADMIN) {
-    return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
+    return withRequestId(request, NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url)));
   }
 
   if (pathname.startsWith("/parent") && pathname !== "/parent/login" && session.role !== UserRole.PARENT && session.role !== UserRole.SUPER_ADMIN) {
-    return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
+    return withRequestId(request, NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url)));
   }
 
   if (pathname.startsWith("/staff") && !canApplyForLeave(session.role)) {
-    return NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url));
+    return withRequestId(request, NextResponse.redirect(new URL(ROLE_DASHBOARD[session.role], request.url)));
   }
 
-  return NextResponse.next();
+  return withRequestId(request, NextResponse.next());
 }
 
 export const config = {

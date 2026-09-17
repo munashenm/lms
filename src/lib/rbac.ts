@@ -132,6 +132,10 @@ export function canAccessHr(role: UserRole): boolean {
   return HR_ROLES.includes(role) || role === UserRole.PRINCIPAL;
 }
 
+export function isLearnerRole(role: UserRole): boolean {
+  return role === UserRole.STUDENT || role === UserRole.PARENT;
+}
+
 export function requirePermission(
   session: SessionPayload | null,
   permission: Permission
@@ -145,6 +149,20 @@ export function requirePermission(
     grants: session.permissionGrants,
     denies: session.permissionDenies,
   });
+}
+
+/** Boolean check that does not narrow `session` to `never` when negated. */
+export function sessionHasPermission(session: SessionPayload, permission: Permission): boolean {
+  return requirePermission(session, permission);
+}
+
+/** Staff-only APIs: parents/students keep finance:read for their own invoices, not institution-wide desks. */
+export function requireStaffPermission(
+  session: SessionPayload | null,
+  permission: Permission
+): session is SessionPayload {
+  if (!session || isLearnerRole(session.role)) return false;
+  return requirePermission(session, permission);
 }
 
 export function permissionDeniedResponse(
