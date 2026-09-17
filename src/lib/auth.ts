@@ -1,30 +1,19 @@
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT } from "jose";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
-import { UserRole } from "@prisma/client";
 import { prisma } from "./db";
-import { resolveAuthSecret } from "./auth-secret";
+import {
+  SESSION_COOKIE_NAME,
+  getSessionFromRequest,
+  jwtSecretBytes,
+  verifyToken,
+  type SessionPayload,
+} from "./session";
 
-function jwtSecretBytes(): Uint8Array {
-  return new TextEncoder().encode(resolveAuthSecret());
-}
+export type { SessionPayload };
+export { getSessionFromRequest, SESSION_COOKIE_NAME, verifyToken };
 
-const COOKIE_NAME = "schoolhub_session";
 const SESSION_DURATION = "8h";
-
-export interface SessionPayload {
-  userId: string;
-  email: string;
-  role: UserRole;
-  schoolId: string | null;
-  firstName: string;
-  lastName: string;
-  permissionGrants?: string[];
-  permissionDenies?: string[];
-  mustResetPassword?: boolean;
-  disabledModules?: string[];
-  sessionVersion?: number;
-}
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
@@ -55,20 +44,9 @@ export async function createToken(payload: SessionPayload): Promise<string> {
     .sign(jwtSecretBytes());
 }
 
-export async function verifyToken(
-  token: string
-): Promise<SessionPayload | null> {
-  try {
-    const { payload } = await jwtVerify(token, jwtSecretBytes());
-    return payload as unknown as SessionPayload;
-  } catch {
-    return null;
-  }
-}
-
 export async function setSessionCookie(token: string): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
+  cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -79,12 +57,12 @@ export async function setSessionCookie(token: string): Promise<void> {
 
 export async function clearSessionCookie(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  cookieStore.delete(SESSION_COOKIE_NAME);
 }
 
 export async function getSession(): Promise<SessionPayload | null> {
   const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
   const payload = await verifyToken(token);
   if (!payload) return null;
@@ -149,17 +127,4 @@ export async function bumpSessionVersion(userId: string): Promise<number> {
 export async function issueSession(payload: SessionPayload): Promise<void> {
   const token = await createToken(payload);
   await setSessionCookie(token);
-}
-
-export function getSessionFromRequest(
-  cookieHeader: string | null
-): Promise<SessionPayload | null> {
-  if (!cookieHeader) return Promise.resolve(null);
-  const match = cookieHeader.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
-  if (!match) return Promise.resolve(null);
-  try {
-    return verifyToken(decodeURIComponent(match[1]));
-  } catch {
-    return verifyToken(match[1]);
-  }
 }

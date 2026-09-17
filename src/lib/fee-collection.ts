@@ -1,6 +1,7 @@
 import type { InvoiceStatus, Prisma } from "@prisma/client";
 import { getOutstandingBalance, isCollectedPayment } from "./finance";
 import { maskIdentityNumber } from "./learner-portal";
+import { hashSaId } from "./pii-crypto";
 import {
   formatSchoolAddress,
   formatSchoolContactLine,
@@ -59,11 +60,12 @@ export function feeCollectionSearchWhere(params: {
       { class: { is: { name: { contains: query, mode: "insensitive" } } } },
       { grade: { is: { name: { contains: query, mode: "insensitive" } } } },
     ];
-    if (digits.length >= 4) {
+    if (digits.length === 13) {
+      const hash = hashSaId(digits);
+      if (hash) or.push({ saIdNumberHash: hash });
+      or.push({ saIdNumber: digits });
+    } else if (digits.length >= 4) {
       or.push({ saIdNumber: { contains: digits } });
-    }
-    if (query !== digits && query.length >= 4) {
-      or.push({ saIdNumber: { contains: query, mode: "insensitive" } });
     }
     if (parts.length >= 2) {
       or.push({

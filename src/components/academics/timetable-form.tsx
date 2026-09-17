@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { DAYS_ORDER, DAY_LABELS } from "@/lib/portal-data";
+import { DAYS_ORDER, DAY_LABELS } from "@/lib/timetable-days";
 
 interface Option { id: string; name: string; code?: string }
 

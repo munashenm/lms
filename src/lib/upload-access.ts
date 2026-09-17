@@ -1,4 +1,4 @@
-import type { SessionPayload } from "./auth";
+import type { SessionPayload } from "./session";
 import { canAccessSchool } from "./rbac";
 
 export function parseUploadPath(pathname: string): { schoolId: string; rest: string } | null {
