@@ -7,6 +7,7 @@ import { requireSchoolId, getTeacherForSession } from "@/lib/portal-data";
 import { lessonPlanSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { emptyToNull } from "@/lib/class-teachers";
+import { assertSchoolFks } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getSession();
@@ -73,6 +74,14 @@ export async function POST(request: NextRequest) {
     select: { id: true },
   });
   if (!subject) return NextResponse.json({ message: "Subject not found" }, { status: 404 });
+
+  const fkError = await assertSchoolFks(schoolId, {
+    classId: parsed.data.classId,
+    termId: parsed.data.termId,
+  });
+  if (fkError) {
+    return NextResponse.json({ message: fkError }, { status: 400 });
+  }
 
   const plan = await prisma.lessonPlan.create({
     data: {

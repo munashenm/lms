@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, rolePermissionSet } from "@/lib/rbac";
+import { rolePermissionSet } from "@/lib/rbac";
 import { denyUnless } from "@/lib/access";
 import { userPermissionsSchema } from "@/lib/validators";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { requestMeta } from "@/lib/request-meta";
+import { scopedId } from "@/lib/tenant";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -25,8 +26,8 @@ export async function GET(_request: NextRequest, { params }: Params) {
   if (denied) return denied;
 
   const { id } = await params;
-  const user = await prisma.user.findUnique({
-    where: { id },
+  const user = await prisma.user.findFirst({
+    where: scopedId(session!, id),
     select: {
       id: true,
       email: true,
@@ -40,9 +41,6 @@ export async function GET(_request: NextRequest, { params }: Params) {
     },
   });
   if (!user) return NextResponse.json({ message: "Not found" }, { status: 404 });
-  if (user.schoolId && !canAccessSchool(session!, user.schoolId)) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
-  }
   if (!user.schoolId && session!.role !== UserRole.SUPER_ADMIN) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
@@ -79,8 +77,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
   if (denied) return denied;
 
   const { id } = await params;
-  const existing = await prisma.user.findUnique({
-    where: { id },
+  const existing = await prisma.user.findFirst({
+    where: scopedId(session!, id),
     select: {
       id: true,
       email: true,
@@ -91,9 +89,6 @@ export async function PUT(request: NextRequest, { params }: Params) {
     },
   });
   if (!existing) return NextResponse.json({ message: "Not found" }, { status: 404 });
-  if (existing.schoolId && !canAccessSchool(session!, existing.schoolId)) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
-  }
   if (!existing.schoolId && session!.role !== UserRole.SUPER_ADMIN) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }

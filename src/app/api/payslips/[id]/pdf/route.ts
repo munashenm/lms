@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { generatePayslipPdf } from "@/lib/pdf-payslip";
 import { toSchoolBrand } from "@/lib/pdf-branding";
 import { formatDate } from "@/lib/utils";
+import { institutionScope } from "@/lib/tenant";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -22,8 +23,8 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const payslip = await prisma.payslip.findUnique({
-    where: { id },
+  const payslip = await prisma.payslip.findFirst({
+    where: { id, item: { run: institutionScope(session) } },
     include: {
       item: {
         include: {
@@ -34,10 +35,6 @@ export async function GET(_request: NextRequest, { params }: Params) {
     },
   });
   if (!payslip) return NextResponse.json({ message: "Not found" }, { status: 404 });
-  const schoolId = payslip.item.run.schoolId;
-  if (!canAccessSchool(session, schoolId)) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
-  }
   const own = payslip.item.employee.userId === session.userId;
   if (!own && !requirePermission(session, "payroll.view")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });

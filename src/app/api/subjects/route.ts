@@ -5,6 +5,7 @@ import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { requireSchoolId } from "@/lib/portal-data";
 import { subjectSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { assertSchoolFks } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getSession();
@@ -36,6 +37,10 @@ export async function POST(request: NextRequest) {
   const schoolId = await requireSchoolId(session);
   const denied = await requireLicenseWrite(schoolId);
   if (denied) return denied;
+  const fkError = await assertSchoolFks(schoolId, { gradeId: parsed.data.gradeId });
+  if (fkError) {
+    return NextResponse.json({ message: fkError }, { status: 400 });
+  }
   const subject = await prisma.subject.create({
     data: {
       schoolId,

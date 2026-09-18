@@ -159,72 +159,105 @@ export async function assertSchoolFks(
     expenseCategoryId?: string | null;
     incomeCategoryId?: string | null;
     financialAccountId?: string | null;
+    gradeId?: string | null;
+    classId?: string | null;
+    academicYearId?: string | null;
+    courseId?: string | null;
   }
 ): Promise<string | null> {
-  if (fks.campusId) {
+  const present = (id?: string | null): id is string => Boolean(id?.trim());
+  if (present(fks.campusId)) {
     const row = await prisma.campus.findFirst({
       where: { id: fks.campusId, schoolId },
       select: { id: true },
     });
     if (!row) return "Campus is not in this institution";
   }
-  if (fks.subjectId) {
+  if (present(fks.subjectId)) {
     const row = await prisma.subject.findFirst({
       where: { id: fks.subjectId, schoolId },
       select: { id: true },
     });
     if (!row) return "Subject is not in this institution";
   }
-  if (fks.teacherId) {
+  if (present(fks.teacherId)) {
     const row = await prisma.teacher.findFirst({
       where: { id: fks.teacherId, schoolId },
       select: { id: true },
     });
     if (!row) return "Staff member is not in this institution";
   }
-  if (fks.termId) {
+  if (present(fks.termId)) {
     const row = await prisma.term.findFirst({
       where: { id: fks.termId, academicYear: { schoolId } },
       select: { id: true },
     });
     if (!row) return "Term is not in this institution";
   }
-  if (fks.moduleId) {
+  if (present(fks.moduleId)) {
     const row = await prisma.module.findFirst({
       where: { id: fks.moduleId, course: { schoolId } },
       select: { id: true },
     });
     if (!row) return "Module is not in this institution";
   }
-  if (fks.userId) {
+  if (present(fks.gradeId)) {
+    const row = await prisma.grade.findFirst({
+      where: { id: fks.gradeId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Grade is not in this institution";
+  }
+  if (present(fks.classId)) {
+    const row = await prisma.class.findFirst({
+      where: { id: fks.classId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Class is not in this institution";
+  }
+  if (present(fks.academicYearId)) {
+    const row = await prisma.academicYear.findFirst({
+      where: { id: fks.academicYearId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Academic session is not in this institution";
+  }
+  if (present(fks.courseId)) {
+    const row = await prisma.course.findFirst({
+      where: { id: fks.courseId, schoolId },
+      select: { id: true },
+    });
+    if (!row) return "Programme is not in this institution";
+  }
+  if (present(fks.userId)) {
     const row = await prisma.user.findFirst({
       where: { id: fks.userId, schoolId },
       select: { id: true },
     });
     if (!row) return "User is not in this institution";
   }
-  if (fks.supplierId) {
+  if (present(fks.supplierId)) {
     const row = await prisma.supplier.findFirst({
       where: { id: fks.supplierId, schoolId },
       select: { id: true },
     });
     if (!row) return "Supplier is not in this institution";
   }
-  if (fks.expenseCategoryId) {
+  if (present(fks.expenseCategoryId)) {
     const row = await prisma.expenseCategory.findFirst({
       where: { id: fks.expenseCategoryId, schoolId },
       select: { id: true },
     });
     if (!row) return "Expense category is not in this institution";
   }
-  if (fks.incomeCategoryId) {
+  if (present(fks.incomeCategoryId)) {
     const row = await prisma.incomeCategory.findFirst({
       where: { id: fks.incomeCategoryId, schoolId },
       select: { id: true },
     });
     if (!row) return "Income category is not in this institution";
   }
-  if (fks.financialAccountId) {
+  if (present(fks.financialAccountId)) {
     const row = await prisma.financialAccount.findFirst({
       where: { id: fks.financialAccountId, schoolId },
       select: { id: true },

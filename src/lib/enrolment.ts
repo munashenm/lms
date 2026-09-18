@@ -1,7 +1,7 @@
 import { EnrolmentStatus, Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { applyEnrolmentFees, syncEnrolmentModules } from "./fee-engine";
-import { enrolmentIdentityWhere } from "./tenant";
+import { assertSchoolFks, enrolmentIdentityWhere } from "./tenant";
 
 /** Ensure a student has a session enrolment for the given (or current) academic year. */
 export async function ensureStudentEnrolment(params: {
@@ -26,6 +26,14 @@ export async function ensureStudentEnrolment(params: {
     academicYearId = current?.id ?? null;
   }
   if (!academicYearId) return;
+
+  const fkError = await assertSchoolFks(params.schoolId, {
+    academicYearId,
+    courseId: params.courseId,
+    gradeId: params.gradeId,
+    classId: params.classId,
+  });
+  if (fkError) throw new Error(fkError);
 
   const existing = await prisma.enrolment.findFirst({
     where: enrolmentIdentityWhere(params.studentId, academicYearId, params.courseId),

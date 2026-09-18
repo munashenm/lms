@@ -12,7 +12,7 @@ import {
 } from "@/lib/academic-session";
 import { requireSchoolId } from "@/lib/portal-data";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
-import { enrolmentIdentityWhere } from "@/lib/tenant";
+import { enrolmentIdentityWhere, assertSchoolFks } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -83,6 +83,16 @@ export async function POST(request: NextRequest) {
   });
   if (!year) {
     return NextResponse.json({ message: "Academic session not found" }, { status: 404 });
+  }
+
+  const fkError = await assertSchoolFks(student.schoolId, {
+    academicYearId: year.id,
+    courseId: parsed.data.courseId,
+    gradeId: parsed.data.gradeId,
+    classId: parsed.data.classId,
+  });
+  if (fkError) {
+    return NextResponse.json({ message: fkError }, { status: 400 });
   }
 
   await ensureStudentEnrolment({

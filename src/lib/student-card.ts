@@ -5,7 +5,7 @@ import { getTerminology } from "@/lib/terminology";
 import { generateStudentCardPdf } from "@/lib/pdf-student-card";
 import { toSchoolBrand } from "@/lib/pdf-branding";
 import { getChildStudentIds, getStudentForSession } from "@/lib/portal-data";
-import { getSchoolFilter, hasPermission } from "@/lib/rbac";
+import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { resolveLinkedStudentId } from "@/lib/parent-scope";
 
 export async function sessionCanAccessStudentCard(
@@ -20,7 +20,7 @@ export async function sessionCanAccessStudentCard(
     const childIds = await getChildStudentIds(session);
     return childIds.includes(studentId);
   }
-  return hasPermission(session.role, "students:read");
+  return requirePermission(session, "students:read");
 }
 
 export async function resolvePortalCardStudentId(

@@ -8,6 +8,7 @@ import { ensureStudentEnrolment } from "@/lib/enrolment";
 import { generateStudentNumber } from "@/lib/students";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
 import { provisionPortalAccounts } from "@/lib/portal-provision";
+import { assertSchoolFks } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -84,6 +85,14 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data;
+    const fkError = await assertSchoolFks(schoolId, {
+      gradeId: data.gradeId,
+      classId: data.classId,
+      campusId: data.campusId,
+    });
+    if (fkError) {
+      return NextResponse.json({ message: fkError }, { status: 400 });
+    }
     const guard = await licenseWriteGuard({
       schoolId,
       action: data.status === "ACTIVE" ? "create_learner" : "write",
