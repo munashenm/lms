@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getSession } from "@/lib/auth";
+import { employeeForSession } from "@/lib/staff-employee";
 
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  const employee = await prisma.employee.findUnique({
-    where: { userId: session.userId },
+  const employeeRow = await employeeForSession(session);
+  if (!employeeRow || (session.schoolId && employeeRow.schoolId !== session.schoolId)) {
+    return NextResponse.json({ payslips: [], entitlements: [] });
+  }
+  const employee = await prisma.employee.findFirst({
+    where: { id: employeeRow.id },
     include: {
       payrollItems: {
         where: { payslip: { isNot: null } },
@@ -17,7 +22,7 @@ export async function GET() {
       leaveEntitlements: { include: { leavePolicy: true } },
     },
   });
-  if (!employee || employee.schoolId !== session.schoolId) {
+  if (!employee) {
     return NextResponse.json({ payslips: [], entitlements: [] });
   }
   return NextResponse.json({
@@ -32,6 +37,8 @@ export async function GET() {
     payslips: employee.payrollItems.map((item) => ({
       id: item.payslip?.id,
       number: item.payslip?.number,
+      grossPay: Number(item.grossPay),
+      totalDeductions: Number(item.totalDeductions),
       netPay: Number(item.netPay),
       periodStart: item.run.periodStart,
       periodEnd: item.run.periodEnd,

@@ -22,7 +22,7 @@ export default async function AdminPayrollPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Payroll</h1>
-        <p className="text-muted text-sm mt-1">Finalising a run posts salary expenses to Finance with the payroll run ID.</p>
+        <p className="text-muted text-sm mt-1">Finalise a run to generate staff payslips and post salary expenses to Finance.</p>
       </div>
       <PayrollRulesForm
         current={ruleSet ? {
@@ -39,6 +39,7 @@ export default async function AdminPayrollPage() {
           periodStart: r.periodStart,
           periodEnd: r.periodEnd,
           totalGross: r.totalGross,
+          totalDeductions: r.totalDeductions,
           totalNet: r.totalNet,
           totalEmployer: r.totalEmployer,
         }))}

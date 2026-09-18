@@ -6,17 +6,11 @@ import { generatePayslipPdf } from "@/lib/pdf-payslip";
 import { toSchoolBrand } from "@/lib/pdf-branding";
 import { formatDate } from "@/lib/utils";
 import { institutionScope } from "@/lib/tenant";
+import { namedMoneyLines } from "@/lib/payroll-engine";
+import { pdfFileResponse } from "@/lib/pdf-response";
 
 interface Params {
   params: Promise<{ id: string }>;
-}
-
-function asLines(json: unknown): Array<{ name: string; amount: number }> {
-  if (!Array.isArray(json)) return [];
-  return json.map((row) => {
-    const rec = row as { name?: string; amount?: number };
-    return { name: String(rec.name ?? "Item"), amount: Number(rec.amount ?? 0) };
-  });
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
@@ -28,14 +22,16 @@ export async function GET(_request: NextRequest, { params }: Params) {
     include: {
       item: {
         include: {
-          employee: true,
+          employee: { include: { teacher: { select: { userId: true } } } },
           run: { include: { school: true } },
         },
       },
     },
   });
   if (!payslip) return NextResponse.json({ message: "Not found" }, { status: 404 });
-  const own = payslip.item.employee.userId === session.userId;
+  const own =
+    payslip.item.employee.userId === session.userId ||
+    payslip.item.employee.teacher?.userId === session.userId;
   if (!own && !requirePermission(session, "payroll.view")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
@@ -52,18 +48,13 @@ export async function GET(_request: NextRequest, { params }: Params) {
     paymentReference: payslip.item.employee.bankAccountLast4
       ? `****${payslip.item.employee.bankAccountLast4}`
       : null,
-    earnings: asLines(payslip.item.earningsJson),
-    deductions: asLines(payslip.item.deductionsJson),
-    employer: asLines(payslip.item.employerJson),
+    earnings: namedMoneyLines(payslip.item.earningsJson),
+    deductions: namedMoneyLines(payslip.item.deductionsJson),
+    employer: namedMoneyLines(payslip.item.employerJson),
     grossPay: Number(payslip.item.grossPay),
     totalDeductions: Number(payslip.item.totalDeductions),
     netPay: Number(payslip.item.netPay),
   });
 
-  return new NextResponse(Buffer.from(pdf), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="payslip-${payslip.number}.pdf"`,
-    },
-  });
+  return pdfFileResponse(pdf, `payslip-${payslip.number}.pdf`);
 }

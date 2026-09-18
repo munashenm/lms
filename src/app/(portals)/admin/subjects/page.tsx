@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter, hasPermission } from "@/lib/rbac";
+import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubjectsManager } from "@/components/academics/subjects-manager";
 import { StructureRecordRow } from "@/components/academics/structure-record-row";
@@ -8,7 +8,7 @@ import { StructureRecordRow } from "@/components/academics/structure-record-row"
 export default async function SubjectsPage() {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
-  const canWrite = hasPermission(session!.role, "classes:write");
+  const canWrite = requirePermission(session, "classes:write");
 
   const [grades, subjects, courses] = await Promise.all([
     prisma.grade.findMany({

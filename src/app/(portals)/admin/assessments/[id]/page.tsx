@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { ExamQuestionForm } from "@/components/assessments/exam-question-form";
 import { ExamAttemptList } from "@/components/assessments/exam-attempt-list";
 import { ArrowLeft } from "lucide-react";
+import { getSession } from "@/lib/auth";
+import { institutionScope } from "@/lib/tenant";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -15,9 +17,11 @@ interface PageProps {
 
 export default async function AssessmentDetailPage({ params }: PageProps) {
   const { id } = await params;
+  const session = await getSession();
+  if (!session) notFound();
 
-  const assessment = await prisma.assessment.findUnique({
-    where: { id },
+  const assessment = await prisma.assessment.findFirst({
+    where: { id, ...institutionScope(session) },
     include: {
       subject: true,
       term: true,
@@ -36,6 +40,7 @@ export default async function AssessmentDetailPage({ params }: PageProps) {
   const students = await prisma.student.findMany({
     where: {
       status: "ACTIVE",
+      ...institutionScope(session),
       ...(assessment.subjectId && {
         class: {
           classSubjects: { some: { subjectId: assessment.subjectId } },

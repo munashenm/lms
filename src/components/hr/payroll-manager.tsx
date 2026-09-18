@@ -18,6 +18,7 @@ export function PayrollManager(props: {
     periodStart: Date | string;
     periodEnd: Date | string;
     totalGross: unknown;
+    totalDeductions?: unknown;
     totalNet: unknown;
     totalEmployer: unknown;
   }>;
@@ -42,7 +43,7 @@ export function PayrollManager(props: {
         }),
       });
       if (!res.ok) throw new Error(await res.text());
-      toast.success("Draft payroll calculated");
+      toast.success("Draft payroll calculated. Review net pay, then approve and finalise to generate payslips.");
       router.refresh();
     } catch {
       toast.error("Could not create payroll run");
@@ -63,7 +64,7 @@ export function PayrollManager(props: {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.message || "Failed");
       }
-      toast.success(`Payroll ${action === "reverse" ? "reversed" : `${action}d`}`);
+      toast.success(`Payroll ${action === "finalise" ? "finalised — payslips are now available to staff" : action === "reverse" ? "reversed" : `${action}d`}`);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Action failed");
@@ -95,6 +96,7 @@ export function PayrollManager(props: {
                 <th className="text-left px-4 py-3 font-medium text-muted">Period</th>
                 <th className="text-left px-4 py-3 font-medium text-muted">Status</th>
                 <th className="text-right px-4 py-3 font-medium text-muted">Gross</th>
+                <th className="text-right px-4 py-3 font-medium text-muted">Deductions</th>
                 <th className="text-right px-4 py-3 font-medium text-muted">Employer</th>
                 <th className="text-right px-4 py-3 font-medium text-muted">Net</th>
                 <th className="px-4 py-3" />
@@ -106,6 +108,7 @@ export function PayrollManager(props: {
                   <td className="px-4 py-3">{formatDate(run.periodStart)} – {formatDate(run.periodEnd)}</td>
                   <td className="px-4 py-3"><Badge>{run.status}</Badge></td>
                   <td className="px-4 py-3 text-right">{formatZAR(Number(run.totalGross))}</td>
+                  <td className="px-4 py-3 text-right">{formatZAR(Number(run.totalDeductions ?? 0))}</td>
                   <td className="px-4 py-3 text-right">{formatZAR(Number(run.totalEmployer))}</td>
                   <td className="px-4 py-3 text-right">{formatZAR(Number(run.totalNet))}</td>
                   <td className="px-4 py-3 text-right space-x-2">
@@ -113,7 +116,10 @@ export function PayrollManager(props: {
                       <Link href={`${runBasePath}/${run.id}`}>Review</Link>
                     </Button>
                     {run.status === "DRAFT" || run.status === "CALCULATED" ? (
-                      <Button size="sm" variant="outline" disabled={Boolean(loading)} onClick={() => act(run.id, "approve")}>Approve</Button>
+                      <>
+                        <Button size="sm" variant="ghost" disabled={Boolean(loading)} onClick={() => act(run.id, "calculate")}>Recalculate</Button>
+                        <Button size="sm" variant="outline" disabled={Boolean(loading)} onClick={() => act(run.id, "approve")}>Approve</Button>
+                      </>
                     ) : null}
                     {run.status === "APPROVED" ? (
                       <Button size="sm" disabled={Boolean(loading)} onClick={() => act(run.id, "finalise")}>Finalise & post</Button>

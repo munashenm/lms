@@ -231,5 +231,20 @@ describe("multi-tenant isolation", () => {
     expect(scopedId({ ...schoolA, role: UserRole.SUPER_ADMIN, schoolId: null }, "row-1")).toEqual({
       id: "row-1",
     });
+    expect(scopedId(schoolA, "inv-school-b")).not.toEqual({ id: "inv-school-b" });
+    expect(scopedId(schoolA, "inv-school-b")).not.toMatchObject({ schoolId: "school-b" });
+  });
+
+  it("honours permission denies on portal write actions", () => {
+    const deniedAdmin: SessionPayload = {
+      ...schoolA,
+      permissionDenies: ["users.edit", "classes:write", "settings:write", "hr.view"],
+    };
+    expect(requirePermission(schoolA, "users.edit")).toBe(true);
+    expect(requirePermission(deniedAdmin, "users.edit")).toBe(false);
+    expect(requirePermission(deniedAdmin, "classes:write")).toBe(false);
+    expect(requirePermission(deniedAdmin, "settings:write")).toBe(false);
+    expect(requirePermission(deniedAdmin, "hr.view")).toBe(false);
+    expect(requirePermission(deniedAdmin, "students:read")).toBe(true);
   });
 });

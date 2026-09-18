@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { employeeForSession } from "@/lib/staff-employee";
 import { TimesheetManager } from "@/components/hr/timesheet-manager";
 import { hrPayrollGate } from "@/components/hr/hr-payroll-gate";
 
@@ -7,9 +8,7 @@ export default async function StaffTimesheetsPage() {
   const blocked = await hrPayrollGate();
   if (blocked) return blocked;
   const session = await getSession();
-  const employee = await prisma.employee.findFirst({
-    where: { userId: session!.userId, ...(session!.schoolId ? { schoolId: session!.schoolId } : {}) },
-  });
+  const employee = session ? await employeeForSession(session) : null;
   const timesheets = employee
     ? await prisma.timesheet.findMany({
         where: { employeeId: employee.id },

@@ -528,9 +528,11 @@ async function main() {
       employeeId: lecturerEmployee.id,
       effectiveFrom: new Date("2024-01-15"),
       baseSalary: 28000,
+      allowancesJson: [{ name: "Housing", amount: 2000 }],
+      deductionsJson: [{ name: "Staff loan", amount: 500 }],
     },
   });
-  await prisma.employee.create({
+  const hrEmployee = await prisma.employee.create({
     data: {
       schoolId: school.id,
       userId: hrUser.id,
@@ -543,6 +545,13 @@ async function main() {
       department: "Human Resources",
       position: "HR Officer",
       startDate: new Date("2024-03-01"),
+    },
+  });
+  await prisma.salaryStructure.create({
+    data: {
+      employeeId: hrEmployee.id,
+      effectiveFrom: new Date("2024-03-01"),
+      baseSalary: 32000,
     },
   });
 

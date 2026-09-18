@@ -8,6 +8,7 @@ import { PayOnlineButton } from "@/components/finance/pay-online-button";
 import { getOutstandingBalance } from "@/lib/finance";
 import { Button } from "@/components/ui/button";
 import { invoiceDetailInclude, mapInvoiceForDetail } from "@/lib/invoice-view";
+import { institutionScope } from "@/lib/tenant";
 import { getDocumentRelease } from "@/lib/fee-clearance";
 import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
 import { DocumentsReleasedNotice } from "@/components/documents/documents-released-notice";
@@ -23,8 +24,8 @@ export default async function ParentInvoiceDetailPage({ params, searchParams }: 
   const { id } = await params;
   const query = await searchParams;
 
-  const invoice = await prisma.invoice.findUnique({
-    where: { id },
+  const invoice = await prisma.invoice.findFirst({
+    where: { id, ...institutionScope(session!) },
     include: invoiceDetailInclude,
   });
 

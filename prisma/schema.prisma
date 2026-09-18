@@ -3036,6 +3036,7 @@ model SalaryStructure {
   baseSalary     Decimal       @default(0) @db.Decimal(12, 2)
   hourlyRate     Decimal?      @db.Decimal(12, 2)
   allowancesJson Json?
+  deductionsJson Json?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 

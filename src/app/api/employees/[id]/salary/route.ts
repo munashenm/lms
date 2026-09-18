@@ -6,6 +6,7 @@ import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { asInputJson } from "@/lib/json";
 import { scopedId } from "@/lib/tenant";
+import { namedMoneyLines, parseNamedAmountText } from "@/lib/payroll-engine";
 import { z } from "zod";
 
 interface Params {
@@ -18,6 +19,9 @@ const schema = z.object({
   hourlyRate: z.coerce.number().min(0).optional().nullable(),
   effectiveFrom: z.string().min(1),
   allowances: z.array(z.object({ name: z.string(), amount: z.coerce.number() })).optional(),
+  deductions: z.array(z.object({ name: z.string(), amount: z.coerce.number() })).optional(),
+  allowancesText: z.string().optional(),
+  deductionsText: z.string().optional(),
 });
 
 export async function POST(request: NextRequest, { params }: Params) {
@@ -34,6 +38,14 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (denied) return denied;
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ message: "Invalid data" }, { status: 400 });
+  const allowances =
+    parsed.data.allowances?.length
+      ? namedMoneyLines(parsed.data.allowances)
+      : parseNamedAmountText(parsed.data.allowancesText);
+  const deductions =
+    parsed.data.deductions?.length
+      ? namedMoneyLines(parsed.data.deductions)
+      : parseNamedAmountText(parsed.data.deductionsText);
   await prisma.salaryStructure.updateMany({
     where: { employeeId: id, effectiveTo: null },
     data: { effectiveTo: new Date(parsed.data.effectiveFrom) },
@@ -45,7 +57,8 @@ export async function POST(request: NextRequest, { params }: Params) {
       payType: parsed.data.payType,
       baseSalary: parsed.data.baseSalary,
       hourlyRate: parsed.data.hourlyRate ?? null,
-      allowancesJson: parsed.data.allowances ? asInputJson(parsed.data.allowances) : undefined,
+      allowancesJson: allowances.length ? asInputJson(allowances) : undefined,
+      deductionsJson: deductions.length ? asInputJson(deductions) : undefined,
     },
   });
   await logAudit({

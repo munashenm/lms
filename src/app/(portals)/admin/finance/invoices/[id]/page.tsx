@@ -5,17 +5,19 @@ import { getSession } from "@/lib/auth";
 import { InvoiceDetail } from "@/components/finance/invoice-detail";
 import { Button } from "@/components/ui/button";
 import { invoiceDetailInclude, mapInvoiceForDetail } from "@/lib/invoice-view";
+import { scopedId } from "@/lib/tenant";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
 export default async function AdminInvoiceDetailPage({ params }: PageProps) {
-  await getSession();
+  const session = await getSession();
+  if (!session) notFound();
   const { id } = await params;
 
-  const invoice = await prisma.invoice.findUnique({
-    where: { id },
+  const invoice = await prisma.invoice.findFirst({
+    where: scopedId(session, id),
     include: invoiceDetailInclude,
   });
 

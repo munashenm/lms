@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter, hasPermission } from "@/lib/rbac";
+import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -12,16 +12,16 @@ export default async function CommunicationsPage() {
   const session = await getSession();
   if (
     !session ||
-    (!hasPermission(session.role, "settings:read") &&
-      !hasPermission(session.role, "finance:read"))
+    (!requirePermission(session, "settings:read") &&
+      !requirePermission(session, "finance:read"))
   ) {
     redirect("/admin/dashboard");
   }
 
   const filter = getSchoolFilter(session);
   const canCompose =
-    hasPermission(session.role, "announcements:write") ||
-    hasPermission(session.role, "settings:write");
+    requirePermission(session, "announcements:write") ||
+    requirePermission(session, "settings:write");
 
   const [logs, queuedBatches, students, grades, classes] = await Promise.all([
     prisma.communicationLog.findMany({

@@ -5,25 +5,13 @@ import {
   type Prisma,
 } from "@prisma/client";
 import { prisma } from "./db";
-import { calculateEmployeePay, parsePayrollRules } from "./payroll-engine";
+import { calculateEmployeePay, namedMoneyLines, parsePayrollRules } from "./payroll-engine";
 import { nextPayslipNumber } from "./finance-catalog";
 import { logAudit } from "./audit";
 import { addMoney } from "./money";
 import { asInputJson } from "./json";
 import { sumTimesheetHours } from "./timesheet-hours";
 import { reversingLedgerAmount } from "./payroll-reversal";
-
-function asAllowances(json: unknown): Array<{ name: string; amount: number }> {
-  if (!Array.isArray(json)) return [];
-  return json
-    .map((row) => {
-      if (!row || typeof row !== "object") return null;
-      const rec = row as { name?: string; amount?: number };
-      if (!rec.name || !rec.amount) return null;
-      return { name: String(rec.name), amount: Number(rec.amount) };
-    })
-    .filter((row): row is { name: string; amount: number } => Boolean(row));
-}
 
 export async function calculatePayrollRun(params: {
   runId: string;
@@ -81,7 +69,8 @@ export async function calculatePayrollRun(params: {
         hourlyRate: salary.hourlyRate ? Number(salary.hourlyRate) : null,
         hoursWorked: hours.totalHours,
         overtimeHours: hours.overtimeHours,
-        allowances: asAllowances(salary.allowancesJson),
+        allowances: namedMoneyLines(salary.allowancesJson),
+        extraDeductions: namedMoneyLines(salary.deductionsJson),
       },
       rules
     );
