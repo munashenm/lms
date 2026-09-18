@@ -117,5 +117,6 @@ export const SECRET_BACKUP_FIELDS = [
   "payfastPassphrase",
   "ozowPrivateKey",
   "yocoSecretKey",
+  "paystackSecretKey",
   "bankAccountEnc",
 ] as const;

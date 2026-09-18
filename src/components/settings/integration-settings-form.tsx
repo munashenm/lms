@@ -152,12 +152,10 @@ export function IntegrationSettingsForm({
         secretKey: str("yocoSecretKey"),
         webhookSecret: str("yocoWebhookSecret"),
       },
-      paypal: {
-        enabled: form.get("paypalEnabled") === "on",
-        clientId: form.get("paypalClientId")?.toString() ?? "",
-        secret: str("paypalSecret"),
-        sandbox: form.get("paypalSandbox") === "on",
-        currency: form.get("paypalCurrency")?.toString() ?? "ZAR",
+      paystack: {
+        enabled: form.get("paystackEnabled") === "on",
+        publicKey: form.get("paystackPublicKey")?.toString() ?? "",
+        secretKey: str("paystackSecretKey"),
       },
       sms: {
         provider: form.get("smsProvider")?.toString() ?? "TWILIO",
@@ -357,21 +355,23 @@ export function IntegrationSettingsForm({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">PayPal</CardTitle>
+          <CardTitle className="text-base">Paystack</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Toggle id="paypalEnabled" label="Enable PayPal" defaultChecked={settings.paypal.enabled} />
+          <Toggle id="paystackEnabled" label="Enable Paystack" defaultChecked={settings.paystack.enabled} />
           <div className="space-y-2">
-            <Label htmlFor="paypalClientId">Client ID</Label>
-            <Input id="paypalClientId" name="paypalClientId" defaultValue={settings.paypal.clientId} />
+            <Label htmlFor="paystackPublicKey">Public Key</Label>
+            <Input
+              id="paystackPublicKey"
+              name="paystackPublicKey"
+              defaultValue={settings.paystack.publicKey}
+              placeholder="pk_live_..."
+            />
           </div>
-          <SecretField id="paypalSecret" label="Secret" isSet={settings.paypal.secretSet} />
-          <div className="space-y-2">
-            <Label htmlFor="paypalCurrency">Currency</Label>
-            <Input id="paypalCurrency" name="paypalCurrency" defaultValue={settings.paypal.currency} />
-          </div>
-          <Toggle id="paypalSandbox" label="Sandbox environment" defaultChecked={settings.paypal.sandbox} />
-          <p className="text-xs text-muted">Webhook: {appUrl}/api/webhooks/paypal · Return confirm: {appUrl}/api/payments/gateway/paypal/confirm</p>
+          <SecretField id="paystackSecretKey" label="Secret Key" isSet={settings.paystack.secretKeySet} placeholder="sk_live_..." />
+          <p className="text-xs text-muted">
+            Webhook: {appUrl}/api/webhooks/paystack · Return confirm: {appUrl}/api/payments/gateway/paystack/confirm
+          </p>
         </CardContent>
       </Card>
 

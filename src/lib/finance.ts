@@ -52,6 +52,7 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   OZOW: "Ozow",
   YOCO: "Yoco",
   PAYPAL: "PayPal",
+  PAYSTACK: "Paystack",
   MOBILE: "Mobile payment",
   SCHOLARSHIP: "Scholarship / Bursary",
   OTHER: "Other",

@@ -15,8 +15,9 @@ describe("LMS extension modules", () => {
     expect(splitPaymentAgainstInvoice(400, 1000)).toEqual({ applied: 400, credit: 0 });
   });
 
-  it("exposes PayPal as a payment method and new permission keys", () => {
-    expect(PAYMENT_METHOD_LABELS.PAYPAL).toBe("PayPal");
+  it("exposes Paystack as a payment method and new permission keys", () => {
+    expect(PAYMENT_METHOD_LABELS.PAYSTACK).toBe("Paystack");
+    expect(PAYMENT_METHOD_LABELS.PAYFAST).toBe("PayFast");
     expect(hasPermission(UserRole.FINANCE_OFFICER, "finance.payments.approve")).toBe(true);
     expect(hasPermission(UserRole.TEACHER, "finance.payments.approve")).toBe(false);
     expect(hasPermission(UserRole.TEACHER, "homework.grade")).toBe(true);

@@ -34,12 +34,10 @@ export interface ResolvedIntegrations {
     secretKey: string | null;
     webhookSecret: string | null;
   };
-  paypal: {
+  paystack: {
     enabled: boolean;
-    clientId: string | null;
-    secret: string | null;
-    sandbox: boolean;
-    currency: string;
+    secretKey: string | null;
+    publicKey: string | null;
   };
   sms: {
     provider: string;
@@ -83,12 +81,10 @@ export interface PublicIntegrationSettings {
     secretKeySet: boolean;
     webhookSecretSet: boolean;
   };
-  paypal: {
+  paystack: {
     enabled: boolean;
-    clientId: string;
-    sandbox: boolean;
-    currency: string;
-    secretSet: boolean;
+    publicKey: string;
+    secretKeySet: boolean;
   };
   sms: {
     provider: string;
@@ -137,12 +133,10 @@ function envFallback(): ResolvedIntegrations {
       secretKey: process.env.YOCO_SECRET_KEY ?? null,
       webhookSecret: process.env.YOCO_WEBHOOK_SECRET ?? null,
     },
-    paypal: {
-      enabled: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET),
-      clientId: process.env.PAYPAL_CLIENT_ID ?? null,
-      secret: process.env.PAYPAL_SECRET ?? null,
-      sandbox: process.env.PAYPAL_SANDBOX !== "false",
-      currency: process.env.PAYPAL_CURRENCY ?? "ZAR",
+    paystack: {
+      enabled: Boolean(process.env.PAYSTACK_SECRET_KEY),
+      secretKey: process.env.PAYSTACK_SECRET_KEY ?? null,
+      publicKey: process.env.PAYSTACK_PUBLIC_KEY ?? null,
     },
     sms: {
       provider: process.env.SMS_PROVIDER ?? "TWILIO",
@@ -188,12 +182,10 @@ function rowToResolved(row: NonNullable<Awaited<ReturnType<typeof loadRow>>>): R
       secretKey: decryptSecret(row.yocoSecretKey),
       webhookSecret: decryptSecret(row.yocoWebhookSecret),
     },
-    paypal: {
-      enabled: row.paypalEnabled,
-      clientId: row.paypalClientId,
-      secret: decryptSecret(row.paypalSecret),
-      sandbox: row.paypalSandbox,
-      currency: row.paypalCurrency || "ZAR",
+    paystack: {
+      enabled: row.paystackEnabled,
+      secretKey: decryptSecret(row.paystackSecretKey),
+      publicKey: row.paystackPublicKey,
     },
     sms: {
       provider: row.smsProvider || "TWILIO",
@@ -257,12 +249,10 @@ export async function getPublicIntegrationSettings(
         secretKeySet: false,
         webhookSecretSet: false,
       },
-      paypal: {
+      paystack: {
         enabled: false,
-        clientId: "",
-        sandbox: true,
-        currency: env.paypal.currency,
-        secretSet: maskSecret(env.paypal.secret),
+        publicKey: env.paystack.publicKey ?? "",
+        secretKeySet: maskSecret(env.paystack.secretKey),
       },
       sms: {
         provider: env.sms.provider,
@@ -307,12 +297,10 @@ export async function getPublicIntegrationSettings(
       secretKeySet: maskSecret(row.yocoSecretKey),
       webhookSecretSet: maskSecret(row.yocoWebhookSecret),
     },
-    paypal: {
-      enabled: row.paypalEnabled,
-      clientId: row.paypalClientId ?? "",
-      sandbox: row.paypalSandbox,
-      currency: row.paypalCurrency || "ZAR",
-      secretSet: maskSecret(row.paypalSecret),
+    paystack: {
+      enabled: row.paystackEnabled,
+      publicKey: row.paystackPublicKey ?? "",
+      secretKeySet: maskSecret(row.paystackSecretKey),
     },
     sms: {
       provider: row.smsProvider || "TWILIO",
@@ -367,12 +355,10 @@ export async function saveIntegrationSettings(
       secretKey?: SecretUpdate;
       webhookSecret?: SecretUpdate;
     };
-    paypal?: {
+    paystack?: {
       enabled?: boolean;
-      clientId?: string;
-      secret?: SecretUpdate;
-      sandbox?: boolean;
-      currency?: string;
+      secretKey?: SecretUpdate;
+      publicKey?: string;
     };
     sms?: {
       provider?: string;
@@ -437,14 +423,12 @@ export async function saveIntegrationSettings(
         ? resolveSecretUpdate(existing?.yocoWebhookSecret ?? null, input.yoco.webhookSecret)
         : existing?.yocoWebhookSecret ?? null,
 
-    paypalEnabled: input.paypal?.enabled ?? existing?.paypalEnabled ?? false,
-    paypalClientId: input.paypal?.clientId ?? existing?.paypalClientId ?? null,
-    paypalSecret:
-      input.paypal?.secret !== undefined
-        ? resolveSecretUpdate(existing?.paypalSecret ?? null, input.paypal.secret)
-        : existing?.paypalSecret ?? null,
-    paypalSandbox: input.paypal?.sandbox ?? existing?.paypalSandbox ?? true,
-    paypalCurrency: input.paypal?.currency ?? existing?.paypalCurrency ?? "ZAR",
+    paystackEnabled: input.paystack?.enabled ?? existing?.paystackEnabled ?? false,
+    paystackSecretKey:
+      input.paystack?.secretKey !== undefined
+        ? resolveSecretUpdate(existing?.paystackSecretKey ?? null, input.paystack.secretKey)
+        : existing?.paystackSecretKey ?? null,
+    paystackPublicKey: input.paystack?.publicKey ?? existing?.paystackPublicKey ?? null,
 
     smsProvider: input.sms?.provider ?? existing?.smsProvider ?? "TWILIO",
     smsRestUrl: input.sms?.restUrl ?? existing?.smsRestUrl ?? null,
@@ -503,8 +487,8 @@ export function isYocoReady(config: ResolvedIntegrations) {
   return Boolean(config.yoco.enabled && config.yoco.secretKey);
 }
 
-export function isPayPalReady(config: ResolvedIntegrations) {
-  return Boolean(config.paypal.enabled && config.paypal.clientId && config.paypal.secret);
+export function isPaystackReady(config: ResolvedIntegrations) {
+  return Boolean(config.paystack.enabled && config.paystack.secretKey);
 }
 
 export function isSmsGatewayReady(config: ResolvedIntegrations) {
@@ -532,8 +516,8 @@ export async function getPublicPaymentOptions(schoolId: string): Promise<string[
   const options = ["EFT / bank transfer", "Cash at finance office"];
 
   if (isPayFastReady(config)) options.push("PayFast online");
+  if (isPaystackReady(config)) options.push("Paystack online");
   if (isOzowReady(config)) options.push("Ozow instant EFT");
-  if (isPayPalReady(config)) options.push("PayPal online");
   if (isYocoReady(config)) options.push("Yoco card payments");
 
   options.push("Payment plans available on request");

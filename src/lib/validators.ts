@@ -405,13 +405,11 @@ export const integrationSettingsSchema = z.object({
         webhookSecret: optionalSecret,
       })
       .optional(),
-    paypal: z
+    paystack: z
       .object({
         enabled: z.boolean(),
-        clientId: z.string().optional(),
-        secret: optionalSecret,
-        sandbox: z.boolean().optional(),
-        currency: z.string().optional(),
+        secretKey: optionalSecret,
+        publicKey: z.string().optional(),
       })
       .optional(),
     sms: z
@@ -595,6 +593,7 @@ export const paymentSchema = z.object({
     "OZOW",
     "YOCO",
     "PAYPAL",
+    "PAYSTACK",
     "MOBILE",
     "SCHOLARSHIP",
     "OTHER",

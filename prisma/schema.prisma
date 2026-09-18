@@ -117,6 +117,7 @@ enum PaymentMethod {
   OZOW
   YOCO
   PAYPAL
+  PAYSTACK
   MOBILE
   SCHOLARSHIP
   OTHER
@@ -1919,11 +1920,9 @@ model SchoolIntegrationConfig {
   yocoSecretKey     String?
   yocoWebhookSecret String?
 
-  paypalEnabled    Boolean @default(false)
-  paypalClientId   String?
-  paypalSecret     String?
-  paypalSandbox    Boolean @default(true)
-  paypalCurrency   String  @default("ZAR")
+  paystackEnabled    Boolean @default(false)
+  paystackSecretKey  String?
+  paystackPublicKey  String?
 
   smsProvider          String  @default("TWILIO")
   smsRestUrl           String?

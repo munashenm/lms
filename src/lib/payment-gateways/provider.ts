@@ -47,7 +47,7 @@ const BUILTIN: PaymentProvider[] = [
   {
     id: "paystack",
     label: "Paystack",
-    isConfigured: () => false,
+    isConfigured: (config) => Boolean(config.paystack.enabled && config.paystack.secretKey),
   },
 ];
 

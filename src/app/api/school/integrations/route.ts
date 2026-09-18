@@ -109,10 +109,10 @@ export async function PATCH(request: NextRequest) {
             settings.yoco.webhookSecret === "" ? undefined : settings.yoco.webhookSecret,
         }
       : undefined,
-    paypal: settings.paypal
+    paystack: settings.paystack
       ? {
-          ...settings.paypal,
-          secret: settings.paypal.secret === "" ? undefined : settings.paypal.secret,
+          ...settings.paystack,
+          secretKey: settings.paystack.secretKey === "" ? undefined : settings.paystack.secretKey,
         }
       : undefined,
     sms: settings.sms

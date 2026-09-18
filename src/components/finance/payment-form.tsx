@@ -120,11 +120,13 @@ export function PaymentForm({
           <div className="space-y-2">
             <Label>Payment Method *</Label>
             <Select name="method" defaultValue="EFT" required>
-              {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map((method) => (
-                <option key={method} value={method}>
-                  {PAYMENT_METHOD_LABELS[method]}
-                </option>
-              ))}
+              {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[])
+                .filter((method) => method !== "PAYPAL")
+                .map((method) => (
+                  <option key={method} value={method}>
+                    {PAYMENT_METHOD_LABELS[method]}
+                  </option>
+                ))}
             </Select>
           </div>
           <div className="space-y-2">
