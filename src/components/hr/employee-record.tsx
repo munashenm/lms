@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatZAR, formatDate } from "@/lib/utils";
 import { EMPLOYEE_DOCUMENT_LABELS, REGISTRATION_DOC_ACCEPT } from "@/lib/registration-docs";
+import type { PayrollRules } from "@/lib/payroll-engine";
+import { SalaryPackageFields } from "@/components/hr/salary-package-form";
 
 const DOC_TYPES = [
   "ID_PASSPORT",
@@ -45,6 +47,18 @@ export function EmployeeRecord(props: {
     hourlyRate: unknown;
     effectiveFrom: Date | string;
     effectiveTo: Date | string | null;
+    allowancesJson?: unknown;
+    deductionsJson?: unknown;
+  }>;
+  payrollRules?: PayrollRules;
+  payslips?: Array<{
+    id: string;
+    number: string;
+    netPay: number;
+    grossPay: number;
+    totalDeductions: number;
+    periodStart: Date | string;
+    periodEnd: Date | string;
   }>;
   documents: Array<{
     id: string;
@@ -87,6 +101,8 @@ export function EmployeeRecord(props: {
           baseSalary: Number(form.get("baseSalary") || 0),
           hourlyRate: form.get("hourlyRate") ? Number(form.get("hourlyRate")) : null,
           effectiveFrom: form.get("effectiveFrom"),
+          allowancesText: String(form.get("allowancesText") || ""),
+          deductionsText: String(form.get("deductionsText") || ""),
         }),
       });
       if (!res.ok) throw new Error();
@@ -265,20 +281,17 @@ export function EmployeeRecord(props: {
       ) : null}
 
       <Card>
-        <CardHeader><CardTitle>Salary change</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Salary & take-home pay</CardTitle></CardHeader>
         <CardContent>
+          <p className="text-sm text-muted mb-4">
+            Net pay is basic salary plus allowances, minus statutory rates and extra deductions. Staff can download the payslip after payroll is finalised.
+          </p>
           <form onSubmit={changeSalary} className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="payType">Pay type</Label>
-              <select id="payType" name="payType" className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm">
-                <option value="MONTHLY">Monthly</option>
-                <option value="HOURLY">Hourly</option>
-              </select>
-            </div>
-            <div><Label htmlFor="effectiveFrom">Effective from</Label><Input id="effectiveFrom" name="effectiveFrom" type="date" required /></div>
-            <div><Label htmlFor="baseSalary">Base salary</Label><Input id="baseSalary" name="baseSalary" type="number" step="0.01" required /></div>
-            <div><Label htmlFor="hourlyRate">Hourly rate</Label><Input id="hourlyRate" name="hourlyRate" type="number" step="0.01" /></div>
-            <div className="sm:col-span-2"><Button type="submit" disabled={loading === "salary"}>Record change</Button></div>
+            <SalaryPackageFields
+              current={props.salaryStructures.find((row) => !row.effectiveTo) ?? props.salaryStructures[0] ?? null}
+              payrollRules={props.payrollRules}
+            />
+            <div className="sm:col-span-2"><Button type="submit" disabled={loading === "salary"}>Record salary package</Button></div>
           </form>
           <table className="w-full text-sm mt-6">
             <thead>
@@ -286,7 +299,7 @@ export function EmployeeRecord(props: {
                 <th className="text-left py-2 font-medium text-muted">From</th>
                 <th className="text-left py-2 font-medium text-muted">To</th>
                 <th className="text-left py-2 font-medium text-muted">Type</th>
-                <th className="text-right py-2 font-medium text-muted">Amount</th>
+                <th className="text-right py-2 font-medium text-muted">Base</th>
               </tr>
             </thead>
             <tbody>
@@ -304,6 +317,44 @@ export function EmployeeRecord(props: {
               ))}
             </tbody>
           </table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Payslips</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          {!props.payslips?.length ? (
+            <p className="p-4 text-sm text-muted">Payslips appear here after a payroll run is finalised. Staff can also download them from My Payslips.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-background/50">
+                  <th className="text-left px-4 py-3 font-medium text-muted">Period</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted">Number</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted">Gross</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted">Deductions</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted">Net</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {props.payslips.map((row) => (
+                  <tr key={row.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3">{formatDate(row.periodStart)} – {formatDate(row.periodEnd)}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{row.number}</td>
+                    <td className="px-4 py-3 text-right">{formatZAR(row.grossPay)}</td>
+                    <td className="px-4 py-3 text-right">{formatZAR(row.totalDeductions)}</td>
+                    <td className="px-4 py-3 text-right">{formatZAR(row.netPay)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={`/api/payslips/${row.id}/pdf`}>Download PDF</a>
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </CardContent>
       </Card>
 

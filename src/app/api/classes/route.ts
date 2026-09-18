@@ -7,6 +7,7 @@ import { classSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { assignPrimaryClassTeacher } from "@/lib/class-teachers";
+import { assertSchoolFks } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getSession();
@@ -52,6 +53,15 @@ export async function POST(request: NextRequest) {
     const denied = await requireLicenseWrite(schoolId);
     if (denied) return denied;
     const data = parsed.data;
+    const fkError = await assertSchoolFks(schoolId, {
+      gradeId: data.gradeId,
+      campusId: data.campusId,
+      academicYearId: data.academicYearId,
+      teacherId: data.teacherId,
+    });
+    if (fkError) {
+      return NextResponse.json({ message: fkError }, { status: 400 });
+    }
 
     const cls = await prisma.class.create({
       data: {

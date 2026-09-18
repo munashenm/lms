@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,10 +16,12 @@ export function PayrollRunDetail(props: {
     periodStart: Date | string;
     periodEnd: Date | string;
     totalGross: unknown;
+    totalDeductions?: unknown;
     totalNet: unknown;
     items: Array<{
       id: string;
       grossPay: unknown;
+      totalDeductions?: unknown;
       netPay: unknown;
       exceptionNote: string | null;
       employee: { firstName: string; lastName: string; employeeNumber: string };
@@ -26,10 +30,38 @@ export function PayrollRunDetail(props: {
   };
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const backHref = pathname.startsWith("/admin") ? "/admin/payroll" : "/hr/payroll";
   const exceptions = props.run.items.filter((i) => i.exceptionNote);
+  const canRecalculate = props.run.status === "DRAFT" || props.run.status === "CALCULATED";
+  const [loading, setLoading] = useState(false);
+
+  async function recalculate() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/payroll/runs/${props.run.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "calculate" }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || "Could not recalculate");
+      }
+      toast.success("Payroll recalculated");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not recalculate");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
+      <p className="text-sm text-muted">
+        Net pay is gross minus deductions. Payslip PDFs are created when you finalise, then staff can download them from My Payslips.
+      </p>
       {exceptions.length > 0 ? (
         <Card>
           <CardHeader><CardTitle>Exceptions to review</CardTitle></CardHeader>
@@ -51,6 +83,7 @@ export function PayrollRunDetail(props: {
               <tr className="border-b border-border bg-background/50">
                 <th className="text-left px-4 py-3 font-medium text-muted">Employee</th>
                 <th className="text-right px-4 py-3 font-medium text-muted">Gross</th>
+                <th className="text-right px-4 py-3 font-medium text-muted">Deductions</th>
                 <th className="text-right px-4 py-3 font-medium text-muted">Net</th>
                 <th className="text-left px-4 py-3 font-medium text-muted">Note</th>
                 <th className="px-4 py-3" />
@@ -64,6 +97,7 @@ export function PayrollRunDetail(props: {
                     <span className="block text-xs text-muted font-mono">{item.employee.employeeNumber}</span>
                   </td>
                   <td className="px-4 py-3 text-right">{formatZAR(Number(item.grossPay))}</td>
+                  <td className="px-4 py-3 text-right">{formatZAR(Number(item.totalDeductions ?? 0))}</td>
                   <td className="px-4 py-3 text-right">{formatZAR(Number(item.netPay))}</td>
                   <td className="px-4 py-3">{item.exceptionNote ? <Badge variant="warning">{item.exceptionNote}</Badge> : "—"}</td>
                   <td className="px-4 py-3 text-right">
@@ -71,7 +105,9 @@ export function PayrollRunDetail(props: {
                       <Button size="sm" variant="outline" asChild>
                         <a href={`/api/payslips/${item.payslip.id}/pdf`}>Payslip</a>
                       </Button>
-                    ) : null}
+                    ) : (
+                      <span className="text-xs text-muted">After finalise</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -80,6 +116,9 @@ export function PayrollRunDetail(props: {
         </CardContent>
       </Card>
       <div className="flex flex-wrap gap-2">
+        {canRecalculate ? (
+          <Button variant="outline" disabled={loading} onClick={recalculate}>Recalculate net pay</Button>
+        ) : null}
         <Button variant="outline" asChild>
           <a href={`/api/payroll/runs/${props.run.id}/export`}>Payment listing CSV</a>
         </Button>

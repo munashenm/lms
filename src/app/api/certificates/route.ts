@@ -13,6 +13,7 @@ import { academicPdfSnapshotInput } from "@/lib/academic-pdf";
 import { isLearnerPortalRole } from "@/lib/fee-clearance";
 import { logAudit } from "@/lib/audit";
 import { notifyAcademicDocumentFamily } from "@/lib/academic-document-notice";
+import { assertSchoolFks } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -65,11 +66,21 @@ export async function POST(request: NextRequest) {
   const denied = await requireLicenseWrite(student.schoolId);
   if (denied) return denied;
 
+  const fkError = await assertSchoolFks(student.schoolId, {
+    courseId: parsed.data.courseId,
+    academicYearId: parsed.data.academicYearId,
+  });
+  if (fkError) {
+    return NextResponse.json({ message: fkError }, { status: 400 });
+  }
+
   const course = parsed.data.courseId
-    ? await prisma.course.findUnique({ where: { id: parsed.data.courseId } })
+    ? await prisma.course.findFirst({ where: { id: parsed.data.courseId, schoolId: student.schoolId } })
     : null;
   const academicYear = parsed.data.academicYearId
-    ? await prisma.academicYear.findUnique({ where: { id: parsed.data.academicYearId } })
+    ? await prisma.academicYear.findFirst({
+        where: { id: parsed.data.academicYearId, schoolId: student.schoolId },
+      })
     : null;
 
   const count = await prisma.certificate.count({ where: { schoolId: student.schoolId } });

@@ -10,6 +10,7 @@ import { evaluateStoredLicense } from "@/lib/licensing/service";
 import { isFeatureEnabled } from "@/lib/licensing/portal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { assessmentSchoolInclude, studentCanAccessAssessment } from "@/lib/tenant";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -22,11 +23,16 @@ export default async function StudentExamSitPage({ params }: PageProps) {
   if (!student) notFound();
 
   const license = await evaluateStoredLicense(student.schoolId).catch(() => null);
-  const assessment = await prisma.assessment.findUnique({
-    where: { id },
-    include: { _count: { select: { questions: true } } },
+  const assessment = await prisma.assessment.findFirst({
+    where: { id, schoolId: student.schoolId },
+    include: { _count: { select: { questions: true } }, ...assessmentSchoolInclude },
   });
-  if (!assessment || assessment.type !== AssessmentType.EXAM || !assessment.isPublished) {
+  if (
+    !assessment ||
+    assessment.type !== AssessmentType.EXAM ||
+    !assessment.isPublished ||
+    !studentCanAccessAssessment(student.schoolId, assessment)
+  ) {
     notFound();
   }
 

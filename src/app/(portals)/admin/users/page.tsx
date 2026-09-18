@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter, hasPermission, requirePermission } from "@/lib/rbac";
+import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { directoryRolesForActor } from "@/lib/portal-provision";
 import { UsersDirectory } from "@/components/admin/users-directory";
 import { AccessDenied } from "@/components/layout/access-denied";
@@ -46,7 +46,7 @@ export default async function AdminUsersPage() {
     }),
   ]);
 
-  const canWrite = hasPermission(session.role, "users.edit");
+  const canWrite = requirePermission(session, "users.edit");
   const showSchoolColumn = !("schoolId" in filter);
 
   return (

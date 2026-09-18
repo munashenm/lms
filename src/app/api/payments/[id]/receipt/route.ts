@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter, canAccessSchool } from "@/lib/rbac";
+import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { getChildStudentIds, getStudentForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { PAYMENT_METHOD_LABELS, getOutstandingBalance } from "@/lib/finance";
@@ -10,6 +10,7 @@ import { toSchoolBrand } from "@/lib/pdf-branding";
 import { amountInWordsZar } from "@/lib/amount-in-words";
 import { formatDateTime } from "@/lib/utils";
 import { getTerminology } from "@/lib/terminology";
+import { institutionScope } from "@/lib/tenant";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -23,8 +24,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
 
-  const payment = await prisma.payment.findUnique({
-    where: { id },
+  const payment = await prisma.payment.findFirst({
+    where: { id, ...institutionScope(session) },
     include: {
       invoice: {
         include: {
@@ -58,7 +59,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     );
   } else if (session.role === UserRole.PARENT) {
     const childIds = await getChildStudentIds(session);
-    allowed = childIds.includes(invoice.studentId) && canAccessSchool(session, invoice.schoolId);
+    allowed = childIds.includes(invoice.studentId);
   } else if (requirePermission(session, "finance:read")) {
     const filter = getSchoolFilter(session);
     allowed =

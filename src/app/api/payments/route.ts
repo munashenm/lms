@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requireStaffPermission, getSchoolFilter, canAccessSchool } from "@/lib/rbac";
+import { requireStaffPermission, getSchoolFilter } from "@/lib/rbac";
 import { paymentSchema } from "@/lib/validators";
 import { deriveInvoiceStatus } from "@/lib/finance";
 import { logAudit } from "@/lib/audit";
@@ -14,6 +14,7 @@ import { allocatePaymentManual, allocatePaymentToOldest } from "@/lib/payment-al
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { consumeIdempotency } from "@/lib/rate-limit";
 import { assertPaidAtAcceptable, parseCollectionPaidAt } from "@/lib/fee-collection";
+import { scopedId } from "@/lib/tenant";
 
 export async function GET() {
   const session = await getSession();
@@ -65,15 +66,12 @@ export async function POST(request: NextRequest) {
     paidAt = parsedPaidAt;
   }
 
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId },
+  const invoice = await prisma.invoice.findFirst({
+    where: scopedId(session!, invoiceId),
     include: { student: { select: { userId: true, firstName: true, lastName: true } } },
   });
   if (!invoice) {
     return NextResponse.json({ message: "Invoice not found" }, { status: 404 });
-  }
-  if (!canAccessSchool(session!, invoice.schoolId)) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   if (invoice.status === "CANCELLED" || invoice.status === "DRAFT") {
     return NextResponse.json({ message: "This invoice cannot accept collections" }, { status: 400 });

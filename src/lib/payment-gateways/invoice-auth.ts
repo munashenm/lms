@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, sessionHasPermission } from "@/lib/rbac";
+import { sessionHasPermission } from "@/lib/rbac";
 import { getOutstandingBalance } from "@/lib/finance";
 import { getChildStudentIds } from "@/lib/portal-data";
+import { institutionScope } from "@/lib/tenant";
 
 export function canInitiateInvoicePayment(input: {
   role: UserRole;
@@ -53,8 +54,8 @@ export async function authorizeInvoiceForPayment(invoiceId: string | undefined) 
     return { error: NextResponse.json({ message: "invoiceId required" }, { status: 400 }) };
   }
 
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId },
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: invoiceId, ...institutionScope(session) },
     include: {
       student: {
         select: { firstName: true, lastName: true, email: true, userId: true },
@@ -62,7 +63,7 @@ export async function authorizeInvoiceForPayment(invoiceId: string | undefined) 
     },
   });
 
-  if (!invoice || !canAccessSchool(session, invoice.schoolId)) {
+  if (!invoice) {
     return { error: NextResponse.json({ message: "Invoice not found" }, { status: 404 }) };
   }
 

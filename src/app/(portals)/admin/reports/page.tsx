@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter, hasPermission } from "@/lib/rbac";
+import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import {
   getAttendanceReport,
   getAcademicReport,
@@ -18,7 +18,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
   const { tab = "attendance" } = await searchParams;
-  const canViewHr = hasPermission(session!.role, "hr.view");
+  const canViewHr = requirePermission(session, "hr.view");
 
   const [attendance, academic, finance, admissions, hr] = await Promise.all([
     tab === "attendance" ? getAttendanceReport(filter) : Promise.resolve([]),

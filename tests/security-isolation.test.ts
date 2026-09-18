@@ -16,6 +16,8 @@ import {
 } from "@/lib/tenant";
 import { canAccessUploadPath, isPublicUploadPath, parseUploadPath } from "@/lib/upload-access";
 import { publicApplicationStatus } from "@/lib/application-public";
+import { authorizeAcademicDocument } from "@/lib/fee-clearance";
+import { sessionCanAccessStudentCard } from "@/lib/student-card";
 
 function schoolUser(schoolId: string, role: UserRole = UserRole.SCHOOL_ADMIN): SessionPayload {
   return {
@@ -95,6 +97,55 @@ describe("multi-tenant isolation", () => {
     expect(parseUploadPath("/uploads/school-a/applications/file.pdf")?.schoolId).toBe("school-a");
     expect(canAccessUploadPath(schoolA, "/uploads/school-b/id-document.pdf")).toBe(false);
     expect(canAccessUploadPath(schoolA, "/uploads/school-a/id-document.pdf")).toBe(true);
+  });
+
+  it("does not let visitor staff fetch student, HR or finance uploads", () => {
+    const staff = schoolUser("school-a", UserRole.STAFF);
+    const student = schoolUser("school-a", UserRole.STUDENT);
+    const parent = schoolUser("school-a", UserRole.PARENT);
+    expect(canAccessUploadPath(staff, "/uploads/school-a/students/s1/id.pdf")).toBe(false);
+    expect(canAccessUploadPath(staff, "/uploads/school-a/hr/emp1/contract.pdf")).toBe(false);
+    expect(canAccessUploadPath(staff, "/uploads/school-a/expenses/slip.pdf")).toBe(false);
+    expect(canAccessUploadPath(staff, "/uploads/school-a/notes.pdf")).toBe(false);
+    expect(canAccessUploadPath(staff, "/uploads/school-a/leave/sick-note.pdf")).toBe(true);
+    expect(canAccessUploadPath(teacherA, "/uploads/school-a/students/s1/id.pdf")).toBe(true);
+    expect(canAccessUploadPath(teacherA, "/uploads/school-a/hr/emp1/contract.pdf")).toBe(false);
+    expect(canAccessUploadPath(teacherA, "/uploads/school-a/expenses/slip.pdf")).toBe(false);
+    expect(canAccessUploadPath(financeA, "/uploads/school-a/expenses/slip.pdf")).toBe(true);
+    expect(canAccessUploadPath(financeA, "/uploads/school-a/hr/emp1/contract.pdf")).toBe(false);
+    expect(canAccessUploadPath(student, "/uploads/school-a/students/s1/photo.jpg")).toBe(true);
+    expect(canAccessUploadPath(student, "/uploads/school-a/hr/emp1/contract.pdf")).toBe(false);
+    expect(canAccessUploadPath(parent, "/uploads/school-a/expenses/slip.pdf")).toBe(false);
+    expect(canAccessUploadPath(parent, "/uploads/school-a/students/s1/photo.jpg")).toBe(true);
+  });
+
+  it("requires marks:read for staff academic PDF downloads", async () => {
+    const staff = schoolUser("school-a", UserRole.STAFF);
+    const finance = schoolUser("school-a", UserRole.FINANCE_OFFICER);
+    await expect(
+      authorizeAcademicDocument({ session: staff, studentId: "s1", schoolId: "school-a" })
+    ).resolves.toMatchObject({ ok: false, status: 403 });
+    await expect(
+      authorizeAcademicDocument({ session: finance, studentId: "s1", schoolId: "school-a" })
+    ).resolves.toMatchObject({ ok: false, status: 403 });
+    await expect(
+      authorizeAcademicDocument({ session: teacherA, studentId: "s1", schoolId: "school-a" })
+    ).resolves.toMatchObject({ ok: true });
+    await expect(
+      authorizeAcademicDocument({ session: schoolA, studentId: "s1", schoolId: "school-a" })
+    ).resolves.toMatchObject({ ok: true });
+  });
+
+  it("honours permission denies on student card access", async () => {
+    const deniedTeacher: SessionPayload = {
+      ...teacherA,
+      permissionDenies: ["students:read"],
+    };
+    await expect(sessionCanAccessStudentCard(teacherA, "s1")).resolves.toBe(true);
+    await expect(sessionCanAccessStudentCard(deniedTeacher, "s1")).resolves.toBe(false);
+    await expect(sessionCanAccessStudentCard(schoolUser("school-a", UserRole.STAFF), "s1")).resolves.toBe(
+      false
+    );
   });
 
   it("does not leak applicant names on the public tracker payload", () => {
@@ -180,5 +231,20 @@ describe("multi-tenant isolation", () => {
     expect(scopedId({ ...schoolA, role: UserRole.SUPER_ADMIN, schoolId: null }, "row-1")).toEqual({
       id: "row-1",
     });
+    expect(scopedId(schoolA, "inv-school-b")).not.toEqual({ id: "inv-school-b" });
+    expect(scopedId(schoolA, "inv-school-b")).not.toMatchObject({ schoolId: "school-b" });
+  });
+
+  it("honours permission denies on portal write actions", () => {
+    const deniedAdmin: SessionPayload = {
+      ...schoolA,
+      permissionDenies: ["users.edit", "classes:write", "settings:write", "hr.view"],
+    };
+    expect(requirePermission(schoolA, "users.edit")).toBe(true);
+    expect(requirePermission(deniedAdmin, "users.edit")).toBe(false);
+    expect(requirePermission(deniedAdmin, "classes:write")).toBe(false);
+    expect(requirePermission(deniedAdmin, "settings:write")).toBe(false);
+    expect(requirePermission(deniedAdmin, "hr.view")).toBe(false);
+    expect(requirePermission(deniedAdmin, "students:read")).toBe(true);
   });
 });

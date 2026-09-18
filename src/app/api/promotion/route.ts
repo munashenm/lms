@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { PromotionEligibility, PromotionOutcome } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool } from "@/lib/rbac";
 import { denyUnless } from "@/lib/access";
 import { requireSchoolId } from "@/lib/portal-data";
 import { commitPromotion, evaluateStudentPromotion } from "@/lib/promotion";
 import { promotionCommitSchema } from "@/lib/validators";
 import { emptyToNull } from "@/lib/class-teachers";
+import { assertSchoolFks, scopedId } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -54,14 +54,28 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
   const parsed = promotionCommitSchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
 
-  const student = await prisma.student.findUnique({ where: { id: parsed.data.studentId } });
-  if (!student || !canAccessSchool(session!, student.schoolId)) {
+  const student = await prisma.student.findFirst({
+    where: scopedId(session, parsed.data.studentId),
+  });
+  if (!student) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
+  }
+
+  const fkError = await assertSchoolFks(student.schoolId, {
+    academicYearId: parsed.data.toAcademicYearId,
+    gradeId: parsed.data.toGradeId,
+    classId: parsed.data.toClassId,
+  });
+  if (fkError) {
+    return NextResponse.json({ message: fkError }, { status: 400 });
   }
 
   const check = await evaluateStudentPromotion({

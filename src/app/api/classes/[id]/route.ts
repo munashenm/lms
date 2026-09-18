@@ -6,7 +6,7 @@ import { classPatchSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { assignPrimaryClassTeacher, emptyToNull } from "@/lib/class-teachers";
-import { scopedId } from "@/lib/tenant";
+import { assertSchoolFks, scopedId } from "@/lib/tenant";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -33,6 +33,15 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const data = parsed.data;
+  const fkError = await assertSchoolFks(existing.schoolId, {
+    gradeId: data.gradeId,
+    campusId: data.campusId,
+    academicYearId: data.academicYearId,
+    teacherId: data.teacherId,
+  });
+  if (fkError) {
+    return NextResponse.json({ message: fkError }, { status: 400 });
+  }
   const cls = await prisma.class.update({
     where: { id },
     data: {

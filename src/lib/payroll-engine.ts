@@ -50,6 +50,41 @@ function sumLines(lines: PayrollLine[]): number {
   return roundMoney(lines.reduce((s, l) => s + l.amount, 0));
 }
 
+export function namedMoneyLines(json: unknown): PayrollLine[] {
+  if (!Array.isArray(json)) return [];
+  return json
+    .map((row) => {
+      if (!row || typeof row !== "object") return null;
+      const rec = row as { name?: unknown; amount?: unknown };
+      const name = String(rec.name ?? "").trim();
+      const amount = roundMoney(Number(rec.amount ?? 0));
+      if (!name || !amount) return null;
+      return { name, amount };
+    })
+    .filter((row): row is PayrollLine => Boolean(row));
+}
+
+/** Parse "Housing: 2000" / "Staff loan 500" lines from HR salary forms. */
+export function parseNamedAmountText(text: string | null | undefined): PayrollLine[] {
+  if (!text?.trim()) return [];
+  const lines: PayrollLine[] = [];
+  for (const raw of text.split(/\n|,/)) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const match = trimmed.match(/^(.+?)(?:[:=]|[\t ]+)(-?\d+(?:\.\d+)?)\s*$/);
+    if (!match) continue;
+    const amount = roundMoney(Number(match[2]));
+    const name = match[1].trim();
+    if (!name || !amount) continue;
+    lines.push({ name, amount });
+  }
+  return lines;
+}
+
+export function namedAmountText(lines: PayrollLine[]): string {
+  return lines.map((row) => `${row.name}: ${row.amount}`).join("\n");
+}
+
 /** Pure payroll calculation. Statutory rates come from versioned rulesJson only. */
 export function calculateEmployeePay(input: SalaryInput, rules: PayrollRules = {}): PayrollCalculation {
   const earnings: PayrollLine[] = [];

@@ -7,6 +7,7 @@ import { requireSchoolId } from "@/lib/portal-data";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
+import { assertSchoolFks } from "@/lib/tenant";
 
 const schema = z.object({
   name: z.string().min(1).max(200),
@@ -57,6 +58,18 @@ export async function POST(request: NextRequest) {
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ message: "Invalid data", errors: parsed.error.issues }, { status: 400 });
+  }
+  const fkError = await assertSchoolFks(schoolId, {
+    academicYearId: parsed.data.academicYearId,
+    termId: parsed.data.termId,
+    campusId: parsed.data.campusId,
+    gradeId: parsed.data.gradeId,
+    classId: parsed.data.classId,
+    courseId: parsed.data.courseId,
+    moduleId: parsed.data.moduleId,
+  });
+  if (fkError) {
+    return NextResponse.json({ message: fkError }, { status: 400 });
   }
   const item = await prisma.feeStructure.create({
     data: {

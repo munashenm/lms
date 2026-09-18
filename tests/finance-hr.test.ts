@@ -9,7 +9,7 @@ import {
   planInstalments,
   type EnrolmentFeeContext,
 } from "@/lib/fee-matching";
-import { calculateEmployeePay, EMPTY_PAYROLL_RULES, parsePayrollRules } from "@/lib/payroll-engine";
+import { calculateEmployeePay, EMPTY_PAYROLL_RULES, namedAmountText, parseNamedAmountText, parsePayrollRules } from "@/lib/payroll-engine";
 import { hoursBetweenHhmm, parseClockPunches } from "@/lib/clock-hours";
 import { hasPermission } from "@/lib/rbac";
 import { canApplyForLeave } from "@/lib/staff-leave";
@@ -151,6 +151,31 @@ describe("payroll rules", () => {
     expect(result.totalDeductions).toBe(1000);
     expect(result.netPay).toBe(9000);
     expect(result.employerContributions).toBe(100);
+  });
+
+  it("subtracts extra salary deductions after statutory amounts", () => {
+    const result = calculateEmployeePay(
+      {
+        payType: "MONTHLY",
+        baseSalary: 20000,
+        allowances: [{ name: "Housing", amount: 2000 }],
+        extraDeductions: [{ name: "Staff loan", amount: 1500 }],
+      },
+      { employeeTaxPercent: 10, uifEmployeePercent: 1 }
+    );
+    expect(result.grossPay).toBe(22000);
+    expect(result.totalDeductions).toBe(3920);
+    expect(result.netPay).toBe(18080);
+    expect(result.deductions.map((row) => row.name)).toEqual([
+      "Income tax",
+      "UIF (employee)",
+      "Staff loan",
+    ]);
+    expect(parseNamedAmountText("Housing: 2000\nStaff loan 500")).toEqual([
+      { name: "Housing", amount: 2000 },
+      { name: "Staff loan", amount: 500 },
+    ]);
+    expect(namedAmountText([{ name: "Housing", amount: 2000 }])).toBe("Housing: 2000");
   });
 });
 

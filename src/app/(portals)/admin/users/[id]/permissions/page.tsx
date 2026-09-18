@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission, rolePermissionSet } from "@/lib/rbac";
+import { requirePermission, rolePermissionSet } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { AccessDenied } from "@/components/layout/access-denied";
 import { UserPermissionsForm } from "@/components/admin/user-permissions-form";
 import { ROLE_LABELS } from "@/lib/constants";
+import { scopedId } from "@/lib/tenant";
 import {
   defaultActionPermissionsForRole,
   isActionPermission,
@@ -22,8 +23,8 @@ export default async function UserPermissionsPage({ params }: PageProps) {
   const session = await getSession();
   if (!requirePermission(session, "users.permissions")) return <AccessDenied />;
   const { id } = await params;
-  const user = await prisma.user.findUnique({
-    where: { id },
+  const user = await prisma.user.findFirst({
+    where: scopedId(session, id),
     select: {
       id: true,
       firstName: true,
@@ -35,7 +36,6 @@ export default async function UserPermissionsPage({ params }: PageProps) {
     },
   });
   if (!user) notFound();
-  if (user.schoolId && !canAccessSchool(session, user.schoolId)) notFound();
   if (!user.schoolId && session.role !== UserRole.SUPER_ADMIN) notFound();
 
   const roleDefaults = defaultActionPermissionsForRole(user.role, rolePermissionSet(user.role));

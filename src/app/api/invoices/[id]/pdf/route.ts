@@ -14,6 +14,7 @@ import { toSchoolBrand } from "@/lib/pdf-branding";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { getTerminology } from "@/lib/terminology";
 import { collectedPaymentsForInvoice, invoiceSchoolDetailLines } from "@/lib/fee-collection";
+import { scopedId } from "@/lib/tenant";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -27,8 +28,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
 
-  const invoice = await prisma.invoice.findUnique({
-    where: { id },
+  const invoice = await prisma.invoice.findFirst({
+    where: scopedId(session, id),
     include: {
       school: true,
       lineItems: { orderBy: { createdAt: "asc" } },

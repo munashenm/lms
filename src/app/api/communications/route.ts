@@ -9,6 +9,7 @@ import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { createNoticeBatch } from "@/lib/notice-comms";
 import { processCommunicationBatch } from "@/lib/bulk-fee-comms";
+import { assertSchoolFks } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -68,6 +69,14 @@ export async function POST(request: NextRequest) {
   const schoolId = await requireSchoolId(session);
   const denied = await requireLicenseWrite(schoolId);
   if (denied) return denied;
+
+  const fkError = await assertSchoolFks(schoolId, {
+    classId: parsed.data.classId,
+    gradeId: parsed.data.gradeId,
+  });
+  if (fkError) {
+    return NextResponse.json({ message: fkError }, { status: 400 });
+  }
 
   const batch = await createNoticeBatch({
     schoolId,

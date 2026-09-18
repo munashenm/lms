@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { canAccessSchool, requirePermission } from "@/lib/rbac";
+import { requirePermission } from "@/lib/rbac";
 import { PayrollRunDetail } from "@/components/hr/payroll-run-detail";
 import { formatDate } from "@/lib/utils";
+import { scopedId } from "@/lib/tenant";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -13,8 +14,9 @@ export default async function PayrollRunPage({ params }: Params) {
   const session = await getSession();
   if (!requirePermission(session, "payroll.view")) notFound();
   const { id } = await params;
-  const run = await prisma.payrollRun.findUnique({
-    where: { id },
+  if (!session) notFound();
+  const run = await prisma.payrollRun.findFirst({
+    where: scopedId(session, id),
     include: {
       items: {
         include: {
@@ -24,7 +26,7 @@ export default async function PayrollRunPage({ params }: Params) {
       },
     },
   });
-  if (!run || !session || !canAccessSchool(session, run.schoolId)) notFound();
+  if (!run) notFound();
   return (
     <div className="space-y-6">
       <div>

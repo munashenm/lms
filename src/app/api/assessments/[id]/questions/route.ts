@@ -6,7 +6,7 @@ import { getTeacherForSession } from "@/lib/portal-data";
 import { examQuestionSchema } from "@/lib/validators";
 import { asInputJson } from "@/lib/json";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
-import { assessmentAccess, assessmentSchoolId, assessmentSchoolInclude } from "@/lib/tenant";
+import { assessmentAccess, assessmentSchoolId, assessmentSchoolInclude, institutionScope } from "@/lib/tenant";
 import { canAccessSchool } from "@/lib/rbac";
 import { tenantMiss } from "@/lib/authorize";
 
@@ -43,8 +43,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: parsed.error.issues[0]?.message ?? "Invalid data" }, { status: 400 });
   }
 
-  const assessment = await prisma.assessment.findUnique({
-    where: { id },
+  const assessment = await prisma.assessment.findFirst({
+    where: { id, ...institutionScope(session!) },
     include: assessmentSchoolInclude,
   });
   if (!assessment) return tenantMiss();

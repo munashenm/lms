@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { requirePermission } from "@/lib/rbac";
 import { moduleSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { scopedId } from "@/lib/tenant";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
 
-  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  const course = await prisma.course.findFirst({ where: scopedId(session, courseId) });
   if (!course) {
     return NextResponse.json({ message: "Course not found" }, { status: 404 });
   }

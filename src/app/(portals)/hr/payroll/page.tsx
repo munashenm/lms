@@ -23,7 +23,7 @@ export default async function HrPayrollPage() {
       <div>
         <h1 className="text-2xl font-bold">Payroll</h1>
         <p className="text-muted text-sm mt-1">
-          Draft → Calculate → Approve → Finalise. Finalised runs post salary and employer contribution expenses to Finance and cannot be silently edited.
+          Draft → Calculate → Approve → Finalise. Finalise generates payslips for staff and posts salary expenses to Finance.
         </p>
       </div>
       <PayrollRulesForm
@@ -41,6 +41,7 @@ export default async function HrPayrollPage() {
           periodStart: r.periodStart,
           periodEnd: r.periodEnd,
           totalGross: r.totalGross,
+          totalDeductions: r.totalDeductions,
           totalNet: r.totalNet,
           totalEmployer: r.totalEmployer,
         }))}

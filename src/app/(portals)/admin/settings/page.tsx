@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter, hasPermission } from "@/lib/rbac";
+import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { UserRole } from "@prisma/client";
 import { SchoolSettingsForm } from "@/components/settings/school-settings-form";
 import { IntegrationSettingsForm } from "@/components/settings/integration-settings-form";
@@ -157,7 +157,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
             <p className="text-sm font-medium">Campuses</p>
             <CampusList
               campuses={school.campuses}
-              canWrite={hasPermission(session!.role, "settings:write")}
+              canWrite={requirePermission(session, "settings:write")}
             />
           </CardContent>
         </Card>

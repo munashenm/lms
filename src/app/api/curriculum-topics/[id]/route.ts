@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { scopedId } from "@/lib/tenant";
+import { assertSchoolFks, scopedId } from "@/lib/tenant";
 import { sessionHasPermission } from "@/lib/rbac";
 import { curriculumTopicSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
@@ -33,6 +33,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   const parsed = curriculumTopicSchema.partial().safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ message: "Invalid data" }, { status: 400 });
+
+  const fkError = await assertSchoolFks(existing.schoolId, {
+    classId: parsed.data.classId,
+    termId: parsed.data.termId,
+  });
+  if (fkError) {
+    return NextResponse.json({ message: fkError }, { status: 400 });
+  }
 
   const topic = await prisma.curriculumTopic.update({
     where: { id },

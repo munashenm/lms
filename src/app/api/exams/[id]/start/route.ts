@@ -7,7 +7,7 @@ import { examWindow } from "@/lib/learner-portal";
 import { isFeatureEnabled } from "@/lib/licensing/portal";
 import { evaluateStoredLicense } from "@/lib/licensing/service";
 import { publicExamQuestion } from "@/lib/online-exams";
-import { assessmentSchoolInclude, studentCanAccessAssessment } from "@/lib/tenant";
+import { assessmentSchoolInclude, institutionScope, studentCanAccessAssessment } from "@/lib/tenant";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -25,8 +25,8 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
   }
 
   const { id } = await params;
-  const assessment = await prisma.assessment.findUnique({
-    where: { id },
+  const assessment = await prisma.assessment.findFirst({
+    where: { id, ...institutionScope(session) },
     include: {
       questions: { orderBy: { sortOrder: "asc" } },
       ...assessmentSchoolInclude,

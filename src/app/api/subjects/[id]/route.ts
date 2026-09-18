@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { scopedId } from "@/lib/tenant";
+import { assertSchoolFks, scopedId } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 import { subjectPatchSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
@@ -33,6 +33,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const data = parsed.data;
+  const fkError = await assertSchoolFks(existing.schoolId, { gradeId: data.gradeId });
+  if (fkError) {
+    return NextResponse.json({ message: fkError }, { status: 400 });
+  }
   try {
     const subject = await prisma.subject.update({
       where: { id },
