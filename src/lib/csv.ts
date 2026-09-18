@@ -20,3 +20,14 @@ export function csvDownloadHeaders(filename: string) {
     "Content-Disposition": `attachment; filename="${filename}"`,
   };
 }
+
+export function excelDownloadHeaders(filename: string) {
+  return {
+    "Content-Type": "application/vnd.ms-excel; charset=utf-8",
+    "Content-Disposition": `attachment; filename="${filename}"`,
+  };
+}
+
+export function toExcelCsv(headers: string[], rows: (string | number | null | undefined)[][]): string {
+  return `\uFEFF${toCsv(headers, rows)}`;
+}

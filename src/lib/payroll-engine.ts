@@ -71,10 +71,10 @@ export function parseNamedAmountText(text: string | null | undefined): PayrollLi
   for (const raw of text.split(/\n|,/)) {
     const trimmed = raw.trim();
     if (!trimmed) continue;
-    const match = trimmed.match(/^(.+?)(?:[:=]|[\t ]+)(-?\d+(?:\.\d+)?)\s*$/);
+    const match = trimmed.match(/^(.+?)(?:\s*[:=]\s*|\s+)(-?\d+(?:\.\d+)?)\s*$/);
     if (!match) continue;
     const amount = roundMoney(Number(match[2]));
-    const name = match[1].trim();
+    const name = match[1].trim().replace(/[:：]\s*$/, "");
     if (!name || !amount) continue;
     lines.push({ name, amount });
   }

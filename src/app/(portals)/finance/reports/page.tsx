@@ -28,15 +28,39 @@ export default async function FinanceReportsPage() {
             </a>
           </Button>
           <Button variant="outline" size="sm" asChild>
+            <a href="/api/finance/reports?format=xlsx&section=debtors" download>
+              <Download className="h-4 w-4 mr-2" />
+              Debtors Excel
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <a href="/api/finance/reports?format=pdf&section=debtors" download>
+              <Download className="h-4 w-4 mr-2" />
+              Debtors PDF
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
             <a href="/api/finance/reports?format=csv&section=methods" download>
               <Download className="h-4 w-4 mr-2" />
               Collections CSV
             </a>
           </Button>
           <Button variant="outline" size="sm" asChild>
+            <a href="/api/finance/reports?format=xlsx&section=methods" download>
+              <Download className="h-4 w-4 mr-2" />
+              Collections Excel
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
             <a href="/api/finance/reports?format=csv&section=expenses" download>
               <Download className="h-4 w-4 mr-2" />
               Expenses CSV
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <a href="/api/finance/reports?format=csv&section=monthly" download>
+              <Download className="h-4 w-4 mr-2" />
+              Monthly CSV
             </a>
           </Button>
         </div>

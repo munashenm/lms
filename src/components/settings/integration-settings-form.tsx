@@ -152,6 +152,22 @@ export function IntegrationSettingsForm({
         secretKey: str("yocoSecretKey"),
         webhookSecret: str("yocoWebhookSecret"),
       },
+      paypal: {
+        enabled: form.get("paypalEnabled") === "on",
+        clientId: form.get("paypalClientId")?.toString() ?? "",
+        secret: str("paypalSecret"),
+        sandbox: form.get("paypalSandbox") === "on",
+        currency: form.get("paypalCurrency")?.toString() ?? "ZAR",
+      },
+      sms: {
+        provider: form.get("smsProvider")?.toString() ?? "TWILIO",
+        restUrl: form.get("smsRestUrl")?.toString() ?? "",
+        restMethod: form.get("smsRestMethod")?.toString() ?? "POST",
+        restApiKey: str("smsRestApiKey"),
+        restFrom: form.get("smsRestFrom")?.toString() ?? "",
+        restBodyTemplate: form.get("smsRestBodyTemplate")?.toString() ?? "",
+        restAuthHeader: form.get("smsRestAuthHeader")?.toString() ?? "",
+      },
     };
 
     try {
@@ -336,6 +352,63 @@ export function IntegrationSettingsForm({
             placeholder="whsec_..."
           />
           <p className="text-xs text-muted">Webhook URL: {appUrl}/api/webhooks/yoco</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">PayPal</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Toggle id="paypalEnabled" label="Enable PayPal" defaultChecked={settings.paypal.enabled} />
+          <div className="space-y-2">
+            <Label htmlFor="paypalClientId">Client ID</Label>
+            <Input id="paypalClientId" name="paypalClientId" defaultValue={settings.paypal.clientId} />
+          </div>
+          <SecretField id="paypalSecret" label="Secret" isSet={settings.paypal.secretSet} />
+          <div className="space-y-2">
+            <Label htmlFor="paypalCurrency">Currency</Label>
+            <Input id="paypalCurrency" name="paypalCurrency" defaultValue={settings.paypal.currency} />
+          </div>
+          <Toggle id="paypalSandbox" label="Sandbox environment" defaultChecked={settings.paypal.sandbox} />
+          <p className="text-xs text-muted">Webhook: {appUrl}/api/webhooks/paypal · Return confirm: {appUrl}/api/payments/gateway/paypal/confirm</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Generic SMS REST gateway</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="smsProvider">Provider</Label>
+            <select id="smsProvider" name="smsProvider" defaultValue={settings.sms.provider} className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm">
+              <option value="TWILIO">Twilio</option>
+              <option value="GENERIC_REST">Generic REST (Clickatell, BulkSMS, Africa&apos;s Talking, etc.)</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="smsRestUrl">REST URL</Label>
+            <Input id="smsRestUrl" name="smsRestUrl" defaultValue={settings.sms.restUrl} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="smsRestMethod">HTTP method</Label>
+            <Input id="smsRestMethod" name="smsRestMethod" defaultValue={settings.sms.restMethod} />
+          </div>
+          <SecretField id="smsRestApiKey" label="API key" isSet={settings.sms.restApiKeySet} />
+          <div className="space-y-2">
+            <Label htmlFor="smsRestFrom">From / sender ID</Label>
+            <Input id="smsRestFrom" name="smsRestFrom" defaultValue={settings.sms.restFrom} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="smsRestAuthHeader">Auth header (optional)</Label>
+            <Input id="smsRestAuthHeader" name="smsRestAuthHeader" defaultValue={settings.sms.restAuthHeader} placeholder="Authorization: Bearer {{apiKey}}" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="smsRestBodyTemplate">JSON body template</Label>
+            <textarea id="smsRestBodyTemplate" name="smsRestBodyTemplate" defaultValue={settings.sms.restBodyTemplate} rows={3} className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm" />
+            <p className="text-xs text-muted">Use {"{{to}}"}, {"{{body}}"}, {"{{from}}"}, {"{{apiKey}}"}.</p>
+          </div>
         </CardContent>
       </Card>
 

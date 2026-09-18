@@ -52,7 +52,7 @@ export async function POST(_request: NextRequest, { params }: Params) {
 
   await prisma.payment.update({
     where: { id: payment.id },
-    data: { reversedAt: new Date() },
+    data: { reversedAt: new Date(), captureStatus: "REVERSED" },
   });
 
   const invoice = payment.invoice;

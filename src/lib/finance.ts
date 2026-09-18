@@ -30,13 +30,17 @@ export function getOutstandingBalance(total: number, amountPaid: number): number
 export const COLLECTED_PAYMENT_WHERE = {
   reversedAt: null,
   reversalOfId: null,
+  captureStatus: "APPROVED" as const,
 } as const;
 
 export function isCollectedPayment(payment: {
   reversedAt?: Date | string | null;
   reversalOfId?: string | null;
+  captureStatus?: string | null;
 }): boolean {
-  return !payment.reversedAt && !payment.reversalOfId;
+  if (payment.reversedAt || payment.reversalOfId) return false;
+  if (payment.captureStatus && payment.captureStatus !== "APPROVED") return false;
+  return true;
 }
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -47,6 +51,7 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   PAYFAST: "PayFast",
   OZOW: "Ozow",
   YOCO: "Yoco",
+  PAYPAL: "PayPal",
   MOBILE: "Mobile payment",
   SCHOLARSHIP: "Scholarship / Bursary",
   OTHER: "Other",
@@ -60,6 +65,26 @@ export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
   OVERDUE: "Overdue",
   CANCELLED: "Cancelled",
 };
+
+export const PAYMENT_CAPTURE_STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pending",
+  VERIFIED: "Verified",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  REVERSED: "Reversed",
+};
+
+export const METHODS_REQUIRING_VERIFICATION = ["EFT", "BANK_DEPOSIT"] as const;
+
+export function paymentRequiresVerification(method: string): boolean {
+  return (METHODS_REQUIRING_VERIFICATION as readonly string[]).includes(method);
+}
+
+export function splitPaymentAgainstInvoice(amount: number, outstanding: number) {
+  const applied = Math.min(amount, Math.max(0, outstanding));
+  const credit = Math.max(0, amount - applied);
+  return { applied: Math.round(applied * 100) / 100, credit: Math.round(credit * 100) / 100 };
+}
 
 export async function generateInvoiceNumber(
   schoolId: string,

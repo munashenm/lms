@@ -32,6 +32,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (!parsed.success) return NextResponse.json({ message: "Invalid action" }, { status: 400 });
 
   if (parsed.data.action === "approve") {
+    if (!requireStaffPermission(session, "finance.expenses.approve") && !requireStaffPermission(session, "finance.expenses.manage") && !requireStaffPermission(session, "finance:write")) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+    }
     const updated = await prisma.expense.update({
       where: { id },
       data: { approvalStatus: ApprovalStatus.APPROVED },

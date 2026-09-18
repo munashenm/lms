@@ -67,7 +67,7 @@ export function AssignmentBoard({
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("pending");
   const [loading, setLoading] = useState<string | null>(null);
   const [content, setContent] = useState<Record<string, string>>({});
-  const [files, setFiles] = useState<Record<string, File | undefined>>({});
+  const [files, setFiles] = useState<Record<string, File[]>>({});
 
   const items = useMemo(
     () =>
@@ -88,8 +88,8 @@ export function AssignmentBoard({
 
   async function handleSubmit(assignment: LearnerAssignmentItem) {
     const text = (content[assignment.assignmentId] ?? assignment.content ?? "").trim();
-    const file = files[assignment.assignmentId];
-    if (!text && !file && !assignment.fileUrl) {
+    const fileList = files[assignment.assignmentId] ?? [];
+    if (!text && fileList.length === 0 && !assignment.fileUrl) {
       toast.error("Add written work or attach a file before submitting.");
       return;
     }
@@ -97,7 +97,7 @@ export function AssignmentBoard({
     try {
       const form = new FormData();
       form.append("content", text);
-      if (file) form.append("file", file);
+      for (const file of fileList) form.append("files", file);
       const res = await fetch(`/api/assignments/${assignment.assignmentId}/submit`, {
         method: "POST",
         body: form,
@@ -184,20 +184,21 @@ export function AssignmentBoard({
                       </p>
                     ) : null}
                     <div className="space-y-2">
-                      <Label htmlFor={`homework-file-${a.assignmentId}`}>Attachment (optional)</Label>
+                      <Label htmlFor={`homework-file-${a.assignmentId}`}>Attachments (optional)</Label>
                       <input
                         id={`homework-file-${a.assignmentId}`}
                         type="file"
-                        accept=".pdf,.doc,.docx,.txt,.zip,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                        multiple
+                        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg"
                         className="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-surface file:px-3 file:py-1.5 file:text-sm"
                         onChange={(e) =>
                           setFiles((prev) => ({
                             ...prev,
-                            [a.assignmentId]: e.target.files?.[0],
+                            [a.assignmentId]: Array.from(e.target.files ?? []),
                           }))
                         }
                       />
-                      <p className="text-xs text-muted">PDF, Word, text, ZIP or image. Max 10 MB.</p>
+                      <p className="text-xs text-muted">PDF, Office, ZIP or image. Max 10 MB each.</p>
                     </div>
                     <Button
                       onClick={() => handleSubmit(a)}

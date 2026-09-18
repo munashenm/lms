@@ -17,12 +17,14 @@ async function parseSubmission(request: NextRequest, schoolId: string, studentId
   if (contentType.includes("multipart/form-data")) {
     const form = await request.formData();
     const content = String(form.get("content") ?? "").trim() || undefined;
-    const file = form.get("file");
-    let fileUrl: string | undefined;
-    if (file instanceof File && file.size > 0) {
-      fileUrl = await saveHomeworkSubmissionFile(schoolId, studentId, file);
+    const files = form.getAll("file").filter((item): item is File => item instanceof File && item.size > 0);
+    const extra = form.getAll("files").filter((item): item is File => item instanceof File && item.size > 0);
+    const uploads = [...files, ...extra];
+    const urls: string[] = [];
+    for (const file of uploads) {
+      urls.push(await saveHomeworkSubmissionFile(schoolId, studentId, file));
     }
-    return { content, fileUrl };
+    return { content, fileUrl: urls[0], fileUrls: urls };
   }
 
   const parsed = submissionSchema.safeParse(await request.json());
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   const { id: assignmentId } = await params;
 
-  let payload: { content?: string; fileUrl?: string };
+  let payload: { content?: string; fileUrl?: string; fileUrls?: string[] };
   try {
     payload = await parseSubmission(request, student.schoolId, student.id);
   } catch (err) {
@@ -83,9 +85,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const existing = await prisma.assignmentSubmission.findUnique({
     where: { assignmentId_studentId: { assignmentId, studentId: student.id } },
   });
+  if (existing && assignment.maxSubmissions <= 1 && existing.status !== "RETURNED") {
+    return NextResponse.json({ message: "This homework already has a submission" }, { status: 409 });
+  }
 
   const content = payload.content || existing?.content || null;
   const fileUrl = payload.fileUrl || existing?.fileUrl || null;
+  const fileUrls = payload.fileUrls?.length ? payload.fileUrls : existing?.fileUrls;
   if (!content && !fileUrl) {
     return NextResponse.json(
       { message: "Add written work or attach a file before submitting." },
@@ -93,6 +99,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 
+  const late = Boolean(assignment.assessment.dueDate && new Date() > assignment.assessment.dueDate);
   const submission = await prisma.assignmentSubmission.upsert({
     where: {
       assignmentId_studentId: { assignmentId, studentId: student.id },
@@ -102,11 +109,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       studentId: student.id,
       content,
       fileUrl,
+      fileUrls: fileUrls ?? undefined,
+      late,
+      status: late ? "LATE" : "SUBMITTED",
     },
     update: {
       content,
       fileUrl,
+      fileUrls: fileUrls ?? undefined,
       submittedAt: new Date(),
+      late,
+      status: late ? "LATE" : "SUBMITTED",
+      grade: null,
+      feedback: null,
     },
   });
 

@@ -35,6 +35,19 @@ export const ROLE_DASHBOARD: Record<UserRole, string> = {
   STAFF: "/staff/leave",
 };
 
+export const ROLE_MESSAGES: Record<UserRole, string> = {
+  SUPER_ADMIN: "/admin/messages",
+  SCHOOL_ADMIN: "/admin/messages",
+  PRINCIPAL: "/admin/messages",
+  TEACHER: "/teacher/messages",
+  STUDENT: "/student/messages",
+  PARENT: "/parent/messages",
+  FINANCE_OFFICER: "/finance/messages",
+  ADMISSIONS_OFFICER: "/admin/messages",
+  HR_OFFICER: "/hr/messages",
+  STAFF: "/staff/messages",
+};
+
 export const ADMIN_ROLES: UserRole[] = [
   UserRole.SUPER_ADMIN,
   UserRole.SCHOOL_ADMIN,

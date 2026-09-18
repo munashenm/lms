@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { asInputJson } from "@/lib/json";
 import { scopedId } from "@/lib/tenant";
 import {
+  canCheckoutVisitor,
   canSignOutVisitor,
   canWriteVisitorBook,
   toPublicVisitorEntry,
@@ -36,31 +37,62 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
 
-  if (!canSignOutVisitor(existing.signedOutAt)) {
-    return NextResponse.json({ message: "This visitor has already signed out" }, { status: 409 });
+  if (parsed.data.action === "sign_out") {
+    if (!canCheckoutVisitor(session)) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+    }
+    if (!canSignOutVisitor(existing.signedOutAt)) {
+      return NextResponse.json({ message: "This visitor has already signed out" }, { status: 409 });
+    }
+
+    const entry = await prisma.visitorEntry.update({
+      where: { id },
+      data: {
+        signedOutAt: new Date(),
+        signedOutById: session.userId,
+        status: "CHECKED_OUT",
+      },
+      include: {
+        campus: { select: { name: true } },
+        signedInBy: { select: { firstName: true, lastName: true } },
+        signedOutBy: { select: { firstName: true, lastName: true } },
+      },
+    });
+
+    await logAudit({
+      schoolId: existing.schoolId,
+      userId: session.userId,
+      action: "VISITOR_CHECKED_OUT",
+      entity: "VisitorEntry",
+      entityId: entry.id,
+      metadata: asInputJson({ action: "sign_out" }),
+    });
+
+    return NextResponse.json({ entry: toPublicVisitorEntry(entry) });
   }
 
-  const entry = await prisma.visitorEntry.update({
-    where: { id },
-    data: {
-      signedOutAt: new Date(),
-      signedOutById: session.userId,
-    },
-    include: {
-      campus: { select: { name: true } },
-      signedInBy: { select: { firstName: true, lastName: true } },
-      signedOutBy: { select: { firstName: true, lastName: true } },
-    },
-  });
+  if (parsed.data.action === "check_in" || parsed.data.action === "deny") {
+    const entry = await prisma.visitorEntry.update({
+      where: { id },
+      data:
+        parsed.data.action === "deny"
+          ? { status: "DENIED" }
+          : { status: "CHECKED_IN", signedInAt: new Date() },
+      include: {
+        campus: { select: { name: true } },
+        signedInBy: { select: { firstName: true, lastName: true } },
+        signedOutBy: { select: { firstName: true, lastName: true } },
+      },
+    });
+    await logAudit({
+      schoolId: existing.schoolId,
+      userId: session.userId,
+      action: parsed.data.action === "deny" ? "VISITOR_DENIED" : "VISITOR_CHECKED_IN",
+      entity: "VisitorEntry",
+      entityId: entry.id,
+    });
+    return NextResponse.json({ entry: toPublicVisitorEntry(entry) });
+  }
 
-  await logAudit({
-    schoolId: existing.schoolId,
-    userId: session.userId,
-    action: "UPDATE",
-    entity: "VisitorEntry",
-    entityId: entry.id,
-    metadata: asInputJson({ action: "sign_out" }),
-  });
-
-  return NextResponse.json({ entry: toPublicVisitorEntry(entry) });
+  return NextResponse.json({ message: "Invalid action" }, { status: 400 });
 }

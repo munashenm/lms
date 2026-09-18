@@ -18,9 +18,26 @@ export const ACTION_PERMISSIONS = [
   "finance.view",
   "finance.create_charge",
   "finance.record_payment",
+  "finance.payments.create",
+  "finance.payments.approve",
   "finance.reverse_payment",
+  "finance.expenses.create",
+  "finance.expenses.approve",
   "finance.send_statement",
   "finance.reports",
+  "finance.reports.export",
+  "messaging.view",
+  "messaging.send",
+  "messaging.bulk_send",
+  "sms.view",
+  "sms.send",
+  "sms.settings",
+  "backup.create",
+  "backup.restore",
+  "visitors.create",
+  "visitors.checkout",
+  "homework.create",
+  "homework.grade",
   "academics.view",
   "academics.manage_classes",
   "academics.manage_subjects",
@@ -54,9 +71,11 @@ export type LegacyPermission =
   | "finance.view"
   | "finance.fees.manage"
   | "finance.payments.create"
+  | "finance.payments.approve"
   | "finance.payments.reverse"
   | "finance.receipts.view"
   | "finance.expenses.manage"
+  | "finance.expenses.approve"
   | "finance.reports.view"
   | "hr.view"
   | "hr.employees.manage"
@@ -86,7 +105,17 @@ export type LegacyPermission =
   | "sasams.execute"
   | "sasams.rollback"
   | "visitors:read"
-  | "visitors:write";
+  | "visitors:write"
+  | "visitors.create"
+  | "visitors.checkout"
+  | "messaging.view"
+  | "messaging.send"
+  | "messaging.bulk_send"
+  | "sms.view"
+  | "sms.send"
+  | "sms.settings"
+  | "homework.create"
+  | "homework.grade";
 
 export type AnyPermission = ActionPermission | LegacyPermission;
 
@@ -108,9 +137,26 @@ export const ACTION_TO_LEGACY: Record<ActionPermission, LegacyPermission[]> = {
   "finance.view": ["finance:read", "finance.view"],
   "finance.create_charge": ["finance:write", "finance.fees.manage"],
   "finance.record_payment": ["finance.payments.create"],
+  "finance.payments.create": ["finance.payments.create"],
+  "finance.payments.approve": ["finance.payments.approve"],
   "finance.reverse_payment": ["finance.payments.reverse"],
+  "finance.expenses.create": ["finance.expenses.manage"],
+  "finance.expenses.approve": ["finance.expenses.approve"],
   "finance.send_statement": ["finance:write"],
   "finance.reports": ["finance.reports.view"],
+  "finance.reports.export": ["finance.reports.view"],
+  "messaging.view": ["messaging.view"],
+  "messaging.send": ["messaging.send"],
+  "messaging.bulk_send": ["messaging.bulk_send"],
+  "sms.view": ["sms.view"],
+  "sms.send": ["sms.send"],
+  "sms.settings": ["sms.settings", "settings:write"],
+  "backup.create": ["backup.create"],
+  "backup.restore": ["backup.restore"],
+  "visitors.create": ["visitors:write"],
+  "visitors.checkout": ["visitors:write"],
+  "homework.create": ["classes:write"],
+  "homework.grade": ["marks:write"],
   "academics.view": ["classes:read"],
   "academics.manage_classes": ["classes:write"],
   "academics.manage_subjects": ["classes:write"],
@@ -158,10 +204,42 @@ export const PERMISSION_GROUPS: Array<{
       "finance.view",
       "finance.create_charge",
       "finance.record_payment",
+      "finance.payments.create",
+      "finance.payments.approve",
       "finance.reverse_payment",
+      "finance.expenses.create",
+      "finance.expenses.approve",
       "finance.send_statement",
       "finance.reports",
+      "finance.reports.export",
     ],
+  },
+  {
+    id: "communication",
+    label: "Communication",
+    permissions: [
+      "messaging.view",
+      "messaging.send",
+      "messaging.bulk_send",
+      "sms.view",
+      "sms.send",
+      "sms.settings",
+    ],
+  },
+  {
+    id: "homework",
+    label: "Homework",
+    permissions: ["homework.create", "homework.grade"],
+  },
+  {
+    id: "security",
+    label: "Security",
+    permissions: ["visitors.create", "visitors.checkout"],
+  },
+  {
+    id: "system",
+    label: "System",
+    permissions: ["backup.create", "backup.restore"],
   },
   {
     id: "academics",
@@ -203,9 +281,26 @@ export const PERMISSION_LABELS: Record<ActionPermission, string> = {
   "finance.view": "View Finance",
   "finance.create_charge": "Create Charges",
   "finance.record_payment": "Record Payments",
+  "finance.payments.create": "Create Manual Payments",
+  "finance.payments.approve": "Verify / Approve Payments",
   "finance.reverse_payment": "Reverse Payments",
+  "finance.expenses.create": "Create Expenses",
+  "finance.expenses.approve": "Approve Expenses",
   "finance.send_statement": "Send Statements",
   "finance.reports": "Finance Reports",
+  "finance.reports.export": "Export Finance Reports",
+  "messaging.view": "View Messages",
+  "messaging.send": "Send Messages",
+  "messaging.bulk_send": "Bulk Send Messages",
+  "sms.view": "View SMS History",
+  "sms.send": "Send SMS",
+  "sms.settings": "Configure SMS Gateway",
+  "backup.create": "Create Backups",
+  "backup.restore": "Restore Database",
+  "visitors.create": "Register Visitors",
+  "visitors.checkout": "Check Out Visitors",
+  "homework.create": "Create Homework",
+  "homework.grade": "Grade Homework",
   "academics.view": "View Classes",
   "academics.manage_classes": "Manage Classes",
   "academics.manage_subjects": "Manage Subjects",

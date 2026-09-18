@@ -6,7 +6,7 @@ export const FINANCE_SLIP_MAX_BYTES = 10 * 1024 * 1024;
 
 export async function saveFinanceSlip(
   schoolId: string,
-  folder: "expenses" | "income",
+  folder: "expenses" | "income" | "payments",
   file: File
 ): Promise<string> {
   if (file.size > FINANCE_SLIP_MAX_BYTES) throw new Error("File must be under 10 MB");

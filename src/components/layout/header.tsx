@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Menu, LogOut, KeyRound } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { MessageUnread } from "@/components/messages/message-unread";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ROLE_LABELS } from "@/lib/constants";
@@ -10,6 +11,7 @@ import { getInitials } from "@/lib/utils";
 import type { SessionPayload } from "@/lib/auth";
 import type { SessionOption } from "@/lib/academic-session-shared";
 import { SessionSelector } from "./session-selector";
+import { ROLE_MESSAGES } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 
 interface HeaderProps {
@@ -56,6 +58,7 @@ export function Header({
 
       <div className="flex items-center gap-3">
         <NotificationBell />
+        <MessageUnread href={ROLE_MESSAGES[user.role]} />
 
         <div className="flex items-center gap-3 pl-3 border-l border-border">
           <Avatar className="h-8 w-8">

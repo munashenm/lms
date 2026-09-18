@@ -73,6 +73,11 @@ export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
         notes: params.notes,
         receiptNumber,
         gatewayProvider: params.method.toLowerCase(),
+        captureStatus: "APPROVED",
+        postedAt: new Date(),
+        approvedAt: new Date(),
+        gatewayStatus: "COMPLETED",
+        gatewayTxnId: params.reference,
       },
     });
 

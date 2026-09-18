@@ -18,6 +18,7 @@ export function RestoreWizard({
   const [restoreJobId, setRestoreJobId] = useState<string | null>(null);
   const [jobs, setJobs] = useState<{ id: string; status: string; errorMessage: string | null; createdAt: string }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [password, setPassword] = useState("");
 
   async function loadJobs() {
     const qs = schoolId ? `?schoolId=${schoolId}` : "";
@@ -44,12 +45,13 @@ export function RestoreWizard({
         if (schoolId) form.set("schoolId", schoolId);
         if (restoreJobId) form.set("restoreJobId", restoreJobId);
         form.set("confirm", String(confirm));
+        if (confirm) form.set("password", password);
         res = await fetch("/api/restore", { method: "POST", body: form });
       } else if (backupId) {
         res = await fetch("/api/restore", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ schoolId, backupJobId: backupId, confirm, restoreJobId }),
+          body: JSON.stringify({ schoolId, backupJobId: backupId, confirm, restoreJobId, password: confirm ? password : undefined }),
         });
       } else {
         toast.error("Select a cloud backup or upload an offline .lmsbackup file");
@@ -90,14 +92,34 @@ export function RestoreWizard({
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
             Restoration never overwrites immediately. The backup is validated first, a pre-restore
             recovery backup is created automatically, and a failed restore attempts rollback.
+            Confirming restore requires your account password.
           </div>
+          <label className="block text-sm space-y-1">
+            <span className="font-medium">Re-enter password to restore</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
+              autoComplete="current-password"
+            />
+          </label>
           <div className="flex gap-2">
             <Button onClick={() => validate(false)} disabled={loading}>
               Validate backup
             </Button>
             <Button
               variant="destructive"
-              onClick={() => validate(true)}
+              onClick={() => {
+                if (!password) {
+                  toast.error("Enter your password to restore");
+                  return;
+                }
+                if (!window.confirm("This will restore the school database from the selected backup. Continue?")) {
+                  return;
+                }
+                void validate(true);
+              }}
               disabled={loading || !report}
             >
               Restore now

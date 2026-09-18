@@ -4,20 +4,39 @@ import path from "path";
 export const HOMEWORK_MAX_BYTES = 10 * 1024 * 1024;
 export const PORTAL_UPLOAD_MAX_BYTES = HOMEWORK_MAX_BYTES;
 
-const ALLOWED_EXT = new Set([".pdf", ".doc", ".docx", ".txt", ".zip", ".png", ".jpg", ".jpeg"]);
+const ALLOWED_EXT = new Set([
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".ppt",
+  ".pptx",
+  ".xls",
+  ".xlsx",
+  ".txt",
+  ".zip",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+]);
 
 const ALLOWED_MIME = new Set([
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "text/plain",
   "application/zip",
   "application/x-zip-compressed",
   "image/png",
   "image/jpeg",
+  "image/webp",
 ]);
 
-export type PortalUploadFolder = "submissions" | "leave";
+export type PortalUploadFolder = "submissions" | "leave" | "messages" | "homework";
 
 export function homeworkFileExtension(name: string): string {
   const ext = path.extname(name).toLowerCase();
@@ -40,7 +59,7 @@ export async function saveSchoolUpload(opts: {
     throw new Error("File must be under 10 MB");
   }
   if (!isAllowedHomeworkFile(opts.file)) {
-    throw new Error("Upload a PDF, Word, text, ZIP, or image file");
+    throw new Error("Upload a PDF, Office, ZIP, or image file");
   }
 
   const bytes = await opts.file.arrayBuffer();

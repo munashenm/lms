@@ -58,24 +58,28 @@ export function PaymentForm({
 
     try {
       if (!picked.ok) throw new Error(picked.message);
+      const formData = new FormData();
+      formData.set("invoiceId", invoiceId);
+      formData.set("amount", String(amount));
+      formData.set("method", String(form.get("method") ?? ""));
+      if (form.get("reference")) formData.set("reference", String(form.get("reference")));
+      if (form.get("bankReference")) formData.set("bankReference", String(form.get("bankReference")));
+      if (form.get("notes")) formData.set("notes", String(form.get("notes")));
+      if (form.get("feeType")) formData.set("feeType", String(form.get("feeType")));
+      if (form.get("paidAt")) formData.set("paidAt", String(form.get("paidAt")));
+      if (picked.allocations.length) formData.set("allocations", JSON.stringify(picked.allocations));
+      const proof = form.get("proof");
+      if (proof instanceof File && proof.size > 0) formData.set("proof", proof);
+
       const res = await fetch("/api/payments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invoiceId,
-          amount,
-          method: form.get("method"),
-          reference: form.get("reference") || undefined,
-          notes: form.get("notes") || undefined,
-          paidAt: form.get("paidAt") || undefined,
-          allocations: picked.allocations.length ? picked.allocations : undefined,
-        }),
+        body: formData,
       });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.message ?? "Failed");
       }
-      toast.success("Payment recorded");
+      toast.success("Payment captured");
       router.refresh();
       onRecorded?.();
       const formEl = e.target as HTMLFormElement;
@@ -107,11 +111,11 @@ export function PaymentForm({
               name="amount"
               type="number"
               min={0.01}
-              max={outstanding}
               step="0.01"
               defaultValue={outstanding.toFixed(2)}
               required
             />
+            <p className="text-xs text-muted">Amount above outstanding creates a student credit.</p>
           </div>
           <div className="space-y-2">
             <Label>Payment Method *</Label>
@@ -133,12 +137,24 @@ export function PaymentForm({
             />
           </div>
           <div className="space-y-2">
-            <Label>Reference</Label>
-            <Input name="reference" placeholder="EFT ref or receipt no." />
+            <Label>Bank / payment reference</Label>
+            <Input name="bankReference" placeholder="Bank statement reference" />
+          </div>
+          <div className="space-y-2">
+            <Label>Fee type</Label>
+            <Input name="feeType" placeholder="Tuition, transport, exam…" />
+          </div>
+          <div className="space-y-2">
+            <Label>Internal reference</Label>
+            <Input name="reference" placeholder="Optional extra reference" />
           </div>
           <div className="space-y-2">
             <Label>Notes</Label>
             <Input name="notes" placeholder="Optional notes" />
+          </div>
+          <div className="space-y-2">
+            <Label>Proof of payment</Label>
+            <Input name="proof" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" />
           </div>
           {openInstalments.length > 0 ? (
             <div className="sm:col-span-2 space-y-2">
@@ -188,6 +204,9 @@ export function PaymentForm({
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Record Payment
             </Button>
+            <p className="text-xs text-muted mt-2">
+              EFT and bank deposits stay pending until finance verifies and approves them. Cash and card post immediately.
+            </p>
           </div>
         </form>
       </CardContent>

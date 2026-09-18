@@ -398,13 +398,33 @@ export const integrationSettingsSchema = z.object({
       sandbox: z.boolean().optional(),
     })
     .optional(),
-  yoco: z
-    .object({
-      enabled: z.boolean(),
-      secretKey: optionalSecret,
-      webhookSecret: optionalSecret,
-    })
-    .optional(),
+    yoco: z
+      .object({
+        enabled: z.boolean(),
+        secretKey: optionalSecret,
+        webhookSecret: optionalSecret,
+      })
+      .optional(),
+    paypal: z
+      .object({
+        enabled: z.boolean(),
+        clientId: z.string().optional(),
+        secret: optionalSecret,
+        sandbox: z.boolean().optional(),
+        currency: z.string().optional(),
+      })
+      .optional(),
+    sms: z
+      .object({
+        provider: z.string().optional(),
+        restUrl: z.string().optional(),
+        restMethod: z.string().optional(),
+        restApiKey: optionalSecret,
+        restFrom: z.string().optional(),
+        restBodyTemplate: z.string().optional(),
+        restAuthHeader: z.string().optional(),
+      })
+      .optional(),
 });
 
 export const assessmentSchema = z.object({
@@ -574,12 +594,16 @@ export const paymentSchema = z.object({
     "PAYFAST",
     "OZOW",
     "YOCO",
+    "PAYPAL",
     "MOBILE",
     "SCHOLARSHIP",
     "OTHER",
   ]),
   reference: z.string().optional(),
+  bankReference: z.string().optional(),
   notes: z.string().optional(),
+  feeType: z.string().optional(),
+  academicYearId: z.string().optional(),
   paidAt: z.string().min(1).optional(),
   allocations: z
     .array(z.object({ instalmentId: z.string(), amount: z.coerce.number().positive() }))
@@ -969,6 +993,12 @@ export const visitorSignInSchema = z
     badgeNumber: z.string().max(40).optional().nullable().or(z.literal("")),
     campusId: optionalText,
     notes: z.string().max(500).optional().nullable().or(z.literal("")),
+    email: z.string().email().optional().nullable().or(z.literal("")),
+    department: z.string().max(120).optional().nullable().or(z.literal("")),
+    itemsBrought: z.string().max(500).optional().nullable().or(z.literal("")),
+    expectedAt: z.string().optional().nullable().or(z.literal("")),
+    expectedDepartureAt: z.string().optional().nullable().or(z.literal("")),
+    preregister: z.coerce.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     const idNumber = data.identityNumber?.trim();
@@ -982,7 +1012,7 @@ export const visitorSignInSchema = z
   });
 
 export const visitorSignOutSchema = z.object({
-  action: z.literal("sign_out"),
+  action: z.enum(["sign_out", "check_in", "deny"]),
 });
 
 export const licenseCustomerSchema = z.object({

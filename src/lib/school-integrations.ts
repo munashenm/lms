@@ -34,6 +34,22 @@ export interface ResolvedIntegrations {
     secretKey: string | null;
     webhookSecret: string | null;
   };
+  paypal: {
+    enabled: boolean;
+    clientId: string | null;
+    secret: string | null;
+    sandbox: boolean;
+    currency: string;
+  };
+  sms: {
+    provider: string;
+    restUrl: string | null;
+    restMethod: string;
+    restApiKey: string | null;
+    restFrom: string | null;
+    restBodyTemplate: string | null;
+    restAuthHeader: string | null;
+  };
 }
 
 export interface PublicIntegrationSettings {
@@ -66,6 +82,22 @@ export interface PublicIntegrationSettings {
     enabled: boolean;
     secretKeySet: boolean;
     webhookSecretSet: boolean;
+  };
+  paypal: {
+    enabled: boolean;
+    clientId: string;
+    sandbox: boolean;
+    currency: string;
+    secretSet: boolean;
+  };
+  sms: {
+    provider: string;
+    restUrl: string;
+    restMethod: string;
+    restFrom: string;
+    restBodyTemplate: string;
+    restAuthHeader: string;
+    restApiKeySet: boolean;
   };
 }
 
@@ -105,6 +137,22 @@ function envFallback(): ResolvedIntegrations {
       secretKey: process.env.YOCO_SECRET_KEY ?? null,
       webhookSecret: process.env.YOCO_WEBHOOK_SECRET ?? null,
     },
+    paypal: {
+      enabled: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET),
+      clientId: process.env.PAYPAL_CLIENT_ID ?? null,
+      secret: process.env.PAYPAL_SECRET ?? null,
+      sandbox: process.env.PAYPAL_SANDBOX !== "false",
+      currency: process.env.PAYPAL_CURRENCY ?? "ZAR",
+    },
+    sms: {
+      provider: process.env.SMS_PROVIDER ?? "TWILIO",
+      restUrl: process.env.SMS_REST_URL ?? null,
+      restMethod: process.env.SMS_REST_METHOD ?? "POST",
+      restApiKey: process.env.SMS_REST_API_KEY ?? null,
+      restFrom: process.env.SMS_REST_FROM ?? null,
+      restBodyTemplate: process.env.SMS_REST_BODY_TEMPLATE ?? null,
+      restAuthHeader: process.env.SMS_REST_AUTH_HEADER ?? null,
+    },
   };
 }
 
@@ -139,6 +187,22 @@ function rowToResolved(row: NonNullable<Awaited<ReturnType<typeof loadRow>>>): R
       enabled: row.yocoEnabled,
       secretKey: decryptSecret(row.yocoSecretKey),
       webhookSecret: decryptSecret(row.yocoWebhookSecret),
+    },
+    paypal: {
+      enabled: row.paypalEnabled,
+      clientId: row.paypalClientId,
+      secret: decryptSecret(row.paypalSecret),
+      sandbox: row.paypalSandbox,
+      currency: row.paypalCurrency || "ZAR",
+    },
+    sms: {
+      provider: row.smsProvider || "TWILIO",
+      restUrl: row.smsRestUrl,
+      restMethod: row.smsRestMethod || "POST",
+      restApiKey: decryptSecret(row.smsRestApiKey),
+      restFrom: row.smsRestFrom,
+      restBodyTemplate: row.smsRestBodyTemplate,
+      restAuthHeader: row.smsRestAuthHeader,
     },
   };
 }
@@ -193,6 +257,22 @@ export async function getPublicIntegrationSettings(
         secretKeySet: false,
         webhookSecretSet: false,
       },
+      paypal: {
+        enabled: false,
+        clientId: "",
+        sandbox: true,
+        currency: env.paypal.currency,
+        secretSet: maskSecret(env.paypal.secret),
+      },
+      sms: {
+        provider: env.sms.provider,
+        restUrl: env.sms.restUrl ?? "",
+        restMethod: env.sms.restMethod,
+        restFrom: env.sms.restFrom ?? "",
+        restBodyTemplate: env.sms.restBodyTemplate ?? "",
+        restAuthHeader: env.sms.restAuthHeader ?? "",
+        restApiKeySet: maskSecret(env.sms.restApiKey),
+      },
     };
   }
 
@@ -226,6 +306,22 @@ export async function getPublicIntegrationSettings(
       enabled: row.yocoEnabled,
       secretKeySet: maskSecret(row.yocoSecretKey),
       webhookSecretSet: maskSecret(row.yocoWebhookSecret),
+    },
+    paypal: {
+      enabled: row.paypalEnabled,
+      clientId: row.paypalClientId ?? "",
+      sandbox: row.paypalSandbox,
+      currency: row.paypalCurrency || "ZAR",
+      secretSet: maskSecret(row.paypalSecret),
+    },
+    sms: {
+      provider: row.smsProvider || "TWILIO",
+      restUrl: row.smsRestUrl ?? "",
+      restMethod: row.smsRestMethod || "POST",
+      restFrom: row.smsRestFrom ?? "",
+      restBodyTemplate: row.smsRestBodyTemplate ?? "",
+      restAuthHeader: row.smsRestAuthHeader ?? "",
+      restApiKeySet: maskSecret(row.smsRestApiKey),
     },
   };
 }
@@ -270,6 +366,22 @@ export async function saveIntegrationSettings(
       enabled?: boolean;
       secretKey?: SecretUpdate;
       webhookSecret?: SecretUpdate;
+    };
+    paypal?: {
+      enabled?: boolean;
+      clientId?: string;
+      secret?: SecretUpdate;
+      sandbox?: boolean;
+      currency?: string;
+    };
+    sms?: {
+      provider?: string;
+      restUrl?: string;
+      restMethod?: string;
+      restApiKey?: SecretUpdate;
+      restFrom?: string;
+      restBodyTemplate?: string;
+      restAuthHeader?: string;
     };
   }
 ) {
@@ -324,6 +436,26 @@ export async function saveIntegrationSettings(
       input.yoco?.webhookSecret !== undefined
         ? resolveSecretUpdate(existing?.yocoWebhookSecret ?? null, input.yoco.webhookSecret)
         : existing?.yocoWebhookSecret ?? null,
+
+    paypalEnabled: input.paypal?.enabled ?? existing?.paypalEnabled ?? false,
+    paypalClientId: input.paypal?.clientId ?? existing?.paypalClientId ?? null,
+    paypalSecret:
+      input.paypal?.secret !== undefined
+        ? resolveSecretUpdate(existing?.paypalSecret ?? null, input.paypal.secret)
+        : existing?.paypalSecret ?? null,
+    paypalSandbox: input.paypal?.sandbox ?? existing?.paypalSandbox ?? true,
+    paypalCurrency: input.paypal?.currency ?? existing?.paypalCurrency ?? "ZAR",
+
+    smsProvider: input.sms?.provider ?? existing?.smsProvider ?? "TWILIO",
+    smsRestUrl: input.sms?.restUrl ?? existing?.smsRestUrl ?? null,
+    smsRestMethod: input.sms?.restMethod ?? existing?.smsRestMethod ?? "POST",
+    smsRestApiKey:
+      input.sms?.restApiKey !== undefined
+        ? resolveSecretUpdate(existing?.smsRestApiKey ?? null, input.sms.restApiKey)
+        : existing?.smsRestApiKey ?? null,
+    smsRestFrom: input.sms?.restFrom ?? existing?.smsRestFrom ?? null,
+    smsRestBodyTemplate: input.sms?.restBodyTemplate ?? existing?.smsRestBodyTemplate ?? null,
+    smsRestAuthHeader: input.sms?.restAuthHeader ?? existing?.smsRestAuthHeader ?? null,
   };
 
   await prisma.schoolIntegrationConfig.upsert({
@@ -371,6 +503,17 @@ export function isYocoReady(config: ResolvedIntegrations) {
   return Boolean(config.yoco.enabled && config.yoco.secretKey);
 }
 
+export function isPayPalReady(config: ResolvedIntegrations) {
+  return Boolean(config.paypal.enabled && config.paypal.clientId && config.paypal.secret);
+}
+
+export function isSmsGatewayReady(config: ResolvedIntegrations) {
+  if ((config.sms.provider || "TWILIO") === "GENERIC_REST") {
+    return Boolean(config.sms.restUrl && config.sms.restApiKey);
+  }
+  return isTwilioReady(config);
+}
+
 export function isSendGridReady(config: ResolvedIntegrations) {
   return Boolean(config.sendgrid.enabled && config.sendgrid.apiKey);
 }
@@ -390,6 +533,7 @@ export async function getPublicPaymentOptions(schoolId: string): Promise<string[
 
   if (isPayFastReady(config)) options.push("PayFast online");
   if (isOzowReady(config)) options.push("Ozow instant EFT");
+  if (isPayPalReady(config)) options.push("PayPal online");
   if (isYocoReady(config)) options.push("Yoco card payments");
 
   options.push("Payment plans available on request");

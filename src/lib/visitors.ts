@@ -31,11 +31,39 @@ export function canViewVisitorBook(session: SessionPayload): boolean {
 }
 
 export function canWriteVisitorBook(session: SessionPayload): boolean {
-  return sessionHasPermission(session, "visitors:write");
+  return sessionHasPermission(session, "visitors:write") || sessionHasPermission(session, "visitors.create");
 }
 
-export function visitorIsOnSite(signedOutAt: Date | string | null | undefined): boolean {
-  return !signedOutAt;
+export function canCheckoutVisitor(session: SessionPayload): boolean {
+  return sessionHasPermission(session, "visitors:write") || sessionHasPermission(session, "visitors.checkout");
+}
+
+export const VISITOR_STATUS_LABELS: Record<string, string> = {
+  EXPECTED: "Expected",
+  CHECKED_IN: "Checked in",
+  CHECKED_OUT: "Checked out",
+  DENIED: "Denied",
+  OVERDUE: "Overdue",
+};
+
+export function effectiveVisitorStatus(row: {
+  status?: string | null;
+  signedOutAt?: Date | string | null;
+  expectedDepartureAt?: Date | string | null;
+}) {
+  if (row.signedOutAt) return "CHECKED_OUT";
+  if (row.status === "DENIED" || row.status === "EXPECTED") return row.status;
+  if (row.expectedDepartureAt && new Date(row.expectedDepartureAt) < new Date()) return "OVERDUE";
+  return row.status || "CHECKED_IN";
+}
+
+export function visitorIsOnSite(
+  signedOutAt: Date | string | null | undefined,
+  status?: string | null
+): boolean {
+  if (signedOutAt) return false;
+  if (status === "EXPECTED" || status === "DENIED" || status === "CHECKED_OUT") return false;
+  return true;
 }
 
 export function canSignOutVisitor(signedOutAt: Date | string | null | undefined): boolean {
@@ -81,6 +109,12 @@ export type PublicVisitorEntry = {
   campusName: string | null;
   signedInByName: string | null;
   signedOutByName: string | null;
+  status?: string;
+  email?: string | null;
+  department?: string | null;
+  itemsBrought?: string | null;
+  expectedAt?: Date | null;
+  expectedDepartureAt?: Date | null;
 };
 
 export function toPublicVisitorEntry(row: {
@@ -103,6 +137,12 @@ export function toPublicVisitorEntry(row: {
   campus?: { name: string } | null;
   signedInBy?: { firstName: string; lastName: string } | null;
   signedOutBy?: { firstName: string; lastName: string } | null;
+  status?: string | null;
+  email?: string | null;
+  department?: string | null;
+  itemsBrought?: string | null;
+  expectedAt?: Date | null;
+  expectedDepartureAt?: Date | null;
 }): PublicVisitorEntry {
   return {
     id: row.id,
@@ -128,5 +168,11 @@ export function toPublicVisitorEntry(row: {
     signedOutByName: row.signedOutBy
       ? `${row.signedOutBy.firstName} ${row.signedOutBy.lastName}`
       : null,
+    status: effectiveVisitorStatus(row),
+    email: row.email ?? null,
+    department: row.department ?? null,
+    itemsBrought: row.itemsBrought ?? null,
+    expectedAt: row.expectedAt ?? null,
+    expectedDepartureAt: row.expectedDepartureAt ?? null,
   };
 }

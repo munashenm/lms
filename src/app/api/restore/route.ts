@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
   let pkg: Buffer | null = null;
   let confirm = false;
   let restoreJobId: string | undefined;
+  let password: string | undefined;
 
   if (contentType.includes("multipart/form-data")) {
     const form = await request.formData();
@@ -48,17 +49,20 @@ export async function POST(request: NextRequest) {
     }
     confirm = form.get("confirm") === "true";
     restoreJobId = String(form.get("restoreJobId") ?? "") || undefined;
+    password = String(form.get("password") ?? "") || undefined;
   } else {
     const body = (await request.json()) as {
       schoolId?: string;
       backupJobId?: string;
       confirm?: boolean;
       restoreJobId?: string;
+      password?: string;
     };
     schoolId = await resolveLicenseSchoolId(session!, body.schoolId);
     backupJobId = body.backupJobId;
     confirm = Boolean(body.confirm);
     restoreJobId = body.restoreJobId;
+    password = body.password;
   }
 
   if (!schoolId || !canAccessSchool(session!, schoolId)) {
@@ -89,6 +93,15 @@ export async function POST(request: NextRequest) {
 
   if (!confirm) {
     return NextResponse.json({ restoreJobId, ready: true, ...validated });
+  }
+
+  if (!password) {
+    return NextResponse.json({ message: "Re-enter your password to restore the database" }, { status: 400 });
+  }
+  const actor = await prisma.user.findUnique({ where: { id: session!.userId }, select: { passwordHash: true } });
+  const { verifyPassword } = await import("@/lib/auth");
+  if (!actor || !(await verifyPassword(password, actor.passwordHash))) {
+    return NextResponse.json({ message: "Password confirmation failed" }, { status: 403 });
   }
 
   let snapshot = validated.snapshot;

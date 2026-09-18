@@ -20,6 +20,7 @@ const GATEWAY_ENDPOINTS: Record<PaymentGatewayId, string> = {
   payfast: "/api/payments/gateway/payfast",
   ozow: "/api/payments/gateway/ozow",
   yoco: "/api/payments/gateway/yoco",
+  paypal: "/api/payments/gateway/paypal",
 };
 
 export function PayOnlineButton({ invoiceId, outstanding }: PayOnlineButtonProps) {

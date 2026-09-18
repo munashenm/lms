@@ -5,8 +5,8 @@ import {
   type Prisma,
 } from "@prisma/client";
 import { prisma } from "./db";
-import { getResolvedIntegrations, isTwilioReady } from "./school-integrations";
-import { createTwilioSmsProvider } from "./sms/twilio-provider";
+import { getResolvedIntegrations, isSmsGatewayReady } from "./school-integrations";
+import { createSmsProvider } from "./sms/create-provider";
 import { sendEmailViaSendGrid } from "./outbound-messaging";
 import { isSendGridReady } from "./school-integrations";
 import { formatDate } from "./utils";
@@ -24,6 +24,8 @@ export async function logCommunication(entry: {
   message: string;
   error?: string | null;
   metadata?: Prisma.InputJsonValue;
+  provider?: string | null;
+  providerMessageId?: string | null;
 }) {
   return prisma.communicationLog.create({
     data: {
@@ -39,6 +41,8 @@ export async function logCommunication(entry: {
       message: entry.message,
       error: entry.error ?? null,
       metadata: entry.metadata,
+      provider: entry.provider ?? null,
+      providerMessageId: entry.providerMessageId ?? null,
     },
   });
 }
@@ -64,7 +68,7 @@ export async function sendLoggedSms(params: {
       error: "SMS is not included in the current licence",
     });
   }
-  if (!isTwilioReady(config)) {
+  if (!isSmsGatewayReady(config)) {
     return logCommunication({
       ...params,
       channel: CommunicationChannel.SMS,
@@ -73,7 +77,7 @@ export async function sendLoggedSms(params: {
     });
   }
 
-  const provider = createTwilioSmsProvider(config);
+  const provider = createSmsProvider(config);
   try {
     const result = await provider.send(params.recipientContact, params.message);
     return logCommunication({
@@ -86,6 +90,7 @@ export async function sendLoggedSms(params: {
         provider: result.provider,
         externalId: result.sent ? result.externalId : undefined,
       } as Prisma.InputJsonValue,
+      ...(result.sent ? { provider: result.provider, providerMessageId: result.externalId ?? null } : {}),
     });
   } catch (err) {
     return logCommunication({

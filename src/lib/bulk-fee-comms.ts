@@ -13,11 +13,11 @@ import { generateFeeStatementPdf } from "./pdf-fee-statement";
 import { toSchoolBrand, type SchoolBrand } from "./pdf-branding";
 import { getStudentLedger, STUDENT_LEDGER_TYPE_LABELS } from "./student-ledger";
 import { getTerminology } from "./terminology";
-import { createTwilioSmsProvider } from "./sms/twilio-provider";
+import { createSmsProvider } from "./sms/create-provider";
 import {
   getResolvedIntegrations,
   isSendGridReady,
-  isTwilioReady,
+  isSmsGatewayReady,
 } from "./school-integrations";
 import { sendEmailViaSendGrid } from "./outbound-messaging";
 
@@ -339,7 +339,7 @@ export async function processCommunicationBatch(batchId: string, limit = 15) {
     try {
       if (item.channel === CommunicationChannel.SMS) {
         const config = await getResolvedIntegrations(item.schoolId);
-        if (!isTwilioReady(config)) {
+        if (!isSmsGatewayReady(config)) {
           await prisma.communicationLog.update({
             where: { id: item.id },
             data: {
@@ -350,7 +350,7 @@ export async function processCommunicationBatch(batchId: string, limit = 15) {
           failed += 1;
           continue;
         }
-        const result = await createTwilioSmsProvider(config).send(
+        const result = await createSmsProvider(config).send(
           item.recipientContact,
           item.message
         );
@@ -359,6 +359,8 @@ export async function processCommunicationBatch(batchId: string, limit = 15) {
           data: {
             status: result.sent ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
             error: result.sent ? null : result.reason,
+            provider: result.provider,
+            providerMessageId: result.sent ? result.externalId ?? null : null,
           },
         });
         if (result.sent) sent += 1;

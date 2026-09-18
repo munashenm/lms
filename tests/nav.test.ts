@@ -59,7 +59,7 @@ describe("admin nav groups", () => {
     expect(nav.find((item) => item.href === "/admin/academic/promotion/rules")?.section).toBe("Academics");
     expect(nav.find((item) => item.href === "/admin/letters")?.section).toBe("Academics");
     expect(nav.find((item) => item.href === "/admin/hr")?.section).toBe("Human Resource");
-    expect(nav.find((item) => item.href === "/admin/visitors")?.section).toBe("School");
+    expect(nav.find((item) => item.href === "/admin/visitors")?.section).toBe("Security");
     expect(nav.some((item) => item.section === "Organisation")).toBe(false);
     expect(nav.some((item) => item.section === "People")).toBe(false);
     expect(getAdminNav().find((item) => item.href === "/admin/website")?.section).toBe("Website Management");
@@ -132,6 +132,8 @@ describe("admin nav groups", () => {
       "Invoices",
       "New Invoice",
       "Collect fees",
+      "Payments",
+      "Student Accounts",
       "Debtors",
       "Fee Reminders",
       "Expenses",

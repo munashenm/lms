@@ -65,6 +65,38 @@ export function VisitorSignInForm({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
+              <Label>Email (optional)</Label>
+              <Input name="email" type="email" />
+            </div>
+            <div className="space-y-2">
+              <Label>Department (optional)</Label>
+              <Input name="department" maxLength={120} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Items / equipment brought (optional)</Label>
+            <Input name="itemsBrought" maxLength={500} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Expected arrival (optional)</Label>
+              <Input name="expectedAt" type="datetime-local" />
+            </div>
+            <div className="space-y-2">
+              <Label>Expected departure (optional)</Label>
+              <Input name="expectedDepartureAt" type="datetime-local" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Notes (optional)</Label>
+            <Input name="notes" maxLength={500} />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="preregister" value="true" />
+            Pre-register (expected visitor)
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label>Organisation (optional)</Label>
               <Input name="organisation" maxLength={200} />
             </div>

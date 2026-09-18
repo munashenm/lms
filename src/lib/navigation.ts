@@ -129,6 +129,8 @@ export function getAdminFinanceNavItems(): Array<Omit<NavItem, "section" | "sect
     ]),
     ...cluster("Collections", [
       { label: "Collect fees", href: "/admin/finance/collect", icon: "Wallet" },
+      { label: "Payments", href: "/admin/finance/payments", icon: "Wallet" },
+      { label: "Student Accounts", href: "/admin/finance/student-accounts", icon: "CreditCard" },
       { label: "Debtors", href: "/admin/finance/debtors", icon: "TrendingDown" },
       { label: "Fee Reminders", href: "/admin/finance/reminders", icon: "Megaphone" },
     ]),
@@ -200,6 +202,7 @@ export function getAdminNav(
       ...cluster("Classroom", [
         { label: "Attendance", href: "/admin/attendance/dashboard", icon: "ClipboardCheck" },
         { label: "Assessments", href: "/admin/assessments", icon: "FileText" },
+        { label: "Homework & Study Materials", href: "/admin/homework", icon: "Upload" },
       ]),
       ...cluster("Results", [
         { label: t?.reportCards ?? "Reports", href: "/admin/report-cards", icon: "Award" },
@@ -214,16 +217,20 @@ export function getAdminNav(
     ...grouped("Finance", "CreditCard", getAdminFinanceNavItems()),
     ...grouped("Communication", "Megaphone", [
       { label: "Announcements", href: "/admin/announcements", icon: "Megaphone" },
+      { label: "Messages", href: "/admin/messages", icon: "MessageSquare" },
       { label: "Calendar", href: "/admin/calendar", icon: "CalendarDays" },
       { label: "Email & SMS", href: "/admin/communications", icon: "Megaphone" },
+      { label: "SMS", href: "/admin/sms", icon: "Megaphone" },
     ]),
     ...grouped("Website Management", "Globe", [
       { label: "Website", href: "/admin/website", icon: "Globe" },
       { label: "Admissions", href: "/admin/website/admissions", icon: "ClipboardList" },
     ]),
     ...grouped("School", "FolderOpen", [
-      { label: "Visitor Book", href: "/admin/visitors", icon: "NotebookPen" },
       { label: "Documents", href: "/admin/documents", icon: "FolderOpen" },
+    ]),
+    ...grouped("Security", "Shield", [
+      { label: "Visitors Book", href: "/admin/visitors", icon: "NotebookPen" },
     ]),
     ...grouped("Insights", "BarChart3", [
       { label: "Reports", href: "/admin/reports", icon: "BarChart3" },
@@ -267,12 +274,14 @@ export function getTeacherNav(terms?: Terminology): NavItem[] {
         { label: "Timetable", href: "/teacher/timetable", icon: "Calendar" },
         { label: "Attendance", href: "/teacher/attendance", icon: "ClipboardCheck" },
         { label: "Materials", href: "/teacher/materials", icon: "Upload" },
+        { label: "Homework", href: "/teacher/homework", icon: "FileText" },
         { label: "Lesson Plans", href: "/teacher/lesson-plans", icon: "BookOpen" },
         { label: "Curriculum", href: "/teacher/curriculum", icon: "ClipboardList" },
       ]),
       ...cluster("Campus", [
         { label: `${t.student} Leave`, href: "/teacher/learner-leave", icon: "Palmtree" },
         { label: "Visitor Book", href: "/teacher/visitors", icon: "NotebookPen" },
+        { label: "Messages", href: "/teacher/messages", icon: "MessageSquare" },
         { label: "Announcements", href: "/teacher/announcements", icon: "Megaphone" },
       ]),
     ]),
@@ -318,6 +327,7 @@ export function getStudentNav(terms?: Terminology): NavItem[] {
     ]),
     ...grouped("Communication", "Megaphone", [
       { label: "Notice Board", href: "/student/announcements", icon: "Megaphone" },
+      { label: "Messages", href: "/student/messages", icon: "MessageSquare" },
       { label: "Notifications", href: "/student/notifications", icon: "Bell" },
       { label: `${t.teacher} Reviews`, href: "/student/reviews", icon: "Star" },
     ]),
@@ -344,6 +354,7 @@ export const financeNav: NavItem[] = [
   ...grouped("Collections", "Wallet", [
     { label: "Collect fees", href: "/finance/collect", icon: "Wallet" },
     { label: "Payments", href: "/finance/payments", icon: "Wallet" },
+    { label: "Student Accounts", href: "/finance/student-accounts", icon: "CreditCard" },
     { label: "Debtors", href: "/finance/debtors", icon: "TrendingDown" },
     { label: "Fee Reminders", href: "/finance/reminders", icon: "Megaphone" },
     { label: "Letters", href: "/finance/letters", icon: "FileText" },
@@ -362,6 +373,7 @@ export const financeNav: NavItem[] = [
   ...grouped("My work", "User", [
     { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
     { label: "Visitor Book", href: "/staff/visitors", icon: "NotebookPen" },
+    { label: "Messages", href: "/finance/messages", icon: "MessageSquare" },
     { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
     { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },
     { label: "My Timesheets", href: "/staff/timesheets", icon: "ClipboardCheck" },
@@ -389,6 +401,7 @@ export const hrNav: NavItem[] = [
   ...grouped("My work", "User", [
     { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },
     { label: "Visitor Book", href: "/staff/visitors", icon: "NotebookPen" },
+    { label: "Messages", href: "/hr/messages", icon: "MessageSquare" },
     { label: "My Leave", href: "/staff/leave", icon: "Palmtree" },
     { label: "My Payslips", href: "/staff/payslips", icon: "Banknote" },
     { label: "My Timesheets", href: "/staff/timesheets", icon: "ClipboardCheck" },
@@ -424,6 +437,7 @@ export function getParentNav(terms?: Terminology): NavItem[] {
     ]),
     ...grouped("Communication", "Megaphone", [
       { label: "Notice Board", href: "/parent/announcements", icon: "Megaphone" },
+      { label: "Messages", href: "/parent/messages", icon: "MessageSquare" },
     ]),
     ...grouped("Resources", "Download", [
       { label: "Download Centre", href: "/parent/downloads", icon: "Download" },
@@ -437,6 +451,7 @@ export const parentNav: NavItem[] = getParentNav();
 export const staffNav: NavItem[] = [
   ...grouped("School", "NotebookPen", [
     { label: "Visitor Book", href: "/staff/visitors", icon: "NotebookPen" },
+    { label: "Messages", href: "/staff/messages", icon: "MessageSquare" },
   ]),
   ...grouped("My work", "User", [
     { label: "My Attendance", href: "/staff/attendance", icon: "ClipboardCheck" },

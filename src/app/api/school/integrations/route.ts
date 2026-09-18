@@ -50,6 +50,9 @@ export async function PATCH(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ message: "Invalid data", errors: parsed.error.issues }, { status: 400 });
   }
+  if (parsed.data.sms && !requirePermission(session, "sms.settings") && !requirePermission(session, "settings:write")) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+  }
 
   const schoolId = resolveSettingsSchoolId(
     session!,
@@ -104,6 +107,18 @@ export async function PATCH(request: NextRequest) {
           secretKey: settings.yoco.secretKey === "" ? undefined : settings.yoco.secretKey,
           webhookSecret:
             settings.yoco.webhookSecret === "" ? undefined : settings.yoco.webhookSecret,
+        }
+      : undefined,
+    paypal: settings.paypal
+      ? {
+          ...settings.paypal,
+          secret: settings.paypal.secret === "" ? undefined : settings.paypal.secret,
+        }
+      : undefined,
+    sms: settings.sms
+      ? {
+          ...settings.sms,
+          restApiKey: settings.sms.restApiKey === "" ? undefined : settings.sms.restApiKey,
         }
       : undefined,
   });

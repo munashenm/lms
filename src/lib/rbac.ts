@@ -22,7 +22,16 @@ const FINANCE_ALL: Permission[] = [
   "finance.view", "finance.fees.manage", "finance.payments.create",
   "finance.payments.reverse", "finance.receipts.view", "finance.expenses.manage",
   "finance.reports.view",
+  "finance.payments.approve", "finance.expenses.create", "finance.expenses.approve",
+  "finance.reports.export",
 ];
+
+const COMMS_ALL: Permission[] = [
+  "messaging.view", "messaging.send", "messaging.bulk_send",
+  "sms.view", "sms.send", "sms.settings",
+];
+
+const HOMEWORK_ALL: Permission[] = ["homework.create", "homework.grade"];
 
 const HR_ALL: Permission[] = [
   "hr.view", "hr.employees.manage", "hr.documents.manage",
@@ -40,8 +49,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "marks:read", "marks:write",
     "reports:read", "settings:read", "settings:write", "audit:read",
     "announcements:write",
-    "visitors:read", "visitors:write",
-    ...FINANCE_ALL, ...HR_ALL, ...PAYROLL_ALL,
+    "visitors:read", "visitors:write", "visitors.create", "visitors.checkout",
+    ...FINANCE_ALL, ...HR_ALL, ...PAYROLL_ALL, ...COMMS_ALL, ...HOMEWORK_ALL,
     ...ENTERPRISE_FULL,
   ],
   SCHOOL_ADMIN: [
@@ -50,8 +59,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "marks:read", "marks:write",
     "reports:read", "settings:read", "settings:write", "audit:read",
     "announcements:write",
-    "visitors:read", "visitors:write",
-    ...FINANCE_ALL, ...HR_ALL, ...PAYROLL_ALL,
+    "visitors:read", "visitors:write", "visitors.create", "visitors.checkout",
+    ...FINANCE_ALL, ...HR_ALL, ...PAYROLL_ALL, ...COMMS_ALL, ...HOMEWORK_ALL,
     ...ENTERPRISE_FULL,
   ],
   PRINCIPAL: [
@@ -66,13 +75,16 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   TEACHER: [
     "students:read", "classes:read", "attendance:read", "attendance:write",
     "marks:read", "marks:write", "announcements:write",
-    "visitors:read", "visitors:write",
+    "visitors:read", "visitors:write", "visitors.create", "visitors.checkout",
+    "messaging.view", "messaging.send",
+    ...HOMEWORK_ALL,
   ],
-  STUDENT: ["marks:read", "attendance:read"],
-  PARENT: ["students:read", "marks:read", "attendance:read", "finance:read", "finance.receipts.view"],
+  STUDENT: ["marks:read", "attendance:read", "messaging.view", "messaging.send"],
+  PARENT: ["students:read", "marks:read", "attendance:read", "finance:read", "finance.receipts.view", "messaging.view", "messaging.send"],
   FINANCE_OFFICER: [
     "students:read", ...FINANCE_ALL, "reports:read",
-    "visitors:read", "visitors:write",
+    "visitors:read", "visitors:write", "visitors.create", "visitors.checkout",
+    "sms.view", "sms.send", "messaging.view", "messaging.send",
   ],
   ADMISSIONS_OFFICER: [
     "students:read", "students:write", "reports:read",
@@ -82,7 +94,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "staff:read", "staff:write", ...HR_ALL, ...PAYROLL_ALL, "reports:read",
     "visitors:read", "visitors:write",
   ],
-  STAFF: ["visitors:read", "visitors:write"],
+  STAFF: ["visitors:read", "visitors:write", "visitors.create", "visitors.checkout", "messaging.view"],
 };
 
 export function rolePermissionSet(role: UserRole): Set<string> {

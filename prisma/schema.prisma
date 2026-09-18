@@ -116,9 +116,27 @@ enum PaymentMethod {
   PAYFAST
   OZOW
   YOCO
+  PAYPAL
   MOBILE
   SCHOLARSHIP
   OTHER
+}
+
+enum PaymentCaptureStatus {
+  PENDING
+  VERIFIED
+  APPROVED
+  REJECTED
+  REVERSED
+}
+
+enum GatewayPaymentStatus {
+  INITIATED
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
 }
 
 enum AssessmentType {
@@ -296,6 +314,7 @@ enum CommunicationCategory {
 enum CommunicationStatus {
   QUEUED
   SENT
+  DELIVERED
   FAILED
   LOGGED
 }
@@ -456,6 +475,21 @@ enum VisitorPurpose {
   OTHER
 }
 
+enum VisitorStatus {
+  EXPECTED
+  CHECKED_IN
+  CHECKED_OUT
+  DENIED
+  OVERDUE
+}
+
+enum AssignmentSubmissionStatus {
+  SUBMITTED
+  LATE
+  GRADED
+  RETURNED
+}
+
 // ─── Multi-tenant Core ───────────────────────────────────────────────────────
 
 model School {
@@ -576,6 +610,7 @@ model School {
   lessonPlans            LessonPlan[]
   curriculumTopics       CurriculumTopic[]
   visitorEntries         VisitorEntry[]
+  internalMessages       InternalMessage[]
   websiteFaqs            WebsiteFaq[]
   websiteGallery         WebsiteGalleryItem[]
   schoolModules          SchoolModule[]
@@ -672,6 +707,8 @@ model User {
   employee           Employee?
   visitorsSignedIn   VisitorEntry[] @relation("VisitorSignedInBy")
   visitorsSignedOut  VisitorEntry[] @relation("VisitorSignedOutBy")
+  messagesSent       InternalMessage[] @relation("MessageSender")
+  messageReceipts    MessageRecipient[]
   studentChangeLogs  StudentChangeLog[]
   promotionDecisions PromotionDecision[] @relation("PromotionDecidedBy")
 
@@ -1338,9 +1375,13 @@ model AssignmentSubmission {
   studentId    String
   content      String?
   fileUrl      String?
+  fileUrls     Json?
   submittedAt  DateTime @default(now())
   grade        Decimal? @db.Decimal(6, 2)
   feedback     String?
+  status       AssignmentSubmissionStatus @default(SUBMITTED)
+  late         Boolean  @default(false)
+  returnedAt   DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -1508,6 +1549,22 @@ model Payment {
   reversalOfId  String?
   recordedById  String?
   gatewayProvider String?
+  captureStatus PaymentCaptureStatus @default(APPROVED)
+  proofUrl      String?
+  bankReference String?
+  feeType       String?
+  academicYearId String?
+  verifiedAt    DateTime?
+  verifiedById  String?
+  approvedAt    DateTime?
+  approvedById  String?
+  rejectedAt    DateTime?
+  rejectedById  String?
+  rejectReason  String?
+  postedAt      DateTime?
+  overpaymentCredit Decimal @default(0) @db.Decimal(12, 2)
+  gatewayStatus GatewayPaymentStatus?
+  gatewayTxnId  String?
 
   invoice       Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   ledgerEntries StudentLedgerEntry[]
@@ -1518,6 +1575,9 @@ model Payment {
   @@unique([schoolId, receiptNumber])
   @@index([invoiceId])
   @@index([schoolId, paidAt])
+  @@index([schoolId, captureStatus])
+  @@index([schoolId, bankReference])
+  @@index([gatewayTxnId])
   @@map("payments")
 }
 
@@ -1667,6 +1727,44 @@ model Notification {
   @@index([userId, isRead])
   @@index([schoolId])
   @@map("notifications")
+}
+
+model InternalMessage {
+  id            String   @id @default(cuid())
+  schoolId      String
+  threadId      String?
+  senderId      String
+  subject       String
+  body          String   @db.Text
+  attachmentUrl String?
+  createdAt     DateTime @default(now())
+
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sender        User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  thread        InternalMessage? @relation("MessageThread", fields: [threadId], references: [id], onDelete: SetNull)
+  replies       InternalMessage[] @relation("MessageThread")
+  recipients    MessageRecipient[]
+
+  @@index([schoolId, createdAt])
+  @@index([senderId, createdAt])
+  @@index([threadId])
+  @@map("internal_messages")
+}
+
+model MessageRecipient {
+  id         String    @id @default(cuid())
+  messageId  String
+  userId     String
+  readAt     DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  message    InternalMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId, readAt])
+  @@map("message_recipients")
 }
 
 // ─── Certificates ────────────────────────────────────────────────────────────
@@ -1821,6 +1919,20 @@ model SchoolIntegrationConfig {
   yocoSecretKey     String?
   yocoWebhookSecret String?
 
+  paypalEnabled    Boolean @default(false)
+  paypalClientId   String?
+  paypalSecret     String?
+  paypalSandbox    Boolean @default(true)
+  paypalCurrency   String  @default("ZAR")
+
+  smsProvider          String  @default("TWILIO")
+  smsRestUrl           String?
+  smsRestMethod        String  @default("POST")
+  smsRestApiKey        String?
+  smsRestFrom          String?
+  smsRestBodyTemplate  String? @db.Text
+  smsRestAuthHeader    String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1943,6 +2055,10 @@ model CommunicationLog {
   message          String
   error            String?
   metadata         Json?
+  provider         String?
+  providerMessageId String?
+  cost             Decimal?              @db.Decimal(10, 4)
+  deliveredAt      DateTime?
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
 
@@ -3334,15 +3450,24 @@ model VisitorEntry {
   lastName            String
   organisation        String?
   phone               String?
+  email               String?
   identityType        VisitorIdentityType?
   identityNumber      String?
   hostKind            VisitorHostKind
   hostName            String
+  department          String?
   purpose             VisitorPurpose
   purposeDetail       String?
   vehicleRegistration String?
+  itemsBrought        String?
   badgeNumber         String?
   notes               String?
+  status              VisitorStatus        @default(CHECKED_IN)
+  expectedAt          DateTime?
+  expectedDepartureAt DateTime?
+  photoUrl            String?
+  idScanUrl           String?
+  signatureUrl        String?
   signedInAt          DateTime             @default(now())
   signedOutAt         DateTime?
   signedInById        String
@@ -3357,6 +3482,7 @@ model VisitorEntry {
 
   @@index([schoolId, signedOutAt])
   @@index([schoolId, signedInAt])
+  @@index([schoolId, status])
   @@map("visitor_entries")
 }
 

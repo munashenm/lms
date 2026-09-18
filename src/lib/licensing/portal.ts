@@ -51,6 +51,8 @@ export function navHrefFeature(href: string): LicenseFeatureKey | null {
   }
   if (href.includes("/visitor")) return "visitor_management";
   if (href.includes("/messages")) return "messaging";
+  if (href.includes("/sms")) return "sms";
+  if (href.includes("/homework")) return "assessments";
   if (href === "/admin/reports" || href.startsWith("/admin/reports/")) return "reporting";
   return null;
 }

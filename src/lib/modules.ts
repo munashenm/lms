@@ -1,5 +1,5 @@
 import type { LicenseFeatureKey } from "@/lib/licensing/features";
-import type { ActionPermission, AnyPermission } from "@/lib/permissions";
+import type { AnyPermission } from "@/lib/permissions";
 
 export const SYSTEM_MODULES = [
   "students",
@@ -21,6 +21,9 @@ export const SYSTEM_MODULES = [
   "gate_security",
   "visitor_management",
   "reports",
+  "messaging",
+  "sms",
+  "backup",
 ] as const;
 
 export type SystemModuleKey = (typeof SYSTEM_MODULES)[number];
@@ -45,6 +48,9 @@ export const SYSTEM_MODULE_LABELS: Record<SystemModuleKey, string> = {
   gate_security: "Gate/Security",
   visitor_management: "Visitor Management",
   reports: "Reports",
+  messaging: "Internal Messaging",
+  sms: "SMS Gateway",
+  backup: "Backup & Restore",
 };
 
 export const MODULE_LICENSE_FEATURE: Partial<Record<SystemModuleKey, LicenseFeatureKey>> = {
@@ -60,6 +66,8 @@ export const MODULE_LICENSE_FEATURE: Partial<Record<SystemModuleKey, LicenseFeat
   visitor_management: "visitor_management",
   reports: "reporting",
   online_classes: "online_exams",
+  messaging: "messaging",
+  sms: "sms",
 };
 
 export function isSystemModuleKey(value: string): value is SystemModuleKey {
@@ -75,6 +83,10 @@ export function permissionModule(permission: AnyPermission): SystemModuleKey | n
   if (key.startsWith("payroll") || key.startsWith("hr")) return key.startsWith("payroll") ? "payroll" : "hr";
   if (key.startsWith("reports")) return "reports";
   if (key.startsWith("visitors")) return "visitor_management";
+  if (key.startsWith("messaging")) return "messaging";
+  if (key.startsWith("sms")) return "sms";
+  if (key.startsWith("backup")) return "backup";
+  if (key.startsWith("homework")) return "assessments";
   return null;
 }
 
@@ -88,18 +100,21 @@ export function navHrefModule(href: string): SystemModuleKey | null {
   if (href.includes("/hr") || href.includes("/leave-policies") || href.includes("/timesheets") || href.includes("/staff")) {
     return "hr";
   }
-  if (href.includes("/assessments") || href.includes("/assignments") || href.includes("/report-cards") || href.includes("/certificates") || href.includes("/exams")) {
+  if (href.includes("/assessments") || href.includes("/assignments") || href.includes("/homework") || href.includes("/report-cards") || href.includes("/certificates") || href.includes("/exams")) {
     return "assessments";
   }
   if (href.includes("/attendance") && !href.includes("staff-attendance")) return "attendance";
   if (href.includes("/academic") || href.includes("/classes") || href.includes("/subjects") || href.includes("/timetable") || href.includes("/promotion")) {
     return "academics";
   }
-  if (href.includes("/announcements") || href.includes("/communications") || href.includes("/messages") || href.includes("/calendar")) {
+  if (href.includes("/announcements") || href.includes("/communications") || href.includes("/calendar")) {
     return "communications";
   }
+  if (href.includes("/messages")) return "messaging";
+  if (href.includes("/sms")) return "sms";
   if (href.includes("/website")) return "website";
   if (href.includes("/visitor")) return "visitor_management";
+  if (href.includes("/backup")) return "backup";
   if (href === "/admin/reports" || href.startsWith("/admin/reports/")) return "reports";
   if (href.includes("/letters")) return "transfers";
   return null;

@@ -1,18 +1,20 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter } from "@/lib/rbac";
+import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PaymentReceiptButton } from "@/components/finance/payment-receipt-button";
 import { PaymentReverseButton } from "@/components/finance/payment-reverse-button";
-import { PAYMENT_METHOD_LABELS } from "@/lib/finance";
+import { PaymentReviewActions } from "@/components/finance/payment-review-actions";
+import { PAYMENT_METHOD_LABELS, PAYMENT_CAPTURE_STATUS_LABELS } from "@/lib/finance";
 import { formatDateTime, formatZAR } from "@/lib/utils";
 
 export default async function FinancePaymentsPage() {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
+  const canApprove = requirePermission(session, "finance.payments.approve");
 
   const payments = await prisma.payment.findMany({
     where: { invoice: filter },
@@ -25,11 +27,11 @@ export default async function FinancePaymentsPage() {
       },
     },
     orderBy: { paidAt: "desc" },
-    take: 100,
+    take: 150,
   });
 
   const collected = payments
-    .filter((p) => !p.reversedAt && !p.reversalOfId)
+    .filter((p) => !p.reversedAt && !p.reversalOfId && p.captureStatus === "APPROVED")
     .reduce((s, p) => s + Number(p.amount), 0);
 
   return (
@@ -38,7 +40,7 @@ export default async function FinancePaymentsPage() {
         <div>
           <h1 className="text-2xl font-bold">Payments</h1>
           <p className="text-muted text-sm mt-1">
-            {payments.length} recent receipts · {formatZAR(collected)} collected (reversals excluded)
+            Manual EFT captures stay pending until verified and approved · {formatZAR(collected)} posted
           </p>
         </div>
         <Button asChild>
@@ -58,9 +60,9 @@ export default async function FinancePaymentsPage() {
                     <th className="text-left px-4 py-3 font-medium text-muted">Date / time</th>
                     <th className="text-left px-4 py-3 font-medium text-muted">Amount</th>
                     <th className="text-left px-4 py-3 font-medium text-muted">Method</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted">Status</th>
                     <th className="text-left px-4 py-3 font-medium text-muted">Invoice</th>
                     <th className="text-left px-4 py-3 font-medium text-muted hidden sm:table-cell">Student</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted hidden md:table-cell">Reference</th>
                     <th className="text-right px-4 py-3 font-medium text-muted">Actions</th>
                   </tr>
                 </thead>
@@ -74,19 +76,25 @@ export default async function FinancePaymentsPage() {
                         {p.reversalOfId ? <Badge variant="warning" className="ml-2">Reversal</Badge> : null}
                       </td>
                       <td className="px-4 py-3">{PAYMENT_METHOD_LABELS[p.method]}</td>
+                      <td className="px-4 py-3">
+                        <Badge variant="secondary">{PAYMENT_CAPTURE_STATUS_LABELS[p.captureStatus] ?? p.captureStatus}</Badge>
+                      </td>
                       <td className="px-4 py-3">{p.invoice.invoiceNumber}</td>
                       <td className="px-4 py-3 hidden sm:table-cell">
                         {p.invoice.student.firstName} {p.invoice.student.lastName}
                       </td>
-                      <td className="px-4 py-3 hidden md:table-cell text-muted">
-                        {p.reference ?? "—"}
-                      </td>
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex items-center gap-2">
+                          {p.proofUrl ? (
+                            <a href={p.proofUrl} className="text-xs text-primary" target="_blank" rel="noreferrer">
+                              Proof
+                            </a>
+                          ) : null}
                           <PaymentReceiptButton paymentId={p.id} />
-                          {!p.reversedAt && !p.reversalOfId ? (
+                          {!p.reversedAt && !p.reversalOfId && p.captureStatus === "APPROVED" ? (
                             <PaymentReverseButton paymentId={p.id} />
                           ) : null}
+                          <PaymentReviewActions paymentId={p.id} status={p.captureStatus} canApprove={canApprove} />
                         </div>
                       </td>
                     </tr>
