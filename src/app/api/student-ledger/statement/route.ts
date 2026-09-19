@@ -42,7 +42,7 @@ async function buildStatement(studentId: string, academicYearId?: string | null)
   if (!studentRow) return null;
 
   const [ledger, school, primaryGuardian] = await Promise.all([
-    getStudentLedger({ studentId, academicYearId }),
+    getStudentLedger({ studentId, academicYearId, take: 2000 }),
     prisma.school.findUnique({ where: { id: studentRow.schoolId } }),
     prisma.studentGuardian.findFirst({
       where: { studentId, isPrimary: true },
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
-  const filename = `fee-statement-${statement.student.studentNumber}.pdf`;
+  const filename = `statement-of-account-${statement.student.studentNumber}.pdf`;
   return new NextResponse(Buffer.from(statement.pdf), {
     headers: {
       "Content-Type": "application/pdf",
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     ? `${statement.guardian.firstName} ${statement.guardian.lastName}`
     : "Parent/Guardian";
 
-  const subject = `School Fee Statement – ${statement.student.firstName} ${statement.student.lastName} – ${formatDate(new Date())}`;
+  const subject = `Statement of Account – ${statement.student.firstName} ${statement.student.lastName} – ${formatDate(new Date())}`;
   const message = `Dear ${recipientName},
 
 Please find attached the latest school fee statement for ${statement.student.firstName} ${statement.student.lastName}.

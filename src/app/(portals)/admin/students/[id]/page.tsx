@@ -19,7 +19,7 @@ import { ProfileTabs } from "@/components/students/profile-tabs";
 import { LetterForm } from "@/components/letters/letter-form";
 import { AccessDenied } from "@/components/layout/access-denied";
 import { ArrowLeft } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, toIsoDateInput, toIsoDateTime } from "@/lib/utils";
 import { getStudentLedger } from "@/lib/student-ledger";
 import { getTerminology } from "@/lib/terminology";
 import { PROMOTION_OUTCOME_LABELS } from "@/lib/promotion";
@@ -47,9 +47,19 @@ export default async function StudentDetailPage({ params }: PageProps) {
         include: { academicYear: { select: { id: true, name: true } }, grade: { select: { name: true } }, class: { select: { name: true } } },
         orderBy: { enrolledAt: "desc" },
       },
-      changeLogs: { include: { user: { select: { firstName: true, lastName: true } } }, orderBy: { createdAt: "desc" }, take: 50 },
+      changeLogs: {
+        include: { user: { select: { firstName: true, lastName: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      },
       promotionDecisions: {
-        include: { fromAcademicYear: { select: { name: true } }, toGrade: { select: { name: true } } },
+        select: {
+          id: true,
+          outcome: true,
+          eligibility: true,
+          fromAcademicYear: { select: { name: true } },
+          toGrade: { select: { name: true } },
+        },
         orderBy: { createdAt: "desc" },
         take: 20,
       },
@@ -66,7 +76,14 @@ export default async function StudentDetailPage({ params }: PageProps) {
   const canPromote = requirePermission(session, "students.promote");
   const canAudit = requirePermission(session, "audit:read");
 
-  const ledger = canFinance ? await getStudentLedger({ studentId: student.id }) : null;
+  let ledger: Awaited<ReturnType<typeof getStudentLedger>> | null = null;
+  if (canFinance) {
+    try {
+      ledger = await getStudentLedger({ studentId: student.id });
+    } catch (error) {
+      console.error("Student ledger failed", student.id, error);
+    }
+  }
   const currentEnrolment = student.enrolments.find((row) => row.status === "ENROLLED") ?? student.enrolments[0];
   const [grades, classes, campuses, years, audit] = await Promise.all([
     prisma.grade.findMany({ where: { ...schoolFilter, isActive: true }, select: { id: true, name: true }, orderBy: { sortOrder: "asc" } }),
@@ -125,6 +142,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
           {
             id: "overview",
             label: "Overview",
+            hashes: ["edit-student"],
             content: (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card>
@@ -152,7 +170,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
                   </CardContent>
                 </Card>
                 {canWriteStudents ? (
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-2" id="edit-student">
                     <StudentEditForm
                       studentId={student.id}
                       student={{
@@ -165,13 +183,13 @@ export default async function StudentDetailPage({ params }: PageProps) {
                         alternativeId: student.alternativeId,
                         email: student.email,
                         phone: student.phone,
-                        dateOfBirth: student.dateOfBirth ? student.dateOfBirth.toISOString().slice(0, 10) : null,
+                        dateOfBirth: toIsoDateInput(student.dateOfBirth),
                         gender: student.gender,
                         nationality: student.nationality,
                         homeLanguage: student.homeLanguage,
                         campusId: student.campusId,
                         studentNumber: student.studentNumber,
-                        enrolledAt: student.enrolledAt ? student.enrolledAt.toISOString().slice(0, 10) : null,
+                        enrolledAt: toIsoDateInput(student.enrolledAt),
                         address: student.address,
                         city: student.city,
                         province: student.province,
@@ -200,7 +218,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
                 <CardContent className="space-y-3 text-sm">
                   {student.enrolments.map((enrolment) => (
                     <div key={enrolment.id} className="flex justify-between border-b border-border pb-2">
-                      <span>{enrolment.academicYear.name} — {enrolment.grade?.name ?? "Ungraded"} {enrolment.class?.name ?? ""}</span>
+                      <span>{enrolment.academicYear?.name ?? "Unknown year"} — {enrolment.grade?.name ?? "Ungraded"} {enrolment.class?.name ?? ""}</span>
                       <span className="font-medium">{enrolment.status}</span>
                     </div>
                   ))}
@@ -222,7 +240,9 @@ export default async function StudentDetailPage({ params }: PageProps) {
           {
             id: "finance",
             label: "Finance",
-            content: ledger ? (
+            content: !canFinance ? (
+              <p className="text-sm text-muted">Finance is hidden for this account.</p>
+            ) : ledger ? (
               <StudentLedgerPanel
                 studentId={student.id}
                 balance={ledger.balance}
@@ -233,12 +253,14 @@ export default async function StudentDetailPage({ params }: PageProps) {
                   description: e.description,
                   signedAmount: e.signedAmount,
                   reference: e.reference,
-                  entryDate: e.entryDate.toISOString(),
+                  entryDate: toIsoDateTime(e.entryDate) ?? "",
                   academicYear: e.academicYear,
                 }))}
               />
             ) : (
-              <p className="text-sm text-muted">Finance is hidden for this account.</p>
+              <p className="text-sm text-muted">
+                Fee history could not be loaded for this learner. Try View Statement, or open Finance.
+              </p>
             ),
           },
           {
@@ -247,7 +269,17 @@ export default async function StudentDetailPage({ params }: PageProps) {
             content: (
               <div className="space-y-6">
                 <StudentPhotoPanel studentId={student.id} photoUrl={student.photoUrl} firstName={student.firstName} lastName={student.lastName} canWrite={canWriteStudents} identityCardLabel={terms.identityCard} />
-                <StudentDocumentsPanel studentId={student.id} documents={student.documents} canWrite={canWriteStudents} />
+                <StudentDocumentsPanel
+                  studentId={student.id}
+                  documents={student.documents.map((doc) => ({
+                    id: doc.id,
+                    type: doc.type,
+                    title: doc.title,
+                    fileUrl: doc.fileUrl,
+                    createdAt: toIsoDateTime(doc.createdAt) ?? "",
+                  }))}
+                  canWrite={canWriteStudents}
+                />
               </div>
             ),
           },
@@ -261,7 +293,18 @@ export default async function StudentDetailPage({ params }: PageProps) {
                 studentUserId={student.userId}
                 studentStatus={student.status}
                 canWrite={canWriteStudents}
-                guardians={student.guardians}
+                guardians={student.guardians.map((row) => ({
+                  id: row.id,
+                  relationship: row.relationship,
+                  isPrimary: row.isPrimary,
+                  guardian: {
+                    firstName: row.guardian.firstName,
+                    lastName: row.guardian.lastName,
+                    email: row.guardian.email,
+                    phone: row.guardian.phone,
+                    userId: row.guardian.userId,
+                  },
+                }))}
                 portalLabel={terms.portal}
               />
             ),
@@ -281,6 +324,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
           {
             id: "transfers",
             label: "Transfers",
+            hashes: ["promote-student"],
             content: (
               <div className="space-y-4" id="promote-student">
                 {canPromote && currentYear ? (
@@ -298,7 +342,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
                   <CardContent className="space-y-2 text-sm">
                     {student.promotionDecisions.map((row) => (
                       <div key={row.id} className="flex justify-between">
-                        <span>{row.fromAcademicYear.name} → {row.toGrade?.name ?? row.outcome}</span>
+                        <span>{row.fromAcademicYear?.name ?? "Unknown year"} → {row.toGrade?.name ?? row.outcome}</span>
                         <span>{row.outcome ? PROMOTION_OUTCOME_LABELS[row.outcome] : row.eligibility}</span>
                       </div>
                     ))}
@@ -345,8 +389,8 @@ export default async function StudentDetailPage({ params }: PageProps) {
                 {canWriteStudents && currentEnrolment ? (
                   <EnrolmentServicesForm
                     studentId={student.id}
-                    academicYearId={currentEnrolment.academicYear.id}
-                    academicYearName={currentEnrolment.academicYear.name}
+                    academicYearId={currentEnrolment.academicYear?.id ?? currentEnrolment.academicYearId}
+                    academicYearName={currentEnrolment.academicYear?.name ?? "Current year"}
                     gradeId={student.gradeId}
                     classId={student.classId}
                     hostel={currentEnrolment.hostel}

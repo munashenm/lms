@@ -205,7 +205,7 @@ export async function createFeeCommsBatch(params: {
 
       const subject =
         params.action === "FEE_STATEMENT"
-          ? `School Fee Statement – ${student.firstName} ${student.lastName}`
+          ? `Statement of Account – ${student.firstName} ${student.lastName}`
           : `School Fee Reminder – ${student.firstName} ${student.lastName}`;
       const message = reminderMessage(
         school.name,

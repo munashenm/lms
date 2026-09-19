@@ -13,12 +13,15 @@ import { PAYMENT_METHOD_LABELS } from "@/lib/finance";
 import { formatDate, formatZAR, johannesburgDatetimeLocalValue } from "@/lib/utils";
 import { outstandingOf } from "@/lib/money";
 import { selectedAllocations } from "@/lib/charge-reversal";
+import { CollectionPrintActions } from "@/components/finance/collection-print-actions";
 import type { PaymentMethod } from "@prisma/client";
 
 interface PaymentFormProps {
   invoiceId: string;
   invoiceNumber: string;
   outstanding: number;
+  studentId?: string;
+  showPrintActions?: boolean;
   instalments?: Array<{
     id: string;
     sequence: number;
@@ -27,23 +30,24 @@ interface PaymentFormProps {
     amountPaid: number;
     status: string;
   }>;
-  onRecorded?: () => void;
+  onRecorded?: (payment: { id: string }) => void;
 }
 
 export function PaymentForm({
   invoiceId,
   invoiceNumber,
   outstanding,
+  studentId,
+  showPrintActions = true,
   instalments = [],
   onRecorded,
 }: PaymentFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [lastPaymentId, setLastPaymentId] = useState<string | null>(null);
   const openInstalments = instalments.filter(
     (row) => outstandingOf(row.amount, row.amountPaid) > 0
   );
-
-  if (outstanding <= 0) return null;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -79,9 +83,12 @@ export function PaymentForm({
         const data = await res.json();
         throw new Error(data.message ?? "Failed");
       }
-      toast.success("Payment captured");
+      const data = (await res.json()) as { payment?: { id?: string } };
+      const paymentId = data.payment?.id ?? null;
+      setLastPaymentId(paymentId);
+      toast.success("Payment captured. You can print the invoice and statement.");
       router.refresh();
-      onRecorded?.();
+      if (paymentId) onRecorded?.({ id: paymentId });
       const formEl = e.target as HTMLFormElement;
       formEl.reset();
       const paidAtInput = formEl.elements.namedItem("paidAt");
@@ -95,7 +102,20 @@ export function PaymentForm({
     }
   }
 
+  if (outstanding <= 0 && (!showPrintActions || !lastPaymentId)) return null;
+
   return (
+    <div className="space-y-4">
+      {showPrintActions && lastPaymentId ? (
+        <CollectionPrintActions
+          invoiceId={invoiceId}
+          invoiceNumber={invoiceNumber}
+          paymentId={lastPaymentId}
+          studentId={studentId}
+          heading="Payment captured"
+        />
+      ) : null}
+      {outstanding <= 0 ? null : (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Record Payment</CardTitle>
@@ -213,5 +233,7 @@ export function PaymentForm({
         </form>
       </CardContent>
     </Card>
+      )}
+    </div>
   );
 }

@@ -1,34 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
-export function ProfileTabs({
-  tabs,
-}: {
-  tabs: Array<{ id: string; label: string; content: React.ReactNode }>;
-}) {
+type ProfileTab = {
+  id: string;
+  label: string;
+  hashes?: string[];
+  content: React.ReactNode;
+};
+
+export function ProfileTabs({ tabs }: { tabs: ProfileTab[] }) {
   const [active, setActive] = useState(tabs[0]?.id);
+  const tabKey = useMemo(() => tabs.map((tab) => tab.id).join("|"), [tabs]);
 
   useEffect(() => {
     const applyHash = () => {
       const hash = window.location.hash.replace(/^#/, "");
       if (!hash) return;
-      if (tabs.some((tab) => tab.id === hash)) {
-        setActive(hash);
-        return;
-      }
-      const el = document.getElementById(hash);
-      const owner = tabs.find((tab) => {
-        const panel = document.getElementById(`profile-tab-${tab.id}`);
-        return Boolean(el && panel?.contains(el));
-      });
-      if (owner) setActive(owner.id);
+      const match = tabs.find((tab) => tab.id === hash || tab.hashes?.includes(hash));
+      if (match) setActive(match.id);
     };
     applyHash();
     window.addEventListener("hashchange", applyHash);
     return () => window.removeEventListener("hashchange", applyHash);
-  }, [tabs]);
+  }, [tabKey, tabs]);
 
   return (
     <div className="space-y-4">
@@ -49,7 +45,7 @@ export function ProfileTabs({
       </div>
       {tabs.map((tab) => (
         <div key={tab.id} id={`profile-tab-${tab.id}`} hidden={active !== tab.id}>
-          {tab.content}
+          {active === tab.id ? tab.content : null}
         </div>
       ))}
     </div>

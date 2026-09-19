@@ -11,7 +11,8 @@ import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatZAR, formatDate } from "@/lib/utils";
-import { STUDENT_LEDGER_TYPE_LABELS } from "@/lib/student-ledger";
+import { STUDENT_LEDGER_TYPE_LABELS } from "@/lib/student-ledger-labels";
+import { FeeStatementButton } from "@/components/finance/fee-statement-button";
 
 type LedgerEntry = {
   id: string;
@@ -39,25 +40,6 @@ export function StudentLedgerPanel({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-
-  async function downloadStatement() {
-    setActionLoading("download");
-    try {
-      const res = await fetch(`/api/student-ledger/statement?studentId=${studentId}`);
-      if (!res.ok) throw new Error();
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `fee-statement.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast.error("Failed to download statement");
-    } finally {
-      setActionLoading(null);
-    }
-  }
 
   async function emailStatement() {
     setActionLoading("email");
@@ -119,18 +101,7 @@ export function StudentLedgerPanel({
             <Badge variant={balance > 0 ? "danger" : "success"}>
               {balance > 0 ? "Amount owing" : balance < 0 ? "Credit" : "Settled"}
             </Badge>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={downloadStatement}
-              disabled={!!actionLoading}
-            >
-              {actionLoading === "download" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Download Statement"
-              )}
-            </Button>
+            <FeeStatementButton studentId={studentId} size="sm" />
             {canWrite && (
               <Button
                 size="sm"

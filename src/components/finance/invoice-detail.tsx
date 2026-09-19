@@ -4,6 +4,7 @@ import { PaymentForm } from "./payment-form";
 import { PaymentReceiptButton } from "./payment-receipt-button";
 import { PaymentReverseButton } from "./payment-reverse-button";
 import { InvoicePdfButton } from "./invoice-pdf-button";
+import { FeeStatementButton } from "./fee-statement-button";
 import { InstalmentSchedule, type InstalmentView } from "./instalment-schedule";
 import {
   INVOICE_STATUS_LABELS,
@@ -48,6 +49,7 @@ interface InvoiceDetailProps {
     dueDate: Date | string | null;
     issuedAt: Date | string;
     student: {
+      id?: string;
       firstName: string;
       lastName: string;
       studentNumber: string;
@@ -97,6 +99,7 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
             invoiceId={invoice.id}
             invoiceNumber={invoice.invoiceNumber}
           />
+          {invoice.student.id ? <FeeStatementButton studentId={invoice.student.id} size="default" /> : null}
           <Badge variant={INVOICE_STATUS_VARIANT[invoice.status]}>
             {INVOICE_STATUS_LABELS[invoice.status]}
           </Badge>
@@ -223,6 +226,7 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
           invoiceId={invoice.id}
           invoiceNumber={invoice.invoiceNumber}
           outstanding={outstanding}
+          studentId={invoice.student.id}
           instalments={invoice.instalments?.map((row) => ({
             id: row.id,
             sequence: row.sequence,

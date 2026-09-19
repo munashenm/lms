@@ -1,16 +1,7 @@
 import { StudentLedgerType, type Prisma } from "@prisma/client";
 import { prisma } from "./db";
 
-export const STUDENT_LEDGER_TYPE_LABELS: Record<StudentLedgerType, string> = {
-  CHARGE: "Charge",
-  PAYMENT: "Payment",
-  CREDIT: "Credit",
-  DISCOUNT: "Discount",
-  BURSARY: "Bursary",
-  SPONSORSHIP: "Sponsorship",
-  ADJUSTMENT: "Adjustment",
-  REFUND: "Refund",
-};
+export { STUDENT_LEDGER_TYPE_LABELS } from "./student-ledger-labels";
 
 /** Positive types increase the amount owed. */
 export function signedAmountForType(type: StudentLedgerType, amount: number): number {
@@ -96,8 +87,6 @@ export async function getStudentLedger(params: {
       take: params.take ?? 100,
       include: {
         academicYear: { select: { id: true, name: true } },
-        invoice: { select: { id: true, invoiceNumber: true } },
-        payment: { select: { id: true, method: true, reference: true } },
       },
     }),
     prisma.studentLedgerEntry.aggregate({
@@ -122,8 +111,13 @@ export async function getStudentLedger(params: {
     student,
     balance: Number(balanceAgg._sum.signedAmount ?? 0),
     entries: entries.map((e) => ({
-      ...e,
+      id: e.id,
+      type: e.type,
+      description: e.description,
       signedAmount: Number(e.signedAmount),
+      reference: e.reference,
+      entryDate: e.entryDate,
+      academicYear: e.academicYear,
     })),
   };
 }

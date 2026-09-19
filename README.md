@@ -1,18 +1,20 @@
 # SchoolHub SA
 
-Modern School Management System for South African schools, colleges, TVETs and training centres.
+Modern school management system for South African schools, colleges, TVETs and training centres.
 
-Built by **Cyber Developers** to replace the legacy LMS with a clean, fast, mobile-friendly SaaS platform.
+Built by **Cyber Developers**. One platform for admissions, academics, fees (PayFast & Paystack), parent/learner portals, HR/payroll, and the public school website.
 
-## Features (Phase 1)
+**Marketing pack (sales / website / tenders):** [`docs/MARKETING.md`](docs/MARKETING.md) · one-pager [`docs/SALES_ONE_PAGER.md`](docs/SALES_ONE_PAGER.md)
 
-- Multi-role authentication (8 roles)
-- Admin dashboard with KPIs and charts
-- Student management with POPIA consent tracking
-- SA ID and phone validation
-- ZAR currency formatting
-- Audit trail for compliance
-- Multi-school SaaS-ready architecture
+## Product highlights
+
+- Portals for admin, teachers, finance, HR, parents, learners and Super Admin
+- CAPS/NSC schools and TVET/college terminology in the same product
+- Fee office: collect desk, invoices, EFT verification, statements of account
+- Online payments: PayFast and Paystack (server-side verify + webhooks)
+- Branded PDFs: invoices, receipts, report cards, certificates, payslips
+- POPIA-minded audit logs, SA ID validation, encrypted backup, SA-SAMS import
+- Multi-school tenancy with licensed modules
 
 ## Tech Stack
 
@@ -70,7 +72,7 @@ Open [http://localhost:3000](http://localhost:3000) and sign in with demo creden
 ## Project Structure
 
 ```
-docs/           Project plan, database schema, UI structure
+docs/           Marketing pack, project plan, schema, UI structure
 prisma/         Schema, migrations, seed data
 src/
   app/          Next.js pages and API routes
@@ -79,17 +81,16 @@ src/
   generated/    Prisma client output
 ```
 
-## Development Phases
+## Documentation
 
-| Phase | Status | Modules |
-|-------|--------|---------|
-| 1 | ✅ In progress | Auth, Admin dashboard, Students |
-| 2 | Planned | Teacher/Student portals, Classes, Attendance |
-| 3 | Planned | Marks, Assessments, Report cards |
-| 4 | Planned | Finance, Invoices, Parent portal |
-| 5 | Planned | Analytics, Notifications, Payment gateways |
+| Document | Use |
+|----------|-----|
+| [Marketing brief](docs/MARKETING.md) | Website copy, proposals, SGB packs |
+| [Sales one-pager](docs/SALES_ONE_PAGER.md) | Email / print leave-behind |
+| [Project plan](docs/PROJECT_PLAN.md) | Delivery scope |
+| [Licensing, backup, SA-SAMS](docs/ENTERPRISE_LICENSING_BACKUP_SASAMS.md) | Hosting and IT |
 
-See `docs/ENTERPRISE_LICENSING_BACKUP_SASAMS.md` for licensing, backup/restore and SA-SAMS import.
+See `docs/PROJECT_PLAN.md` for the full delivered module list.
 
 ## South African Compliance
 

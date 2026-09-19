@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PaymentForm } from "@/components/finance/payment-form";
 import { InvoicePdfButton } from "@/components/finance/invoice-pdf-button";
+import { FeeStatementButton } from "@/components/finance/fee-statement-button";
+import { CollectionPrintActions } from "@/components/finance/collection-print-actions";
 import {
   INVOICE_STATUS_LABELS,
   INVOICE_STATUS_VARIANT,
@@ -48,6 +50,12 @@ export function FeeCollectionDesk({
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(initialStudentId ?? null);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
+  const [lastCollection, setLastCollection] = useState<{
+    studentId: string;
+    invoiceId: string;
+    invoiceNumber: string;
+    paymentId: string;
+  } | null>(null);
 
   const selected = useMemo(
     () => students.find((row) => row.id === selectedId) ?? null,
@@ -220,14 +228,19 @@ export function FeeCollectionDesk({
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">
-                    {selected.firstName} {selected.lastName}
-                  </CardTitle>
-                  <p className="text-sm text-muted">
-                    {selected.studentNumber}
-                    {selected.grade ? ` · ${selected.grade}` : ""}
-                    {selected.className ? ` · ${selected.className}` : ""}
-                  </p>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-base">
+                        {selected.firstName} {selected.lastName}
+                      </CardTitle>
+                      <p className="text-sm text-muted">
+                        {selected.studentNumber}
+                        {selected.grade ? ` · ${selected.grade}` : ""}
+                        {selected.className ? ` · ${selected.className}` : ""}
+                      </p>
+                    </div>
+                    <FeeStatementButton studentId={selected.id} size="sm" />
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="text-sm">
@@ -296,16 +309,40 @@ export function FeeCollectionDesk({
                       invoiceId={selectedInvoice.id}
                       invoiceNumber={selectedInvoice.invoiceNumber}
                     />
+                    <FeeStatementButton studentId={selected.id} />
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`${invoiceBasePath}/${selectedInvoice.id}`}>Open invoice</Link>
                     </Button>
                   </div>
+                  {lastCollection &&
+                  lastCollection.studentId === selected.id &&
+                  lastCollection.invoiceId === selectedInvoice.id ? (
+                    <CollectionPrintActions
+                      invoiceId={lastCollection.invoiceId}
+                      invoiceNumber={lastCollection.invoiceNumber}
+                      paymentId={lastCollection.paymentId}
+                      studentId={lastCollection.studentId}
+                      heading="Payment captured"
+                    />
+                  ) : null}
                   <PaymentForm
                     key={`${selectedInvoice.id}-${selectedInvoice.outstanding}`}
                     invoiceId={selectedInvoice.id}
                     invoiceNumber={selectedInvoice.invoiceNumber}
                     outstanding={selectedInvoice.outstanding}
-                    onRecorded={() => void search({ studentId: selected.id })}
+                    studentId={selected.id}
+                    showPrintActions={false}
+                    onRecorded={(payment) => {
+                      if (payment.id) {
+                        setLastCollection({
+                          studentId: selected.id,
+                          invoiceId: selectedInvoice.id,
+                          invoiceNumber: selectedInvoice.invoiceNumber,
+                          paymentId: payment.id,
+                        });
+                      }
+                      void search({ studentId: selected.id });
+                    }}
                   />
                 </div>
               ) : null}

@@ -2,41 +2,37 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Download, Loader2 } from "lucide-react";
+import { Loader2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { openFinancePdf } from "@/lib/open-finance-pdf";
 
 export function FeeStatementButton({
   studentId,
-  label = "Download statement",
+  label = "Print statement of account",
+  size = "default",
 }: {
   studentId?: string;
   label?: string;
+  size?: "default" | "sm";
 }) {
   const [loading, setLoading] = useState(false);
 
-  async function download() {
+  async function printStatement() {
     setLoading(true);
     try {
-      const qs = studentId ? `?studentId=${studentId}` : "";
+      const qs = studentId ? `?studentId=${encodeURIComponent(studentId)}` : "";
       const res = await fetch(`/api/student-ledger/statement${qs}`);
-      if (!res.ok) throw new Error();
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "fee-statement.pdf";
-      a.click();
-      URL.revokeObjectURL(url);
+      await openFinancePdf(res, "statement-of-account.pdf", "print");
     } catch {
-      toast.error("Could not download statement");
+      toast.error("Could not open statement of account");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <Button type="button" variant="outline" onClick={download} disabled={loading}>
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+    <Button type="button" variant="outline" size={size} onClick={printStatement} disabled={loading}>
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
       {label}
     </Button>
   );
