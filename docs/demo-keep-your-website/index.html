@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SchoolHub SA — Product film</title>
+  <style>
+    :root {
+      --navy: #0f2744;
+      --navy-2: #17365d;
+      --gold: #c4a35a;
+      --paper: #f4efe4;
+      --ink: #1a1a1a;
+      --muted: #5c6570;
+      --line: #d8d1c3;
+      --white: #fff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Georgia, serif;
+      background: var(--paper);
+      color: var(--ink);
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 64px; }
+    header h1 {
+      font-size: 1.65rem;
+      margin: 0 0 6px;
+      color: var(--navy);
+    }
+    header p { margin: 0 0 22px; color: var(--muted); max-width: 46rem; }
+    .player {
+      background: var(--navy);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .stage {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: #0a1a2e;
+    }
+    .stage img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: var(--navy);
+      color: var(--white);
+      font-family: "Segoe UI", sans-serif;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      padding: 6px 10px;
+      border-radius: 4px;
+      border-left: 3px solid var(--gold);
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--navy-2);
+      font-family: "Segoe UI", sans-serif;
+    }
+    button.play {
+      background: var(--gold);
+      color: var(--navy);
+      border: 0;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .bar {
+      flex: 1;
+      height: 6px;
+      background: #2b4a6e;
+      border-radius: 99px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .bar > span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--gold);
+    }
+    .time { color: #d7e2ee; font-size: 12px; min-width: 72px; text-align: right; }
+    .narration {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-top: 0;
+      padding: 16px 18px 18px;
+      min-height: 7.5rem;
+    }
+    .narration .kicker {
+      font-family: "Segoe UI", sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 700;
+    }
+    .narration h2 { margin: 4px 0 8px; font-size: 1.15rem; color: var(--navy); }
+    .narration p { margin: 0; color: var(--muted); line-height: 1.5; }
+    .scenes {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .scenes button {
+      text-align: left;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      cursor: pointer;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 11px;
+      color: var(--navy);
+    }
+    .scenes button.active { border-color: var(--navy); background: #eef3f8; }
+    .scenes img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 4px; display: block; margin-bottom: 6px; }
+    .live {
+      margin-top: 36px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 20px 22px;
+    }
+    .live h3 { margin: 0 0 8px; color: var(--navy); }
+    .live p { margin: 0 0 12px; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; font-family: "Segoe UI", sans-serif; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    code { font-size: 12px; background: #eef3f8; padding: 1px 5px; border-radius: 3px; }
+    @media (max-width: 800px) {
+      .scenes { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>One system for South African schools and colleges</h1>
+      <p>
+        Ordered by what closes the sale: family portals first, then teaching, the fee office, paper and cloud, then campus operations (cards, certificates, visitors, leave, payroll), then trust.
+        About six minutes. Cloud-hosted by Cyber Developers.
+      </p>
+    </header>
+
+    <div class="player">
+      <div class="stage">
+        <img id="frame" alt="Demo scene" src="frames/demo-01-open-institutions.png" />
+        <div class="badge" id="badge">1 / 25 · Schools and colleges</div>
+      </div>
+      <div class="controls">
+        <button class="play" id="play" type="button">Play</button>
+        <div class="bar" id="bar"><span id="fill"></span></div>
+        <div class="time" id="time">0:00 / 5:50</div>
+      </div>
+    </div>
+    <div class="narration">
+      <div class="kicker" id="kicker">Scene 1</div>
+      <h2 id="title">Schools, colleges and training centres</h2>
+      <p id="voice"></p>
+    </div>
+    <div class="scenes" id="thumbs"></div>
+
+    <section class="live">
+      <h3>Record this on the live system</h3>
+      <p>Run in this order. Must-win first. Campus extras after the office is sold.</p>
+      <table>
+        <thead>
+          <tr><th>Priority</th><th>Beat</th><th>Where</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Must-win</td>
+            <td>Family + student login: attendance, assignments, results, reports</td>
+            <td><code>/parent/login</code> · <code>/student/login</code></td>
+          </tr>
+          <tr>
+            <td>Must-win</td>
+            <td>Educators capture once: register, marks, timetable, messages</td>
+            <td><code>/teacher/attendance</code> · assessments · timetable · messages</td>
+          </tr>
+          <tr>
+            <td>Must-win</td>
+            <td>Fee desk, SMS reminders, print on demand</td>
+            <td><code>/finance/collect</code> · <code>/admin/finance/reminders</code></td>
+          </tr>
+          <tr>
+            <td>Must-win</td>
+            <td>Cloud host, files, encrypted backup, Cyber Developers SLA</td>
+            <td><code>/admin/settings/backup</code></td>
+          </tr>
+          <tr>
+            <td>Campus</td>
+            <td>Learner/student card PDF, certificates, visitors book, leave, staff payroll</td>
+            <td>Student profile card · <code>/admin/certificates</code> · <code>/admin/visitors</code> · <code>/staff/leave</code> · <code>/hr/payroll</code></td>
+          </tr>
+          <tr>
+            <td>Migrate / trust</td>
+            <td>SA ID enrol, apply tracker, SA-SAMS, roles, load-shedding</td>
+            <td>Add student · <code>/apply/status</code> · <code>/admin/integrations/sa-sams</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+  <script>
+    const scenes = [
+      {
+        src: "frames/demo-01-open-institutions.png",
+        badge: "1 / 25 · Must-win",
+        kicker: "Must-win · 0:00",
+        title: "One product for schools and colleges",
+        voice: "SchoolHub SA is built for South African institutions: schools, colleges, TVETs and training centres. Same platform. Learner or student, teacher or lecturer, term or semester, parent or sponsor.",
+        seconds: 18,
+      },
+      {
+        src: "frames/demo-05-family-academics.png",
+        badge: "2 / 25 · Must-win",
+        kicker: "Must-win · 0:18",
+        title: "Parents and students log in for the academic picture",
+        voice: "This is why boards buy. Parents, sponsors, learners and students sign in on a phone. Attendance, assignments, assessments, progress and reports. No collection-day queue. No app store.",
+        seconds: 18,
+      },
+      {
+        src: "frames/demo-11-student-login.png",
+        badge: "3 / 25 · Must-win",
+        kicker: "Must-win · 0:36",
+        title: "Learner and student login",
+        voice: "A branded portal for the enrolled person. Timetable, homework, results and messages from one login.",
+        seconds: 12,
+      },
+      {
+        src: "frames/demo-17-college-student.png",
+        badge: "4 / 25 · Must-win",
+        kicker: "Must-win · 0:48",
+        title: "College language, same system",
+        voice: "On a college tenant: modules, semesters, lecturers. You are not translating a school-only app in Excel.",
+        seconds: 12,
+      },
+      {
+        src: "frames/demo-13-results.png",
+        badge: "5 / 25 · Must-win",
+        kicker: "Must-win · 1:00",
+        title: "Results and progress online",
+        voice: "Published marks in the learner and parent portals during the term — not only when a paper report is handed over.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-12-assignment.png",
+        badge: "6 / 25 · Must-win",
+        kicker: "Must-win · 1:14",
+        title: "Assignment and homework submission",
+        voice: "Educators issue the work. Students upload and submit. No USB stick. No homework photocopy for every household.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-06-teacher-register.png",
+        badge: "7 / 25 · Must-win",
+        kicker: "Must-win · 1:28",
+        title: "Register and assessment, captured once",
+        voice: "Teachers and lecturers mark attendance and capture assessments once. Report cards come from this. Recapture into a second book stops.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-10-timetable.png",
+        badge: "8 / 25 · Must-win",
+        kicker: "Must-win · 1:42",
+        title: "Class and group timetable",
+        voice: "Live timetable for admin, educators, families and students. One less photocopied grid on the staff-room wall.",
+        seconds: 12,
+      },
+      {
+        src: "frames/demo-14-messages.png",
+        badge: "9 / 25 · Must-win",
+        kicker: "Must-win · 1:54",
+        title: "Smoother communication",
+        voice: "Announcements, an in-system inbox, optional SMS. Families reach educators with a record. Calmer than a public chat group. Not a WhatsApp bot.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-04-collect-print.png",
+        badge: "10 / 25 · Must-win",
+        kicker: "Must-win · 2:08",
+        title: "The institution collects fees at the desk",
+        voice: "Bursars search by admission number, record cash or EFT with proof, unique receipt. The statement of account is the running balance — not a notebook.",
+        seconds: 16,
+      },
+      {
+        src: "frames/demo-20-sms-reminders.png",
+        badge: "11 / 25 · Must-win",
+        kicker: "Must-win · 2:24",
+        title: "Fee payment reminders by SMS and email",
+        voice: "Before due, on due, overdue. SMS and email. Families are reminded to pay at the office before the report is held. Not WhatsApp.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-16-paper-savings.png",
+        badge: "12 / 25 · Must-win",
+        kicker: "Must-win · 2:38",
+        title: "Print on demand. Stop the bulk run.",
+        voice: "Registers, homework, reports, invoices, statements, letters and payslips as PDFs. Print when someone asks. Toner, paper, and a photocopier that no longer runs all week.",
+        seconds: 16,
+      },
+      {
+        src: "frames/demo-18-cloud-hosted.png",
+        badge: "13 / 25 · Must-win",
+        kicker: "Must-win · 2:54",
+        title: "Cloud-based. No server in the cupboard.",
+        voice: "Hosted by Cyber Developers. Log in from campus or home in a browser. You are not buying a PC under the secretary’s desk.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-21-cloud-docs.png",
+        badge: "14 / 25 · Must-win",
+        kicker: "Must-win · 3:08",
+        title: "Documents stay in the hosted system",
+        voice: "Homework, registration files and photos sit with the institution’s SchoolHub tenancy. Hosted cloud storage for school records — not a consumer Drive, not a USB stick.",
+        seconds: 12,
+      },
+      {
+        src: "frames/demo-19-backup.png",
+        badge: "15 / 25 · Must-win",
+        kicker: "Must-win · 3:20",
+        title: "Encrypted backup, on a schedule",
+        voice: "Automatic cloud backups and encrypted .lmsbackup packages. Restore re-asks the user’s password. Credentials stay on the server.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-03-enrol-said.png",
+        badge: "16 / 25 · Enrol",
+        kicker: "Enrol · 3:34",
+        title: "Enrol with SA ID",
+        voice: "Admissions enrols once, with a 13-digit SA ID. Fee office, educators and family portals all use this record.",
+        seconds: 12,
+      },
+      {
+        src: "frames/demo-02-apply-status.png",
+        badge: "17 / 25 · Admissions",
+        kicker: "Admissions · 3:46",
+        title: "Applications with a tracking number",
+        voice: "Online applications issue a reference. Status without a phone call. Filing cabinets you no longer reprint.",
+        seconds: 12,
+      },
+      {
+        src: "frames/demo-25-student-card.png",
+        badge: "18 / 25 · Campus",
+        kicker: "Campus · 3:58",
+        title: "Learner and student identity cards",
+        voice: "Generate a branded identity card PDF from the profile — photo, admission number, barcode. Print when the gate needs one. Not a box of unused PVC in the storeroom.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-26-certificates.png",
+        badge: "19 / 25 · Campus",
+        kicker: "Campus · 4:12",
+        title: "Certificate generation",
+        voice: "Issue completion and other certificates as branded PDFs. Colleges especially need this. Download when the student has cleared fees, if the school holds documents.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-15-payroll.png",
+        badge: "20 / 25 · Campus",
+        kicker: "Campus · 4:26",
+        title: "Staff payroll, digital payslips",
+        voice: "HR drafts, calculates, approves and finalises. Payslips in the portal, not an envelope. Educators see their own payslip only — never the whole payroll file.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-24-leave.png",
+        badge: "21 / 25 · Campus",
+        kicker: "Campus · 4:40",
+        title: "Leave application and approval",
+        voice: "Staff apply for leave in the portal, with sick-note upload where needed. HR approves against policy balances. No paper form walking the corridor.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-23-visitors.png",
+        badge: "22 / 25 · Campus",
+        kicker: "Campus · 4:54",
+        title: "Visitors book",
+        voice: "Reception signs visitors in and out: who, who they are seeing, time. A proper book for the gate — not a carbon pad that goes missing. Biometric hardware is a licensed add-on if they ask later.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-08-sasams.png",
+        badge: "23 / 25 · Trust",
+        kicker: "Trust · 5:08",
+        title: "SA-SAMS import",
+        voice: "Bring learners across from a school-authorised SA-SAMS export. Operational record — not a replacement for DBE filing.",
+        seconds: 12,
+      },
+      {
+        src: "frames/demo-22-more-reasons.png",
+        badge: "24 / 25 · Trust",
+        kicker: "Trust · 5:20",
+        title: "POPIA-minded, roles, load-shedding, groups",
+        voice: "Audit logs. Teachers cannot see payroll. Finance cannot quietly delete a receipt. Licence grace in load-shedding. Super Admin for groups. Attendance drafts autosave.",
+        seconds: 14,
+      },
+      {
+        src: "frames/demo-09-sla.png",
+        badge: "25 / 25 · SLA",
+        kicker: "Cyber Developers · 5:34",
+        title: "Cyber Developers service level agreement",
+        voice: "You are not buying a disc and hoping. Cyber Developers hosts SchoolHub with a written SLA: named support, business-hours response, encrypted backups, licence grace in load-shedding. Start with teaching, family portals and the fee office. Add campus modules when they are ready.",
+        seconds: 16,
+      },
+    ];
+
+    const total = scenes.reduce((s, x) => s + x.seconds, 0);
+    const frame = document.getElementById("frame");
+    const badge = document.getElementById("badge");
+    const kicker = document.getElementById("kicker");
+    const title = document.getElementById("title");
+    const voice = document.getElementById("voice");
+    const play = document.getElementById("play");
+    const fill = document.getElementById("fill");
+    const time = document.getElementById("time");
+    const bar = document.getElementById("bar");
+    const thumbs = document.getElementById("thumbs");
+
+    let index = 0;
+    let elapsed = 0;
+    let timer = null;
+
+    function fmt(s) {
+      const m = Math.floor(s / 60);
+      const r = Math.floor(s % 60);
+      return m + ":" + String(r).padStart(2, "0");
+    }
+
+    function starts() {
+      const out = [];
+      let t = 0;
+      for (const scene of scenes) {
+        out.push(t);
+        t += scene.seconds;
+      }
+      return out;
+    }
+    const startAt = starts();
+
+    function show(i, sceneElapsed) {
+      index = i;
+      const scene = scenes[i];
+      frame.src = scene.src;
+      badge.textContent = scene.badge;
+      kicker.textContent = scene.kicker;
+      title.textContent = scene.title;
+      voice.textContent = scene.voice;
+      [...thumbs.children].forEach((el, n) => el.classList.toggle("active", n === i));
+      elapsed = startAt[i] + (sceneElapsed || 0);
+      fill.style.width = (elapsed / total) * 100 + "%";
+      time.textContent = fmt(elapsed) + " / " + fmt(total);
+    }
+
+    scenes.forEach((scene, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.innerHTML = "<img alt=\"\" src=\"" + scene.src + "\" />" + (i + 1) + ". " + scene.title.split("—")[0].split(",")[0];
+      b.addEventListener("click", () => {
+        stop();
+        show(i, 0);
+      });
+      thumbs.appendChild(b);
+    });
+
+    function tick() {
+      elapsed += 0.2;
+      if (elapsed >= total) {
+        elapsed = total;
+        fill.style.width = "100%";
+        time.textContent = fmt(total) + " / " + fmt(total);
+        stop();
+        play.textContent = "Replay";
+        return;
+      }
+      fill.style.width = (elapsed / total) * 100 + "%";
+      time.textContent = fmt(elapsed) + " / " + fmt(total);
+      let next = 0;
+      for (let i = 0; i < scenes.length; i++) {
+        if (elapsed >= startAt[i]) next = i;
+      }
+      if (next !== index) show(next, elapsed - startAt[next]);
+    }
+
+    function stop() {
+      if (timer) clearInterval(timer);
+      timer = null;
+      play.textContent = elapsed >= total ? "Replay" : "Play";
+    }
+
+    play.addEventListener("click", () => {
+      if (timer) {
+        stop();
+        return;
+      }
+      if (elapsed >= total) {
+        elapsed = 0;
+        show(0, 0);
+      }
+      play.textContent = "Pause";
+      timer = setInterval(tick, 200);
+    });
+
+    bar.addEventListener("click", (e) => {
+      const ratio = e.offsetX / bar.clientWidth;
+      const t = ratio * total;
+      let i = 0;
+      for (let n = 0; n < scenes.length; n++) if (t >= startAt[n]) i = n;
+      show(i, t - startAt[i]);
+    });
+
+    show(0, 0);
+  </script>
+</body>
+</html>

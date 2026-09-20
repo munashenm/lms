@@ -13,11 +13,11 @@ This brief describes **what is in the live product**. It is written for principa
 
 ## 1. One-line pitch
 
-SchoolHub SA is a modern, South African school management system that runs admissions, academics, fees, parents, staff payroll and the school website in one secure platform.
+SchoolHub SA is a South African platform for **schools, colleges, TVETs and training centres**: admissions, teaching, family portals, the fee office and payroll in one login family.
 
 ## 2. Elevator pitch (30 seconds)
 
-Most South African schools still split work across a legacy LMS, Excel fee lists, WhatsApp groups and a separate website. SchoolHub SA replaces that patchwork. Principals get one place to enrol learners, mark attendance, issue report cards, collect fees (including PayFast and Paystack), message parents, run payroll, and publish a public website with online applications. It is built for CAPS schools, TVET colleges and training centres, with POPIA-minded records, ZAR billing, and Johannesburg timezone throughout.
+Most institutions still split work across a legacy LMS, Excel fee lists, paper registers and a report-collection queue. SchoolHub SA replaces that patchwork. Educators capture attendance and assessments once. Learners or students, and parents or sponsors, log in on a phone to see progress, homework, results and reports. The bursar collects cash or EFT at the desk against a real ledger. HR runs payslips in the same system. It is built for CAPS schools and TVET/college language, with POPIA-minded records, ZAR billing, and Johannesburg timezone throughout.
 
 ## 3. Who it is for
 
@@ -35,19 +35,19 @@ Most South African schools still split work across a legacy LMS, Excel fee lists
 
 | Today | With SchoolHub SA |
 |---|---|
-| Fees in a spreadsheet, receipts in a book | Collect desk, invoices, receipts, statements of account, debtors |
-| Parents only hear about results at collection day | Parent portal: fees, attendance, homework, reports, messages |
-| Website is a static brochure | School-branded public site, news, calendar, online applications |
+| Fees in a spreadsheet, receipts in a triplicate book | Collect desk, unique receipts, statements of account, debtors |
+| Families only see results on collection day | Parent/sponsor and learner/student portals: attendance, homework, assessments, reports |
+| Bulk photocopying of reports, registers and homework packs | PDFs on demand — print when someone asks |
 | Teachers mark on paper, then recapture | Live registers, CAPS symbols, homework, report-card PDFs |
 | Payroll in a separate package | Employees, leave, timesheets, payslips in the same system |
-| One shared admin login | Role-based portals (admin, teacher, finance, HR, parent, learner) |
-| PayPal or card processors that do not fit SA parents | **PayFast** and **Paystack** (ZAR), plus cash/EFT with proof of payment |
+| One shared admin login | Role-based portals (admin, teacher/lecturer, finance, HR, parent/sponsor, learner/student) |
+| Lost application forms | Online apply with a public status tracker |
 
 ## 5. Product story (for a homepage)
 
-**Headline:** One system for the South African school — from application to graduation.
+**Headline:** One system for South African schools and colleges — from application to graduation.
 
-**Subhead:** Enrol learners, teach, collect fees, pay staff, and keep parents informed. Built for POPIA, ZAR and the way South African institutions actually work.
+**Subhead:** Families see attendance, assignments and results online. The office collects fees, cuts the photocopy bill, and pays staff. Built for POPIA, ZAR, CAPS and TVET.
 
 **Primary CTA:** Book a demo  
 **Secondary CTA:** See modules
@@ -214,32 +214,66 @@ One tenancy, one backup, one set of roles. Finance cannot see payroll unless the
 ## 12. Website copy snippets (ready to paste)
 
 **Hero**  
-Run your South African school in one system — admissions, teaching, fees and parents.
+Run your South African school or college in one system — teaching, family portals, the fee office and payroll.
 
-**Fees**  
-Collect cash or EFT at the desk, or let parents pay online with PayFast and Paystack. Print the invoice and statement of account before they leave the office.
+**Families**  
+Learners and students, parents and sponsors, log in on a phone. Attendance, assignments, assessments, progress and reports — without a collection-day queue.
 
-**Parents**  
-See attendance, homework, reports and the amount owing. Pay from a phone. Get reminders before fees are overdue — not after the report is withheld.
+**Fee office**  
+Collect cash or EFT at the desk against a real ledger. Unique receipts and a statement of account before the guardian leaves. Fewer disputes than a notebook.
 
-**Teachers**  
-Mark the register, capture assessments, issue homework and download report cards. Your payslip and leave live in the same app.
+**Paper**  
+Registers, homework, report cards, invoices, letters and payslips as PDFs. Print on demand instead of a bulk run for every household.
+
+**Educators**  
+Mark the register, capture assessments, issue homework. Payslip and leave live in the same app — their own record only.
 
 **Trust**  
-POPIA-minded audit logs, SA ID validation, encrypted backups, and licences that still work when the line is down.
+POPIA-minded audit logs, SA ID validation, encrypted backups, written hosting SLA, and licences that still work when the line is down.
 
 ---
 
 ## 13. Demo script (20 minutes)
 
-1. Public site → Apply → show status tracker.  
-2. Admissions → enrol a learner (SA ID).  
-3. Teacher portal → attendance + a mark.  
-4. Finance → collect fees by admission number → print invoice + statement of account.  
-5. Parent portal → outstanding balance and Pay Online (Paystack/PayFast).  
-6. HR → a leave request and a payslip PDF.  
-7. Settings → logo, integrations, backup.  
-8. Super Admin (if selling groups) → modules and licence.
+Ordered by what closes the sale. Campus extras after the office is sold.
+
+1. Say schools **and** colleges; show terminology if a college tenant is available.  
+2. Parent/sponsor or learner/student login → attendance, assignments, results (not Pay Online).  
+3. Teacher/lecturer → register + a mark + timetable.  
+4. Messages / announcement (not WhatsApp).  
+5. Finance → collect by admission number → receipt + statement of account → SMS reminder.  
+6. Paper: open a report PDF and an invoice PDF. “Print when asked.” Backup + cloud.  
+7. Campus (pick what they asked for): student card PDF, certificate PDF, payroll payslip, leave apply/approve, visitors book.  
+8. Trust: SA-SAMS import (schools) + written Cyber Developers SLA. Switch off modules they do not want.
+
+---
+
+## 13a. What helps close (use in proposals)
+
+Ordered by what closes the sale. Lead with family and teaching. Campus extras after the office is sold.
+
+**Must-win**
+- **Family visibility:** attendance, homework, assessments and reports online — the reason SGBs buy, not a new homepage.
+- **One capture:** educators do not recapture marks into Excel.
+- **College-ready language:** student, lecturer, semester, module, sponsor.
+- **Smoother communication:** announcements, in-system inbox, optional SMS — one record, not a public group. Not WhatsApp.
+- **Fee collection at the institution:** search by admission number, cash/EFT with proof, unique receipts, statement of account, debtors. The ledger is the balance.
+- **SMS + email fee reminders** (before due, on due, overdue) so families pay at the office before reports are held. Not WhatsApp.
+- **Paper and staff time:** stop termly bulk report printing, triplicate receipt books, photocopied registers and homework packs. PDFs on demand.
+- **Cloud-hosted:** browser access from campus or home. No school server under the desk.
+- **Hosted document store:** homework, registration files and photos stay on the tenant — not a USB stick. (This is SchoolHub file storage, not a consumer Drive.)
+- **Cloud backups** and encrypted `.lmsbackup` packages; restore re-asks the user’s password.
+
+**Campus operations**
+- **Learner / student identity cards** as branded PDFs from the profile.
+- **Certificates** as branded PDFs (completion and similar), with optional fee hold.
+- **Educator payroll** with digital payslips; teachers never see the full payroll file.
+- **Leave:** staff apply in the portal; HR approves against policy; sick-note upload.
+- **Visitors book:** sign-in / sign-out at reception. Biometrics remain a licensed add-on.
+
+**Migrate / trust**
+- **SA-SAMS import** for schools migrating records (not DBE filing).
+- **Written Cyber Developers SLA** with hosting: named support, business-hours response, encrypted backups, load-shedding licence grace.
 
 ---
 

@@ -7,15 +7,15 @@
 
 ## The line
 
-**One system for the South African school — from application to graduation.**
+**One system for South African schools and colleges — from application to graduation.**
 
-Enrol learners, teach, collect fees, pay staff, and keep parents informed. Built for POPIA, ZAR, CAPS/TVET, and the way local institutions actually work.
+Families see attendance, assignments, assessments and reports online. The office collects fees, prints on demand, and pays staff. Built for POPIA, ZAR, CAPS and TVET.
 
 ---
 
 ## Who it is for
 
-Independent and public schools · Combined campuses · Colleges and TVETs · Training centres · Multi-school groups
+Independent and public schools · Combined campuses · Colleges and TVETs · Training centres · Multi-institution groups
 
 ---
 
@@ -23,37 +23,40 @@ Independent and public schools · Combined campuses · Colleges and TVETs · Tra
 
 | Pillar | In the product |
 |---|---|
-| **Admissions** | Public website, online applications, status tracker |
-| **Academics** | Timetable, attendance, CAPS marks, homework, report cards, certificates, online exams |
-| **Family** | Parent and learner portals on mobile browsers — fees, results, messages |
-| **Fees** | Collect desk, invoices, EFT with proof, PayFast & Paystack, statements of account, debtors, reminders |
-| **People** | HR, leave, timesheets, payroll, branded payslips |
-| **Trust** | Roles & permissions, audit log, encrypted backup, SA-SAMS import, licence with offline grace |
+| **Family portals** | Parent/sponsor and learner/student login — attendance, homework, results, reports, messages |
+| **Academics** | Timetable, live registers, CAPS marks, assignments, report cards, certificates |
+| **Admissions** | Online applications, status tracker, SA ID enrolment |
+| **Fee office** | Collect desk, cash/EFT with proof, unique receipts, statements of account, debtors |
+| **Paper** | PDFs on demand — reports, invoices, letters, payslips, registers, learner cards, certificates |
+| **People** | HR, leave, timesheets, payroll, branded payslips (own record only) |
+| **Campus** | Visitors book, learner/student cards, certificate generation |
+| **Trust** | Cloud-hosted, encrypted backup, SA-SAMS import, SMS reminders, written Cyber Developers SLA |
 
 ---
 
-## Why schools switch
+## Why institutions switch
 
-- Stop running the office on Excel, WhatsApp and a separate website.
-- Parents pay online the South African way (PayFast / Paystack), or EFT with a unique reference.
-- Print the **invoice** and **statement of account** at the desk, before the parent leaves.
-- Teachers never see payroll; finance never “fixes” a receipt by deleting it.
-- One login family: admin, teacher, finance, HR, parent, learner.
+- Stop the collection-day queue: progress and reports are in the portal.
+- Educators capture once; no second spreadsheet.
+- Bursar collects against a ledger, not a notebook.
+- Photocopier runs drop: print when someone asks.
+- One product that already speaks college (student, lecturer, semester, module).
 
 ---
 
 ## Suggested packages
 
-**Core Campus** — records, teaching, website, reports  
-**Core + Fees** — add the fee office and online pay  
-**Professional** — add parent/learner portals, SMS, HR & payroll  
-**Group** — multi-institution Super Admin and licence control
+**Core Campus** — records, teaching, reports, backup  
+**Core + Family** — add parent/learner (or sponsor/student) portals  
+**Core + Fees** — add the collect desk, receipts and statements  
+**Professional** — Family + Fees + HR/payroll + messaging  
+**College / Group** — college language, multi-institution Super Admin
 
 ---
 
 ## Demo in 20 minutes
 
-Public apply → enrol with SA ID → mark a register → collect a fee and print the statement → parent Pay Online → staff payslip.
+Family + student login (attendance, assignments, results) → educator register + mark → collect a fee and show the statement → SMS reminder → print on demand → student card → certificate → payroll / leave → visitors book → SLA.
 
 ---
 
