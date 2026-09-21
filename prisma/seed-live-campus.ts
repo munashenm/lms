@@ -149,11 +149,13 @@ async function main() {
     ];
   }
 
+  const schoolId = school.id;
+  const gradeId = grade.id;
   async function ensureSubject(code: string, name: string) {
     return (
-      (await prisma.subject.findFirst({ where: { schoolId: school.id, code } })) ??
+      (await prisma.subject.findFirst({ where: { schoolId, code } })) ??
       prisma.subject.create({
-        data: { schoolId: school.id, gradeId: grade.id, code, name, credits: 10 },
+        data: { schoolId, gradeId, code, name, credits: 10 },
       })
     );
   }
