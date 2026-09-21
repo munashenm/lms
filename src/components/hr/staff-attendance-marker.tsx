@@ -28,6 +28,7 @@ interface StaffRow {
 
 interface StaffAttendanceMarkerProps {
   date: string;
+  schoolId?: string;
   staff: StaffRow[];
   existingRecords?: {
     userId: string;
@@ -54,6 +55,7 @@ function roleLabel(role: string): string {
 
 export function StaffAttendanceMarker({
   date,
+  schoolId,
   staff,
   existingRecords = [],
 }: StaffAttendanceMarkerProps) {
@@ -102,6 +104,7 @@ export function StaffAttendanceMarker({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           date,
+          schoolId,
           records: staff.map((s) => ({
             userId: s.id,
             status: statuses[s.id],

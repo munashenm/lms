@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -5,6 +6,8 @@ import { StaffAttendanceMarker } from "@/components/hr/staff-attendance-marker";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { canAccessSchool } from "@/lib/rbac";
+import { needsSuperAdminSchoolPicker, resolveLicenseSchoolId } from "@/lib/licensing/enforce";
 import {
   canMarkStaffAttendance,
   getApprovedLeaveUserIds,
@@ -12,16 +15,59 @@ import {
 } from "@/lib/staff-attendance";
 
 interface PageProps {
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; schoolId?: string }>;
 }
 
 export default async function StaffAttendancePage({ searchParams }: PageProps) {
   const session = await getSession();
-  if (!session?.schoolId || !canMarkStaffAttendance(session.role)) {
+  if (!session || !canMarkStaffAttendance(session.role)) {
     redirect("/admin/dashboard");
   }
 
   const params = await searchParams;
+  if (needsSuperAdminSchoolPicker(session, params.schoolId)) {
+    const schools = await prisma.school.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    });
+    const dateQuery = params.date ? `&date=${encodeURIComponent(params.date)}` : "";
+    if (schools.length === 1) {
+      redirect(`/admin/staff-attendance?schoolId=${schools[0].id}${dateQuery}`);
+    }
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Staff Attendance</h1>
+          <p className="text-muted text-sm mt-1">Select a school to mark the staff register.</p>
+        </div>
+        <Card>
+          <CardContent className="p-0 divide-y divide-border">
+            {schools.length === 0 ? (
+              <p className="px-4 py-6 text-sm text-muted">No schools found.</p>
+            ) : (
+              schools.map((school) => (
+                <div key={school.id} className="px-4 py-3 flex items-center justify-between text-sm">
+                  <p className="font-medium">{school.name}</p>
+                  <Link
+                    href={`/admin/staff-attendance?schoolId=${school.id}${dateQuery}`}
+                    className="text-primary text-xs font-medium hover:underline"
+                  >
+                    Open register
+                  </Link>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const schoolId = await resolveLicenseSchoolId(session, params.schoolId);
+  if (!schoolId || !canAccessSchool(session, schoolId)) {
+    redirect("/admin/dashboard");
+  }
   const today = new Date().toISOString().split("T")[0];
   const date = params.date ?? today;
   const attendanceDate = new Date(date);
@@ -29,13 +75,13 @@ export default async function StaffAttendancePage({ searchParams }: PageProps) {
 
   const [staffMembers, existingRecords, onLeaveIds, recentRecords] =
     await Promise.all([
-      getStaffMembersForSchool(session.schoolId),
+      getStaffMembersForSchool(schoolId),
       prisma.staffAttendanceRecord.findMany({
-        where: { schoolId: session.schoolId, date: attendanceDate },
+        where: { schoolId, date: attendanceDate },
       }),
-      getApprovedLeaveUserIds(session.schoolId, attendanceDate),
+      getApprovedLeaveUserIds(schoolId, attendanceDate),
       prisma.staffAttendanceRecord.findMany({
-        where: { schoolId: session.schoolId },
+        where: { schoolId },
         include: {
           user: { select: { firstName: true, lastName: true, role: true } },
         },
@@ -65,6 +111,7 @@ export default async function StaffAttendancePage({ searchParams }: PageProps) {
       </div>
 
       <form method="GET" className="flex gap-2 items-end">
+        {!session.schoolId ? <input type="hidden" name="schoolId" value={schoolId} /> : null}
         <div>
           <label className="text-sm font-medium">Date</label>
           <input
@@ -85,6 +132,7 @@ export default async function StaffAttendancePage({ searchParams }: PageProps) {
       {staff.length > 0 ? (
         <StaffAttendanceMarker
           date={date}
+          schoolId={session.schoolId ? undefined : schoolId}
           staff={staff}
           existingRecords={existingRecords.map((r) => ({
             userId: r.userId,

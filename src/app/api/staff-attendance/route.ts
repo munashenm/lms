@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { requirePermission, getSchoolFilter } from "@/lib/rbac";
+import { requirePermission, getSchoolFilter, canAccessSchool } from "@/lib/rbac";
 import {
   staffAttendanceBulkSchema,
   staffAttendanceSelfSchema,
@@ -14,7 +14,7 @@ import {
   getApprovedLeaveUserIds,
   resolveEmployeeIdForUser,
 } from "@/lib/staff-attendance";
-import { requireLicenseWrite } from "@/lib/licensing/enforce";
+import { requireLicenseWrite, resolveLicenseSchoolId } from "@/lib/licensing/enforce";
 import { assertUsersInSchool } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
@@ -66,19 +66,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session?.schoolId) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+  if (!session) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-
-  const denied = await requireLicenseWrite(session.schoolId, { feature: "attendance" });
-  if (denied) return denied;
 
   const body = await request.json();
 
   if (body.self === true) {
-    if (!canSelfCheckIn(session)) {
+    if (!session.schoolId || !canSelfCheckIn(session)) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
     }
+    const denied = await requireLicenseWrite(session.schoolId, { feature: "attendance" });
+    if (denied) return denied;
 
     const parsed = staffAttendanceSelfSchema.safeParse(body);
     if (!parsed.success) {
@@ -139,6 +138,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
+  const schoolId = await resolveLicenseSchoolId(session, body.schoolId);
+  if (!schoolId || !canAccessSchool(session, schoolId)) {
+    return NextResponse.json({ message: "Select a school before marking staff attendance." }, { status: 400 });
+  }
+  const denied = await requireLicenseWrite(schoolId, { feature: "attendance" });
+  if (denied) return denied;
+
   const parsed = staffAttendanceBulkSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
@@ -148,12 +154,12 @@ export async function POST(request: NextRequest) {
   const attendanceDate = new Date(date);
   attendanceDate.setHours(0, 0, 0, 0);
   const memberIds = records.map((record) => record.userId);
-  if (!(await assertUsersInSchool(memberIds, session.schoolId))) {
+  if (!(await assertUsersInSchool(memberIds, schoolId))) {
     return NextResponse.json({ message: "Staff member is not in this institution" }, { status: 400 });
   }
-  const onLeaveIds = await getApprovedLeaveUserIds(session.schoolId, attendanceDate);
+  const onLeaveIds = await getApprovedLeaveUserIds(schoolId, attendanceDate);
   const employees = await prisma.employee.findMany({
-    where: { schoolId: session.schoolId, userId: { in: records.map((r) => r.userId) } },
+    where: { schoolId, userId: { in: records.map((r) => r.userId) } },
     select: { id: true, userId: true },
   });
   const employeeByUser = new Map(employees.map((e) => [e.userId, e.id]));
@@ -171,7 +177,7 @@ export async function POST(request: NextRequest) {
           userId_date: { userId: record.userId, date: attendanceDate },
         },
         create: {
-          schoolId: session.schoolId!,
+          schoolId,
           userId: record.userId,
           employeeId,
           date: attendanceDate,
@@ -194,7 +200,7 @@ export async function POST(request: NextRequest) {
   );
 
   await logAudit({
-    schoolId: session.schoolId,
+    schoolId,
     userId: session.userId,
     action: "BULK_UPDATE",
     entity: "StaffAttendanceRecord",
