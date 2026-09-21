@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { canAccessSchool } from "@/lib/rbac";
@@ -8,20 +7,16 @@ import { schoolModulesSchema } from "@/lib/validators";
 import { isSystemModuleKey, SYSTEM_MODULE_LABELS, SYSTEM_MODULES } from "@/lib/modules";
 import { logAudit } from "@/lib/audit";
 import { requestMeta } from "@/lib/request-meta";
-import { requireSchoolId } from "@/lib/portal-data";
+import { resolveLicenseSchoolId } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
   const denied = await denyUnless(session, "settings.manage");
   if (denied) return denied;
 
-  const requestedSchool = request.nextUrl.searchParams.get("schoolId");
-  const schoolId =
-    session!.role === UserRole.SUPER_ADMIN && requestedSchool
-      ? requestedSchool
-      : await requireSchoolId(session!);
-  if (!canAccessSchool(session!, schoolId)) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
+  const schoolId = await resolveLicenseSchoolId(session!, request.nextUrl.searchParams.get("schoolId"));
+  if (!schoolId || !canAccessSchool(session!, schoolId)) {
+    return NextResponse.json({ message: "Select a school before managing modules." }, { status: 400 });
   }
 
   const rows = await prisma.schoolModule.findMany({ where: { schoolId } });
@@ -45,25 +40,26 @@ export async function PUT(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
-  if (!canAccessSchool(session!, parsed.data.schoolId)) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
+  const schoolId = await resolveLicenseSchoolId(session!, parsed.data.schoolId);
+  if (!schoolId || !canAccessSchool(session!, schoolId)) {
+    return NextResponse.json({ message: "Select a school before managing modules." }, { status: 400 });
   }
 
   for (const item of parsed.data.modules) {
     if (!isSystemModuleKey(item.moduleKey)) continue;
     await prisma.schoolModule.upsert({
-      where: { schoolId_moduleKey: { schoolId: parsed.data.schoolId, moduleKey: item.moduleKey } },
+      where: { schoolId_moduleKey: { schoolId, moduleKey: item.moduleKey } },
       update: { enabled: item.enabled },
-      create: { schoolId: parsed.data.schoolId, moduleKey: item.moduleKey, enabled: item.enabled },
+      create: { schoolId, moduleKey: item.moduleKey, enabled: item.enabled },
     });
   }
 
   await logAudit({
-    schoolId: parsed.data.schoolId,
+    schoolId,
     userId: session!.userId,
     action: "MODULES_UPDATE",
     entity: "School",
-    entityId: parsed.data.schoolId,
+    entityId: schoolId,
     metadata: { modules: parsed.data.modules },
     ...requestMeta(request),
   });
