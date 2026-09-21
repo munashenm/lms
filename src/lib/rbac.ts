@@ -75,7 +75,6 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   TEACHER: [
     "students:read", "classes:read", "attendance:read", "attendance:write",
     "marks:read", "marks:write", "announcements:write",
-    "visitors:read", "visitors:write", "visitors.create", "visitors.checkout",
     "messaging.view", "messaging.send",
     ...HOMEWORK_ALL,
   ],

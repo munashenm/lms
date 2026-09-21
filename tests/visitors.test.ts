@@ -29,10 +29,14 @@ describe("visitor book access", () => {
     };
   }
 
-  it("lets office and teaching staff use the register, not learners or parents", () => {
+  it("lets reception and security use the register, not lecturers, learners or parents", () => {
     expect(canViewVisitorBook(session(UserRole.SCHOOL_ADMIN))).toBe(true);
     expect(canWriteVisitorBook(session(UserRole.STAFF))).toBe(true);
-    expect(canWriteVisitorBook(session(UserRole.TEACHER))).toBe(true);
+    expect(canViewVisitorBook(session(UserRole.TEACHER))).toBe(false);
+    expect(canWriteVisitorBook(session(UserRole.TEACHER))).toBe(false);
+    expect(
+      canWriteVisitorBook(session(UserRole.TEACHER, { permissionGrants: ["visitors:write"] }))
+    ).toBe(true);
     expect(canViewVisitorBook(session(UserRole.STUDENT))).toBe(false);
     expect(canWriteVisitorBook(session(UserRole.PARENT))).toBe(false);
     expect(hasPermission(UserRole.STUDENT, "visitors:read")).toBe(false);
@@ -54,9 +58,9 @@ describe("visitor book access", () => {
     expect(navHrefFeature("/staff/leave")).toBe("hr_payroll");
   });
 
-  it("shows Visitor Book on admin and educator nav", () => {
+  it("shows Visitor Book on admin nav and keeps it off the lecturer menu", () => {
     expect(getAdminNav().some((item) => item.href === "/admin/visitors")).toBe(true);
-    expect(getTeacherNav().some((item) => item.href === "/teacher/visitors")).toBe(true);
+    expect(getTeacherNav().some((item) => item.href === "/teacher/visitors")).toBe(false);
   });
 
   it("is included in the default licence now that the register exists", () => {

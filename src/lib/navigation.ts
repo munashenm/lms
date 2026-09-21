@@ -280,7 +280,6 @@ export function getTeacherNav(terms?: Terminology): NavItem[] {
       ]),
       ...cluster("Campus", [
         { label: `${t.student} Leave`, href: "/teacher/learner-leave", icon: "Palmtree" },
-        { label: "Visitor Book", href: "/teacher/visitors", icon: "NotebookPen" },
         { label: "Messages", href: "/teacher/messages", icon: "MessageSquare" },
         { label: "Announcements", href: "/teacher/announcements", icon: "Megaphone" },
       ]),

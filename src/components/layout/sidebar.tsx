@@ -132,16 +132,15 @@ export function Sidebar({
     return items.some((item) => isNavHrefActive(pathname, item.href, allHrefs));
   }
 
-  function isSectionOpen(section: string, items: NavItem[]) {
+  function isSectionOpen(section: string) {
     if (section in manualOpen) return manualOpen[section];
-    if (section === "Human Resource" || section === "Students") return true;
-    return groupContainsActive(items);
+    return true;
   }
 
-  function toggleSection(section: string, items: NavItem[]) {
+  function toggleSection(section: string) {
     setManualOpen((current) => ({
       ...current,
-      [section]: !isSectionOpen(section, items),
+      [section]: !isSectionOpen(section),
     }));
   }
 
@@ -202,13 +201,13 @@ export function Sidebar({
               );
             }
 
-            const expanded = isSectionOpen(group.section, group.items);
+            const expanded = isSectionOpen(group.section);
             const active = groupContainsActive(group.items);
             const accordion = (
               <div className="space-y-0.5">
                 <button
                   type="button"
-                  onClick={() => toggleSection(group.section!, group.items)}
+                  onClick={() => toggleSection(group.section!)}
                   className={cn(
                     "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     active ? "text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
