@@ -3,7 +3,7 @@ import { getStudentForSession } from "@/lib/portal-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { LearnerProfileForm } from "@/components/learner/profile-form";
+import { ChangePasswordForm } from "@/components/auth/change-password-form";
 import { StudentCardButton } from "@/components/students/student-card-button";
 import { StudentBarcode } from "@/components/learner/student-barcode";
 import { formatDate, getInitials } from "@/lib/utils";
@@ -55,20 +55,17 @@ export default async function StudentProfilePage() {
             <div><dt className="text-muted">Gender</dt><dd>{student.gender ?? "—"}</dd></div>
             <div><dt className="text-muted">ID / passport</dt><dd>{maskIdentityNumber(student.saIdNumber) ?? "—"}</dd></div>
             <div><dt className="text-muted">Status</dt><dd><Badge>{student.status}</Badge></dd></div>
+            <div><dt className="text-muted">Email</dt><dd>{student.email ?? student.user?.email ?? "—"}</dd></div>
+            <div><dt className="text-muted">Phone</dt><dd>{student.phone ?? "—"}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-muted">Address</dt><dd>{[student.address, student.city, student.province, student.postalCode].filter(Boolean).join(", ") || "—"}</dd></div>
           </dl>
-          <LearnerProfileForm
-            email={student.email ?? student.user?.email ?? ""}
-            phone={student.phone ?? ""}
-            address={student.address ?? ""}
-            city={student.city ?? ""}
-            province={student.province ?? ""}
-            postalCode={student.postalCode ?? ""}
-          />
           <p className="text-xs text-muted">
-            Name, {terms.admissionNumber.toLowerCase()}, {terms.grade.toLowerCase()} and identity details can only be changed by the school office.
+            Only your password can be changed here. Name, contact details, {terms.admissionNumber.toLowerCase()} and {terms.grade.toLowerCase()} are updated by the school office.
           </p>
         </CardContent>
       </Card>
+
+      <ChangePasswordForm />
 
       <Card>
         <CardHeader>

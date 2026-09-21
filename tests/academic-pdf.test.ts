@@ -6,7 +6,8 @@ import {
   readPublicPdf,
 } from "@/lib/pdf-response";
 import { parseAcademicPdfSnapshot, pdfBytesFromSnapshot } from "@/lib/academic-pdf";
-import { reportCardBatchSkipReason, subjectRowsFromMarks } from "@/lib/issue-report-card";
+import { issuedReportCardPdfData, reportCardBatchSkipReason, subjectRowsFromMarks } from "@/lib/issue-report-card";
+import { generateReportCardPdf } from "@/lib/pdf-report-card";
 import { reportCardBatchSchema } from "@/lib/validators";
 import { SCHEMA_VERSION } from "@/lib/backup/snapshot";
 
@@ -86,6 +87,30 @@ describe("academic PDF snapshots", () => {
     });
     expect(snapshot?.kind).toBe("letter");
     const bytes = await pdfBytesFromSnapshot(snapshot!);
+    expect(Buffer.from(bytes).subarray(0, 4).toString()).toBe("%PDF");
+  });
+
+  it("rebuilds a report PDF from a subject list that has no file", async () => {
+    const data = issuedReportCardPdfData({
+      brand: { name: "Cyber Developers College", address: "12 Main Road", city: "Johannesburg", phone: "011 000 0000" },
+      studentName: "Karabo Mokoena",
+      studentNumber: "STU-LIVE-001",
+      grade: "NC(V) L2",
+      className: "Programming A",
+      academicYear: "2026",
+      term: "Semester 1",
+      overallAverage: 68,
+      comments: "A steady semester.",
+      snapshot: {
+        subjects: [
+          { name: "Mathematics", score: 72 },
+          { name: "Programming", score: 81 },
+        ],
+      },
+      marks: [],
+    });
+    expect(data.subjects[0]).toMatchObject({ name: "Mathematics", percentage: 72, symbol: "6" });
+    const bytes = await generateReportCardPdf(data);
     expect(Buffer.from(bytes).subarray(0, 4).toString()).toBe("%PDF");
   });
 

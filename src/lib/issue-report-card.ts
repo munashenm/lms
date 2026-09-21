@@ -20,9 +20,83 @@ export type ReportCardMark = {
     title: string;
     maxMarks: unknown;
     weight?: unknown | null;
+    termId?: string | null;
     subject?: { name: string } | null;
   };
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+/** Subjects stored on older cards that were never rendered to a PDF snapshot. */
+export function subjectsFromIssuedSnapshot(snapshot: unknown): ReportCardSubject[] | null {
+  if (!isRecord(snapshot) || !Array.isArray(snapshot.subjects)) return null;
+  const subjects: ReportCardSubject[] = [];
+  for (const row of snapshot.subjects) {
+    if (!isRecord(row) || typeof row.name !== "string" || !row.name.trim()) continue;
+    const score = Number(row.score);
+    if (!Number.isFinite(score)) continue;
+    const maxMarks = Number(row.maxMarks);
+    const safeMax = Number.isFinite(maxMarks) && maxMarks > 0 ? maxMarks : 100;
+    const percentageValue = Number(row.percentage);
+    const percentage = Number.isFinite(percentageValue)
+      ? percentageValue
+      : calculatePercentage(score, safeMax);
+    const symbol =
+      typeof row.symbol === "string" && row.symbol.trim()
+        ? row.symbol
+        : percentageToSymbol(percentage);
+    subjects.push({ name: row.name.trim(), score, maxMarks: safeMax, percentage, symbol });
+  }
+  return subjects.length > 0 ? subjects : null;
+}
+
+export function issuedReportCardPdfData(opts: {
+  brand: ReportCardData["brand"];
+  studentName: string;
+  studentNumber: string;
+  studentNumberLabel?: string;
+  learnerLabel?: string;
+  grade: string;
+  className: string;
+  academicYear: string;
+  term: string;
+  overallAverage: number | null;
+  comments?: string | null;
+  snapshot: unknown;
+  marks: ReportCardMark[];
+  termId?: string | null;
+}): ReportCardData {
+  const nested = isRecord(opts.snapshot) ? opts.snapshot.data : null;
+  const fromSnapshot =
+    subjectsFromIssuedSnapshot(opts.snapshot) ?? subjectsFromIssuedSnapshot(nested);
+  const scopedMarks = opts.termId
+    ? opts.marks.filter((mark) => !mark.assessment.termId || mark.assessment.termId === opts.termId)
+    : opts.marks;
+  const fromMarks = scopedMarks.length > 0 ? subjectRowsFromMarks(scopedMarks) : null;
+  const subjects = fromSnapshot ?? fromMarks?.subjects ?? [];
+  const overallAverage =
+    opts.overallAverage != null && Number.isFinite(opts.overallAverage)
+      ? opts.overallAverage
+      : (fromMarks?.overallAverage ?? 0);
+
+  return {
+    brand: opts.brand,
+    studentName: opts.studentName,
+    studentNumber: opts.studentNumber,
+    studentNumberLabel: opts.studentNumberLabel,
+    learnerLabel: opts.learnerLabel,
+    grade: opts.grade,
+    className: opts.className,
+    academicYear: opts.academicYear,
+    term: opts.term,
+    subjects,
+    overallAverage,
+    overallSymbol: fromMarks && !fromSnapshot ? fromMarks.overallSymbol : percentageToSymbol(overallAverage),
+    comments: opts.comments ?? undefined,
+  };
+}
 
 export function subjectRowsFromMarks(marks: ReportCardMark[]): {
   subjects: ReportCardSubject[];

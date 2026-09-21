@@ -90,7 +90,7 @@ export async function generateStudentCardPdf(
   });
 
   const photo = await embedPhoto(doc, data.photoUrl);
-  const photoBox = { x: 28, y: 78, w: 90, h: 110 };
+  const photoBox = { x: 28, y: 128, w: 90, h: 100 };
   page.drawRectangle({
     x: photoBox.x,
     y: photoBox.y,
@@ -185,20 +185,22 @@ export async function generateStudentCardPdf(
     });
   }
 
-  drawCode39Barcode(page, {
-    value: data.studentNumber,
-    x: 28,
-    y: 44,
-    width: width - 56,
-    height: 26,
-  });
-
-  drawBrandedFooter({
+  const footerTop = drawBrandedFooter({
     page,
     brand,
     font,
-    y: 22,
+    y: 20,
     color: rgb(0.4, 0.42, 0.48),
+  });
+
+  const barcodeHeight = 28;
+  const barcodeY = footerTop + 10;
+  drawCode39Barcode(page, {
+    value: data.studentNumber,
+    x: 28,
+    y: barcodeY,
+    width: width - 56,
+    height: barcodeHeight,
   });
 
   return doc.save();

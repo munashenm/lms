@@ -893,15 +893,6 @@ export const rolloverCommitSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 export type StudentInput = z.infer<typeof studentSchema>;
 
-export const learnerProfilePatchSchema = z.object({
-  email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().optional().nullable(),
-  address: z.string().optional().nullable(),
-  city: z.string().optional().nullable(),
-  province: z.string().optional().nullable(),
-  postalCode: z.string().optional().nullable(),
-});
-
 export const studentAbsenceSchema = z.object({
   type: z.enum(["SICK", "FAMILY", "PERSONAL", "SCHOOL_ACTIVITY", "OTHER"]),
   fromDate: z.string().min(1),
