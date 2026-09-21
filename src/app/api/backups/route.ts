@@ -6,6 +6,11 @@ import { BackupScheduleFrequency, BackupType } from "@prisma/client";
 import { resolveLicenseSchoolId } from "@/lib/licensing/enforce";
 import { ensureDefaultSchedules, nextRunAt } from "@/lib/backup/schedule";
 import { runBackupJob } from "@/lib/backup/engine";
+import { backupConfigurationError } from "@/lib/backup/crypto";
+
+function missingSchoolResponse() {
+  return NextResponse.json({ message: "Select a school before managing backups." }, { status: 400 });
+}
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -13,7 +18,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const schoolId = await resolveLicenseSchoolId(session!, request.nextUrl.searchParams.get("schoolId"));
-  if (!schoolId || !canAccessSchool(session!, schoolId)) {
+  if (!schoolId) return missingSchoolResponse();
+  if (!canAccessSchool(session!, schoolId)) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
   await ensureDefaultSchedules(schoolId);
@@ -51,6 +57,7 @@ export async function GET(request: NextRequest) {
       oldestRestorePoint: oldest?.completedAt ?? null,
       latestRestorePoint: latest?.completedAt ?? null,
       status: overdue ? "overdue" : lastSuccessful ? "healthy" : "missing",
+      configurationError: backupConfigurationError(),
     },
     schedules,
     jobs: jobs.map((j) => ({
@@ -68,7 +75,8 @@ export async function POST(request: NextRequest) {
   }
   const body = (await request.json()) as { schoolId?: string; type?: "CLOUD_MANUAL" | "OFFLINE" };
   const schoolId = await resolveLicenseSchoolId(session!, body.schoolId);
-  if (!schoolId || !canAccessSchool(session!, schoolId)) {
+  if (!schoolId) return missingSchoolResponse();
+  if (!canAccessSchool(session!, schoolId)) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
   const type = body.type === "OFFLINE" ? BackupType.OFFLINE : BackupType.CLOUD_MANUAL;
@@ -99,7 +107,8 @@ export async function PATCH(request: NextRequest) {
     retainCount?: number;
   };
   const schoolId = await resolveLicenseSchoolId(session!, body.schoolId);
-  if (!schoolId || !canAccessSchool(session!, schoolId)) {
+  if (!schoolId) return missingSchoolResponse();
+  if (!canAccessSchool(session!, schoolId)) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
   await ensureDefaultSchedules(schoolId);

@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { packBackup, unpackBackup, verifyBackupIntegrity } from "@/lib/backup/package";
-import { deriveBackupKey } from "@/lib/backup/crypto";
+import { backupConfigurationError, deriveBackupKey } from "@/lib/backup/crypto";
 import { checkBackupCompatibility, assertBackupBelongsToSchool } from "@/lib/backup/compatibility";
 import { BACKUP_COMPATIBILITY_VERSION, BACKUP_FORMAT_VERSION } from "@/lib/backup/types";
 
@@ -21,6 +21,10 @@ function sampleManifest() {
     type: "OFFLINE" as const,
   };
 }
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("backup packages", () => {
   it("creates an encrypted package and restores the payload", () => {
@@ -81,6 +85,14 @@ describe("backup packages", () => {
   it("rejects restore paths that escape the uploads directory", async () => {
     const { resolveSafeUploadRestoreDest } = await import("@/lib/upload-restore-path");
     expect(resolveSafeUploadRestoreDest("uploads/../../etc/passwd")).toBeNull();
+  });
+
+  it("reports a missing encryption key before a backup job starts", () => {
+    vi.stubEnv("BACKUP_ENCRYPTION_KEY", "");
+    vi.stubEnv("BACKUP_STORAGE_PROVIDER", "local");
+    expect(backupConfigurationError()).toBe("BACKUP_ENCRYPTION_KEY is not configured");
+    vi.stubEnv("BACKUP_ENCRYPTION_KEY", "test-backup-secret");
+    expect(backupConfigurationError()).toBeNull();
   });
 
   it("rejects restoring Institution A backup into Institution B", () => {

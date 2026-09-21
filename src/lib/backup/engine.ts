@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { notifySchoolRoles } from "@/lib/notifications";
 import { BACKUP_COMPATIBILITY_VERSION, BACKUP_EXTENSION, BACKUP_FORMAT_VERSION } from "./types";
-import { getBackupEncryptionKey } from "./crypto";
+import { backupConfigurationError, getBackupEncryptionKey } from "./crypto";
 import { packBackup, unpackBackup, verifyBackupIntegrity } from "./package";
 import { APP_VERSION, SCHEMA_VERSION, buildSchoolSnapshot, snapshotCounts } from "./snapshot";
 import { getBackupStorage } from "./storage";
@@ -25,6 +25,9 @@ export async function runBackupJob(opts: {
   type: BackupType;
   createdById?: string | null;
 }): Promise<{ jobId: string; status: BackupJobStatus; filename: string }> {
+  const configError = backupConfigurationError();
+  if (configError) throw new Error(configError);
+
   const school = await prisma.school.findUnique({ where: { id: opts.schoolId } });
   if (!school) throw new Error("School not found");
 
@@ -91,12 +94,16 @@ export async function runBackupJob(opts: {
       metadata: { type: opts.type, size: pkg.length, files: counts.fileCount },
     });
 
-    await notifyBackup(
-      opts.schoolId,
-      "Backup succeeded",
-      `A ${opts.type.replaceAll("_", " ").toLowerCase()} backup completed successfully.`,
-      "SUCCESS"
-    );
+    try {
+      await notifyBackup(
+        opts.schoolId,
+        "Backup succeeded",
+        `A ${opts.type.replaceAll("_", " ").toLowerCase()} backup completed successfully.`,
+        "SUCCESS"
+      );
+    } catch (notifyError) {
+      console.error("Backup success notification failed:", notifyError);
+    }
 
     return { jobId: job.id, status: BackupJobStatus.SUCCEEDED, filename };
   } catch (error) {
@@ -117,7 +124,11 @@ export async function runBackupJob(opts: {
       entityId: job.id,
       metadata: { result: "FAILED" },
     });
-    await notifyBackup(opts.schoolId, "Backup failed", "A backup job failed. Check Backup & Restore for details.", "WARNING");
+    try {
+      await notifyBackup(opts.schoolId, "Backup failed", "A backup job failed. Check Backup & Restore for details.", "WARNING");
+    } catch (notifyError) {
+      console.error("Backup failure notification failed:", notifyError);
+    }
     throw error;
   }
 }

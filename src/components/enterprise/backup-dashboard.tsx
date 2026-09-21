@@ -16,6 +16,7 @@ type BackupJob = {
   createdAt: string;
   applicationVersion: string;
   filename: string | null;
+  errorMessage: string | null;
   createdBy: { firstName: string; lastName: string } | null;
 };
 
@@ -28,6 +29,7 @@ type Health = {
   oldestRestorePoint: string | null;
   latestRestorePoint: string | null;
   status: string;
+  configurationError: string | null;
 };
 
 export function BackupDashboard({ schoolId }: { schoolId?: string }) {
@@ -40,8 +42,11 @@ export function BackupDashboard({ schoolId }: { schoolId?: string }) {
   async function load() {
     const qs = schoolId ? `?schoolId=${schoolId}` : "";
     const res = await fetch(`/api/backups${qs}`);
-    if (!res.ok) return;
-    const json = await res.json();
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(json.message ?? "Could not load backups");
+      return;
+    }
     setHealth(json.health);
     setJobs(json.jobs);
     setSchedules(json.schedules);
@@ -127,11 +132,17 @@ export function BackupDashboard({ schoolId }: { schoolId?: string }) {
         <Stat title="Latest restore point" value={health?.latestRestorePoint ? formatDate(health.latestRestorePoint) : "—"} />
       </div>
 
+      {health?.configurationError ? (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-950">
+          Backups cannot run yet. {health.configurationError}. Set it in the server environment and restart the app.
+        </p>
+      ) : null}
+
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => createBackup("CLOUD_MANUAL")} disabled={Boolean(loading)}>
+        <Button onClick={() => createBackup("CLOUD_MANUAL")} disabled={Boolean(loading) || Boolean(health?.configurationError)}>
           Create cloud backup
         </Button>
-        <Button variant="outline" onClick={() => createBackup("OFFLINE")} disabled={Boolean(loading)}>
+        <Button variant="outline" onClick={() => createBackup("OFFLINE")} disabled={Boolean(loading) || Boolean(health?.configurationError)}>
           Create Offline Backup
         </Button>
         <Button variant="secondary" asChild>
@@ -199,6 +210,9 @@ export function BackupDashboard({ schoolId }: { schoolId?: string }) {
                     <Badge variant={job.status === "FAILED" ? "danger" : job.status === "SUCCEEDED" || job.status === "VERIFIED" ? "success" : "secondary"}>
                       {job.status}
                     </Badge>
+                    {job.status === "FAILED" && job.errorMessage ? (
+                      <p className="mt-1 max-w-xs text-xs text-red-700">{job.errorMessage}</p>
+                    ) : null}
                   </td>
                   <td>{job.applicationVersion}</td>
                   <td className="space-x-2 whitespace-nowrap">

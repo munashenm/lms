@@ -6,6 +6,23 @@ export function deriveBackupKey(secret: string): Buffer {
   return crypto.createHash("sha256").update(secret, "utf8").digest();
 }
 
+export function backupConfigurationError(): string | null {
+  if (!process.env.BACKUP_ENCRYPTION_KEY?.trim()) {
+    return "BACKUP_ENCRYPTION_KEY is not configured";
+  }
+  const provider = (process.env.BACKUP_STORAGE_PROVIDER || "local").toLowerCase();
+  if (provider === "s3") {
+    const ready = Boolean(
+      process.env.BACKUP_S3_ENDPOINT &&
+        process.env.BACKUP_S3_BUCKET &&
+        process.env.BACKUP_S3_ACCESS_KEY_ID &&
+        process.env.BACKUP_S3_SECRET_ACCESS_KEY
+    );
+    if (!ready) return "S3 backup storage is not fully configured";
+  }
+  return null;
+}
+
 export function getBackupEncryptionKey(): Buffer {
   const secret = process.env.BACKUP_ENCRYPTION_KEY;
   if (!secret) {
