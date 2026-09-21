@@ -53,7 +53,13 @@ export default async function StaffLeavePage() {
             ))}
           </CardContent>
         </Card>
-      ) : null}
+      ) : (
+        <p className="text-sm text-muted">
+          {!employee
+            ? "HR has not linked an employee record to this login. You can still apply; remaining days appear once HR links you to a leave policy."
+            : "HR has not assigned leave policies yet. Annual and sick leave need a policy before they can be submitted against a balance."}
+        </p>
+      )}
       <LeaveRequestForm />
       <LeaveReview leaveRequests={leaveRequests} />
     </div>

@@ -115,6 +115,7 @@ export default async function ParentDashboardPage() {
                     href={`/api/me/card?studentId=${sg.student.id}`}
                     studentNumber={sg.student.studentNumber}
                     label={terms.identityCard}
+                    hasPhoto={Boolean(sg.student.photoUrl)}
                   />
                 </div>
               ))

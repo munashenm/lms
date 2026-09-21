@@ -17,8 +17,10 @@ import {
 
 export function VisitorSignInForm({
   campuses,
+  hosts = [],
 }: {
   campuses: Array<{ id: string; name: string }>;
+  hosts?: string[];
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -135,7 +137,20 @@ export function VisitorSignInForm({
             </div>
             <div className="space-y-2">
               <Label>Person / office visiting</Label>
-              <Input name="hostName" required maxLength={200} placeholder="e.g. Grade 4, Finance office" />
+              <Input
+                name="hostName"
+                required
+                maxLength={200}
+                list="visitor-hosts"
+                placeholder="e.g. Grade 4, Finance office"
+              />
+              {hosts.length > 0 ? (
+                <datalist id="visitor-hosts">
+                  {hosts.map((name) => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
+              ) : null}
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

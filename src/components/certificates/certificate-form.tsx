@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,16 @@ interface CertificateFormProps {
 export function CertificateForm({ students, courses, academicYears }: CertificateFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filteredStudents = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter((s) => {
+      const hay = `${s.name} ${s.studentNumber ?? ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [query, students]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -36,9 +46,13 @@ export function CertificateForm({ students, courses, academicYears }: Certificat
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       toast.success("Certificate issued");
+      const pdfId = data.certificate?.id as string | undefined;
+      if (pdfId) {
+        window.open(`/api/certificates/${pdfId}/pdf`, "_blank", "noopener,noreferrer");
+      }
       router.refresh();
-    } catch {
-      toast.error("Failed to issue certificate");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to issue certificate");
     } finally {
       setLoading(false);
     }
@@ -49,14 +63,26 @@ export function CertificateForm({ students, courses, academicYears }: Certificat
       <CardHeader><CardTitle className="text-base">Issue Certificate</CardTitle></CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="certificate-student-search">Find student</Label>
+            <Input
+              id="certificate-student-search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by name or admission number"
+            />
+          </div>
           <div className="space-y-2">
             <Label>Student *</Label>
             <Select name="studentId" required>
               <option value="">Select student...</option>
-              {students.map((s) => (
+              {filteredStudents.map((s) => (
                 <option key={s.id} value={s.id}>{s.name} {s.studentNumber && `(${s.studentNumber})`}</option>
               ))}
             </Select>
+            {query.trim() && filteredStudents.length === 0 ? (
+              <p className="text-xs text-muted">No matching students. Clear the search to see the full list.</p>
+            ) : null}
           </div>
           <div className="space-y-2">
             <Label>Type *</Label>

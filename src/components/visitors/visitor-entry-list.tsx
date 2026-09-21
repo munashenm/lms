@@ -11,34 +11,37 @@ import {
   VISITOR_PURPOSE_LABELS,
   VISITOR_STATUS_LABELS,
   formatVisitorDateTime,
+  visitorBadgeDocument,
   visitorIsOnSite,
   type PublicVisitorEntry,
 } from "@/lib/visitors";
 
-function printBadge(row: PublicVisitorEntry) {
+function printBadge(row: PublicVisitorEntry, schoolName: string) {
   const win = window.open("", "visitor-badge", "width=420,height=520");
-  if (!win) return;
-  win.document.write(`<!doctype html><html><head><title>Visitor badge</title>
-    <style>
-      body { font-family: Arial, sans-serif; padding: 24px; }
-      .badge { border: 2px solid #111; padding: 20px; width: 320px; }
-      h1 { font-size: 18px; margin: 0 0 8px; }
-      p { margin: 4px 0; font-size: 13px; }
-    </style></head><body>
-    <div class="badge">
-      <h1>Visitor pass</h1>
-      <p><strong>${row.firstName} ${row.lastName}</strong></p>
-      <p>Visiting: ${row.hostName}</p>
-      <p>Purpose: ${VISITOR_PURPOSE_LABELS[row.purpose] ?? row.purpose}</p>
-      ${row.badgeNumber ? `<p>Badge: ${row.badgeNumber}</p>` : ""}
-      <p>In: ${formatVisitorDateTime(row.signedInAt)}</p>
-    </div>
-    <script>window.print();</script>
-    </body></html>`);
+  if (!win) {
+    toast.error("Allow pop-ups to print the visitor badge");
+    return;
+  }
+  win.document.write(
+    visitorBadgeDocument({
+      schoolName,
+      visitorName: `${row.firstName} ${row.lastName}`,
+      hostName: row.hostName,
+      purpose: VISITOR_PURPOSE_LABELS[row.purpose] ?? row.purpose,
+      badgeNumber: row.badgeNumber,
+      signedInAt: formatVisitorDateTime(row.signedInAt),
+    })
+  );
   win.document.close();
 }
 
-export function VisitorEntryList({ entries }: { entries: PublicVisitorEntry[] }) {
+export function VisitorEntryList({
+  entries,
+  schoolName = "SchoolHub SA",
+}: {
+  entries: PublicVisitorEntry[];
+  schoolName?: string;
+}) {
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -103,7 +106,6 @@ export function VisitorEntryList({ entries }: { entries: PublicVisitorEntry[] })
                 {onSite ? (
                   <Button
                     size="sm"
-                    variant="outline"
                     disabled={busyId === row.id}
                     onClick={() => run(row.id, "sign_out")}
                   >
@@ -111,7 +113,7 @@ export function VisitorEntryList({ entries }: { entries: PublicVisitorEntry[] })
                     Sign out
                   </Button>
                 ) : null}
-                <Button size="sm" variant="ghost" onClick={() => printBadge(row)}>
+                <Button size="sm" variant="ghost" onClick={() => printBadge(row, schoolName)}>
                   Badge
                 </Button>
               </div>

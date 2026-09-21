@@ -59,6 +59,7 @@ export default async function StudentDashboardPage() {
             href="/api/me/card"
             studentNumber={student.studentNumber}
             label={terms.identityCard}
+            hasPhoto={Boolean(student.photoUrl)}
           />
         ) : null}
       </div>

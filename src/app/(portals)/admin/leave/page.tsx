@@ -9,10 +9,11 @@ export default async function AdminLeavePage() {
 
   const leaveRequests = await prisma.leaveRequest.findMany({
     where: filter,
-    include: {
-      applicant: { select: { firstName: true, lastName: true, role: true, email: true } },
-      teacher: { select: { firstName: true, lastName: true, employeeNumber: true, department: true } },
-    },
+      include: {
+        applicant: { select: { firstName: true, lastName: true, role: true, email: true } },
+        teacher: { select: { firstName: true, lastName: true, employeeNumber: true, department: true } },
+        employee: { select: { firstName: true, lastName: true, employeeNumber: true } },
+      },
     orderBy: { createdAt: "desc" },
   });
 

@@ -11,7 +11,7 @@ export default async function HrLeavePage() {
     include: {
       applicant: { select: { firstName: true, lastName: true, role: true, email: true } },
       teacher: { select: { firstName: true, lastName: true, employeeNumber: true, department: true } },
-      employee: { select: { firstName: true, lastName: true } },
+      employee: { select: { firstName: true, lastName: true, employeeNumber: true } },
     },
     orderBy: { createdAt: "desc" },
   });

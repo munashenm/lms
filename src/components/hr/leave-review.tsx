@@ -27,6 +27,12 @@ interface LeaveTeacher {
   department?: string | null;
 }
 
+interface LeaveEmployee {
+  firstName: string;
+  lastName: string;
+  employeeNumber?: string | null;
+}
+
 interface LeaveRequest {
   id: string;
   type: string;
@@ -40,6 +46,7 @@ interface LeaveRequest {
   sickNoteFilename: string | null;
   applicant: LeaveApplicant;
   teacher: LeaveTeacher | null;
+  employee?: LeaveEmployee | null;
 }
 
 const STATUS_VARIANT: Record<string, "success" | "warning" | "danger" | "secondary" | "default"> = {
@@ -60,8 +67,14 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 function applicantName(req: LeaveRequest) {
+  if (req.employee) return `${req.employee.firstName} ${req.employee.lastName}`;
   if (req.teacher) return `${req.teacher.firstName} ${req.teacher.lastName}`;
   return `${req.applicant.firstName} ${req.applicant.lastName}`;
+}
+
+function evidenceLooksLikeImage(url: string, filename?: string | null) {
+  const src = `${filename ?? ""} ${url}`.toLowerCase();
+  return /\.(png|jpe?g|webp|gif)(\?|$)/.test(src);
 }
 
 export function LeaveReview({ leaveRequests, admin = false }: { leaveRequests: LeaveRequest[]; admin?: boolean }) {
@@ -111,24 +124,36 @@ export function LeaveReview({ leaveRequests, admin = false }: { leaveRequests: L
                     <Badge variant="secondary">{ROLE_LABELS[req.applicant.role]}</Badge>
                   )}
                 </div>
-                {admin && req.teacher?.employeeNumber && (
-                  <p className="text-xs text-muted font-mono mt-1">{req.teacher.employeeNumber}</p>
+                {admin && (req.employee?.employeeNumber || req.teacher?.employeeNumber) && (
+                  <p className="text-xs text-muted font-mono mt-1">
+                    {req.employee?.employeeNumber ?? req.teacher?.employeeNumber}
+                  </p>
                 )}
                 <p className="text-sm text-muted mt-2">
-                  {formatDate(req.startDate)} – {formatDate(req.endDate)} · {Number(req.days)} day(s)
+                  {formatDate(req.startDate)} – {formatDate(req.endDate)} · {Number(req.days)} working day(s)
                 </p>
                 <p className="text-sm mt-1">{req.reason}</p>
                 {req.sickNoteUrl && (
-                  <a
-                    href={req.sickNoteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-2"
-                  >
-                    <FileText className="h-4 w-4" />
-                    {leaveEvidenceLabel(req.type, req.sickNoteFilename)}
-                    <Download className="h-3 w-3" />
-                  </a>
+                  <div className="mt-3 space-y-2">
+                    {evidenceLooksLikeImage(req.sickNoteUrl, req.sickNoteFilename) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={req.sickNoteUrl}
+                        alt={leaveEvidenceLabel(req.type, req.sickNoteFilename)}
+                        className="max-h-48 rounded-md border border-border object-contain bg-background"
+                      />
+                    ) : null}
+                    <a
+                      href={req.sickNoteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                    >
+                      <FileText className="h-4 w-4" />
+                      {leaveEvidenceLabel(req.type, req.sickNoteFilename)}
+                      <Download className="h-3 w-3" />
+                    </a>
+                  </div>
                 )}
               </div>
               {admin && req.status === "PENDING" && (

@@ -106,6 +106,7 @@ export async function getGuardianForSession(session: SessionPayload) {
               lastName: true,
               studentNumber: true,
               status: true,
+              photoUrl: true,
               grade: { select: { name: true } },
               class: { select: { id: true, name: true } },
             },

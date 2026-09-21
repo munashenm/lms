@@ -176,3 +176,53 @@ export function toPublicVisitorEntry(row: {
     expectedDepartureAt: row.expectedDepartureAt ?? null,
   };
 }
+
+export function escapeVisitorHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (ch) => {
+    switch (ch) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      default:
+        return "&#39;";
+    }
+  });
+}
+
+export function visitorBadgeDocument(opts: {
+  schoolName: string;
+  visitorName: string;
+  hostName: string;
+  purpose: string;
+  badgeNumber?: string | null;
+  signedInAt: string;
+}): string {
+  const e = escapeVisitorHtml;
+  const badge = opts.badgeNumber
+    ? `<p>Badge: ${e(opts.badgeNumber)}</p>`
+    : "";
+  return `<!doctype html><html><head><title>Visitor badge</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 24px; color: #122033; }
+      .badge { border: 3px solid #0f2744; padding: 20px; width: 320px; }
+      .school { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #5c6570; margin: 0 0 8px; }
+      h1 { font-size: 18px; margin: 0 0 12px; }
+      p { margin: 4px 0; font-size: 13px; }
+    </style></head><body>
+    <div class="badge">
+      <p class="school">${e(opts.schoolName)}</p>
+      <h1>Visitor pass</h1>
+      <p><strong>${e(opts.visitorName)}</strong></p>
+      <p>Visiting: ${e(opts.hostName)}</p>
+      <p>Purpose: ${e(opts.purpose)}</p>
+      ${badge}
+      <p>In: ${e(opts.signedInAt)}</p>
+    </div>
+    <script>window.print();</script>
+    </body></html>`;
+}

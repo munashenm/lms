@@ -46,6 +46,7 @@ export default async function StudentProfilePage() {
               href="/api/me/card"
               studentNumber={student.studentNumber}
               label={terms.identityCard}
+              hasPhoto={Boolean(student.photoUrl)}
             />
           </div>
           <StudentBarcode value={student.studentNumber} />

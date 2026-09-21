@@ -16,11 +16,7 @@ import {
   assertLeaveBalance,
   unpaidLeaveDoesNotConsume,
 } from "@/lib/leave-entitlement";
-
-function calcLeaveDays(start: Date, end: Date): number {
-  const diff = end.getTime() - start.getTime();
-  return Math.max(1, Math.round(diff / (1000 * 60 * 60 * 24)) + 1);
-}
+import { countLeaveWorkingDays } from "@/lib/leave-days";
 
 const LEAVE_TYPES = new Set<string>(["ANNUAL", "SICK", "FAMILY", "MATERNITY", "STUDY", "UNPAID", "OTHER"]);
 
@@ -114,7 +110,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "End date must be after start date" }, { status: 400 });
   }
 
-  const days = calcLeaveDays(startDate, endDate);
+  const days = countLeaveWorkingDays(startDate, endDate);
   const leaveType = type as LeaveType;
   const policy = applicant.employeeId
     ? await prisma.leavePolicy.findFirst({
@@ -122,6 +118,20 @@ export async function POST(request: NextRequest) {
         orderBy: { createdAt: "asc" },
       })
     : null;
+
+  if (
+    applicant.employeeId &&
+    !unpaidLeaveDoesNotConsume(leaveType) &&
+    leaveType !== LeaveType.OTHER &&
+    !policy
+  ) {
+    return NextResponse.json(
+      {
+        message: `HR has not configured a ${leaveType.toLowerCase()} leave policy. Ask HR to add one under Leave policies, or apply as Unpaid.`,
+      },
+      { status: 400 }
+    );
+  }
 
   if (policy && applicant.employeeId && !unpaidLeaveDoesNotConsume(leaveType)) {
     try {

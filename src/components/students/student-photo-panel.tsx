@@ -67,7 +67,8 @@ export function StudentPhotoPanel({
             </AvatarFallback>
           </Avatar>
           <p className="text-sm text-muted">
-            This photo is printed on the {identityCardLabel.toLowerCase()}.
+            This photo is printed on the {identityCardLabel.toLowerCase()}. Use a JPG or PNG — WebP will not appear on the card PDF.
+            {!photoUrl ? " Upload a photo before printing so the gate sees a face, not initials." : ""}
           </p>
         </div>
         {canWrite ? (
@@ -81,7 +82,7 @@ export function StudentPhotoPanel({
                 accept={STUDENT_PHOTO_ACCEPT}
                 className="cursor-pointer"
               />
-              <p className="text-xs text-muted">JPG, PNG or WebP. Max 5 MB.</p>
+              <p className="text-xs text-muted">JPG or PNG. Max 5 MB.</p>
             </div>
             <Button type="submit" disabled={loading} size="sm">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save photo"}

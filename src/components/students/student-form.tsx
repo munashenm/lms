@@ -293,7 +293,7 @@ export function StudentForm({
             className="cursor-pointer"
           />
           <p className="text-xs text-muted">
-            Used on the printed {terms.identityCard.toLowerCase()} and learner portal. JPG, PNG or WebP. Max 5 MB.
+            Used on the printed {terms.identityCard.toLowerCase()} and learner portal. JPG or PNG. Max 5 MB.
           </p>
         </CardContent>
       </Card>

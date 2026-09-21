@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { canViewVisitorBook, canWriteVisitorBook, toPublicVisitorEntry } from "@/lib/visitors";
 import { VisitorSignInForm } from "@/components/visitors/visitor-sign-in-form";
 import { VisitorEntryList } from "@/components/visitors/visitor-entry-list";
+import { VisitorDeskRefresh } from "@/components/visitors/visitor-desk-refresh";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 
@@ -56,11 +57,21 @@ export async function VisitorBookScreen({ searchParams }: VisitorBookScreenProps
       }
     : {};
 
-  const [campuses, onSite, expected, overdue, dayEntries, todayCount] = await Promise.all([
+  const [campuses, staffHosts, school, onSite, expected, overdue, dayEntries, todayCount] = await Promise.all([
     prisma.campus.findMany({
       where: { schoolId: session.schoolId, isActive: true },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
+    }),
+    prisma.employee.findMany({
+      where: { schoolId: session.schoolId, status: { in: ["ACTIVE", "ON_LEAVE"] } },
+      select: { firstName: true, lastName: true },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+      take: 80,
+    }),
+    prisma.school.findFirst({
+      where: { id: session.schoolId },
+      select: { name: true },
     }),
     prisma.visitorEntry.findMany({
       where: {
@@ -125,14 +136,17 @@ export async function VisitorBookScreen({ searchParams }: VisitorBookScreenProps
   ]);
 
   const checkedOutToday = dayEntries.filter((row) => row.signedOutAt).length;
+  const schoolName = school?.name ?? "SchoolHub SA";
+  const hostNames = [...new Set(staffHosts.map((row) => `${row.firstName} ${row.lastName}`.trim()))];
 
   return (
     <div className="space-y-6">
+      <VisitorDeskRefresh />
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Visitors Book</h1>
           <p className="text-muted text-sm mt-1">
-            Sign visitors in and out at reception. Search by name, mobile or badge number.
+            Sign visitors in and out at reception. Search by name, mobile or badge number. This list refreshes every 30 seconds.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -162,7 +176,7 @@ export async function VisitorBookScreen({ searchParams }: VisitorBookScreenProps
         ))}
       </div>
 
-      {canWrite ? <VisitorSignInForm campuses={campuses} /> : null}
+      {canWrite ? <VisitorSignInForm campuses={campuses} hosts={hostNames} /> : null}
 
       <form method="GET" className="flex flex-wrap gap-2 items-end">
         <div>
@@ -196,7 +210,7 @@ export async function VisitorBookScreen({ searchParams }: VisitorBookScreenProps
         <h2 className="text-lg font-semibold">On site now ({onSite.length})</h2>
         <Card>
           <CardContent className="p-0">
-            <VisitorEntryList entries={onSite.map(toPublicVisitorEntry)} />
+            <VisitorEntryList entries={onSite.map(toPublicVisitorEntry)} schoolName={schoolName} />
           </CardContent>
         </Card>
       </section>
@@ -205,7 +219,7 @@ export async function VisitorBookScreen({ searchParams }: VisitorBookScreenProps
         <h2 className="text-lg font-semibold">Expected visitors ({expected.length})</h2>
         <Card>
           <CardContent className="p-0">
-            <VisitorEntryList entries={expected.map(toPublicVisitorEntry)} />
+            <VisitorEntryList entries={expected.map(toPublicVisitorEntry)} schoolName={schoolName} />
           </CardContent>
         </Card>
       </section>
@@ -214,7 +228,7 @@ export async function VisitorBookScreen({ searchParams }: VisitorBookScreenProps
         <h2 className="text-lg font-semibold">Overdue ({overdue.length})</h2>
         <Card>
           <CardContent className="p-0">
-            <VisitorEntryList entries={overdue.map(toPublicVisitorEntry)} />
+            <VisitorEntryList entries={overdue.map(toPublicVisitorEntry)} schoolName={schoolName} />
           </CardContent>
         </Card>
       </section>
@@ -223,7 +237,7 @@ export async function VisitorBookScreen({ searchParams }: VisitorBookScreenProps
         <h2 className="text-lg font-semibold">Signed in on {selectedDate}</h2>
         <Card>
           <CardContent className="p-0">
-            <VisitorEntryList entries={dayEntries.map(toPublicVisitorEntry)} />
+            <VisitorEntryList entries={dayEntries.map(toPublicVisitorEntry)} schoolName={schoolName} />
           </CardContent>
         </Card>
       </section>

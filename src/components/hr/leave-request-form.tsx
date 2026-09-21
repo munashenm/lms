@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,22 @@ import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Upload } from "lucide-react";
 import { LEAVE_EVIDENCE_ACCEPT } from "@/lib/staff-leave-evidence";
+import { countLeaveWorkingDays } from "@/lib/leave-days";
 
 export function LeaveRequestForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [leaveType, setLeaveType] = useState("ANNUAL");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  const workingDays = useMemo(() => {
+    if (!startDate || !endDate) return null;
+    const start = new Date(`${startDate}T00:00:00`);
+    const end = new Date(`${endDate}T00:00:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return null;
+    return countLeaveWorkingDays(start, end);
+  }, [startDate, endDate]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -33,6 +44,8 @@ export function LeaveRequestForm() {
       router.refresh();
       form.reset();
       setLeaveType("ANNUAL");
+      setStartDate("");
+      setEndDate("");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to submit leave request");
     } finally {
@@ -64,11 +77,30 @@ export function LeaveRequestForm() {
           </div>
           <div className="space-y-2">
             <Label>Start Date *</Label>
-            <Input name="startDate" type="date" required />
+            <Input
+              name="startDate"
+              type="date"
+              required
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>End Date *</Label>
-            <Input name="endDate" type="date" required />
+            <Input
+              name="endDate"
+              type="date"
+              required
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <p className="text-sm text-muted">
+              {workingDays
+                ? `${workingDays} working day${workingDays === 1 ? "" : "s"} (weekends excluded)`
+                : "Working days exclude Saturday and Sunday."}
+            </p>
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>Reason *</Label>

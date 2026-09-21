@@ -12,6 +12,8 @@ import {
   canWriteVisitorBook,
   publicIdentityNumber,
   toPublicVisitorEntry,
+  visitorBadgeDocument,
+  escapeVisitorHtml,
 } from "@/lib/visitors";
 
 describe("visitor book access", () => {
@@ -119,5 +121,21 @@ describe("visitor records", () => {
       purpose: "PARENT_GUARDIAN",
     });
     expect(parsed.success).toBe(true);
+  });
+});
+
+describe("visitor badge HTML", () => {
+  it("escapes names so a visitor cannot inject markup", () => {
+    expect(escapeVisitorHtml(`A & B <script>`)).toBe("A &amp; B &lt;script&gt;");
+    const html = visitorBadgeDocument({
+      schoolName: "Cape Town High",
+      visitorName: `Thabo <img src=x>`,
+      hostName: "Finance",
+      purpose: "Parent / guardian",
+      signedInAt: "20/09/2026, 09:00",
+    });
+    expect(html).toContain("Cape Town High");
+    expect(html).toContain("Thabo &lt;img src=x&gt;");
+    expect(html).not.toContain("<img src=x>");
   });
 });

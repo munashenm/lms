@@ -1,12 +1,14 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { getSchoolFilter } from "@/lib/rbac";
+import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { PayrollManager } from "@/components/hr/payroll-manager";
 import { PayrollRulesForm } from "@/components/hr/payroll-rules-form";
 import { parsePayrollRules } from "@/lib/payroll-engine";
+import { AccessDenied } from "@/components/layout/access-denied";
 
 export default async function HrPayrollPage() {
   const session = await getSession();
+  if (!requirePermission(session, "payroll.view")) return <AccessDenied />;
   const filter = getSchoolFilter(session!);
   const [runs, ruleSet] = await Promise.all([
     prisma.payrollRun.findMany({

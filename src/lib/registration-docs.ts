@@ -10,15 +10,15 @@ export const REGISTRATION_DOC_TYPES = [
   "image/webp",
 ];
 
-export const STUDENT_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+export const STUDENT_PHOTO_TYPES = ["image/jpeg", "image/png", "image/jpg"];
 
 export const REGISTRATION_DOC_ACCEPT =
   ".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp";
 
-export const STUDENT_PHOTO_ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
+export const STUDENT_PHOTO_ACCEPT = "image/jpeg,image/png,.jpg,.jpeg,.png";
 
 const DOC_EXT = new Set([".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg", ".webp"]);
-const PHOTO_EXT = new Set([".png", ".jpg", ".jpeg", ".webp"]);
+const PHOTO_EXT = new Set([".png", ".jpg", ".jpeg"]);
 
 export type RegistrationFileInput = {
   name: string;
@@ -87,7 +87,9 @@ export function validateRegistrationDocument(file: RegistrationFileInput | null)
 export function validateStudentPhoto(file: RegistrationFileInput | null): string | null {
   if (!file) return "Photo required";
   if (file.size > STUDENT_PHOTO_MAX_BYTES) return "Photo must be under 5 MB";
-  if (!isAllowedStudentPhoto(file)) return "Upload a JPG, PNG or WebP photo";
+  if (!isAllowedStudentPhoto(file)) {
+    return "Upload a JPG or PNG photo — WebP does not print on the identity card";
+  }
   return null;
 }
 

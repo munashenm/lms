@@ -29,7 +29,13 @@ export default async function StaffPayslipsPage() {
         <h1 className="text-2xl font-bold">My payslips</h1>
         <p className="text-muted text-sm mt-1">
           Your net pay after deductions. Download the PDF for each finalised payroll period.
+          {employee?.employeeNumber ? ` Employee no. ${employee.employeeNumber}.` : ""}
         </p>
+        {!employee ? (
+          <p className="text-sm text-amber-700 mt-2">
+            HR has not linked an employee record to this login. Ask HR to attach your user to an employee so payslips appear here after a run is finalised.
+          </p>
+        ) : null}
       </div>
       <Card>
         <CardContent className="p-0">

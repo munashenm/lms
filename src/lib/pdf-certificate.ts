@@ -82,10 +82,41 @@ export async function generateCertificatePdf(data: CertificatePdfData): Promise<
     drawCentered(data.description, 10, false, rgb(0.3, 0.3, 0.3));
   }
 
-  y = 100;
+  y = 128;
   drawCentered(`Certificate No: ${data.certificateNo}`, 9, false, rgb(0.5, 0.5, 0.5));
   drawCentered(`Issued: ${data.issuedAt}`, 9, false, rgb(0.5, 0.5, 0.5));
-  drawBrandedFooter({ page, brand: data.brand, font, y: 48 });
+
+  const lineY = 88;
+  const col1 = width / 2 - 200;
+  const col2 = width / 2 + 40;
+  page.drawLine({
+    start: { x: col1, y: lineY },
+    end: { x: col1 + 160, y: lineY },
+    thickness: 0.8,
+    color: rgb(0.25, 0.25, 0.3),
+  });
+  page.drawText("Principal / Campus head", {
+    x: col1,
+    y: lineY - 14,
+    size: 8,
+    font,
+    color: rgb(0.4, 0.4, 0.45),
+  });
+  page.drawLine({
+    start: { x: col2, y: lineY },
+    end: { x: col2 + 160, y: lineY },
+    thickness: 0.8,
+    color: rgb(0.25, 0.25, 0.3),
+  });
+  page.drawText("Registrar / Academic head", {
+    x: col2,
+    y: lineY - 14,
+    size: 8,
+    font,
+    color: rgb(0.4, 0.4, 0.45),
+  });
+
+  drawBrandedFooter({ page, brand: data.brand, font, y: 44 });
 
   return doc.save();
 }

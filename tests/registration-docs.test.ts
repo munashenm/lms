@@ -38,9 +38,10 @@ describe("registration documents", () => {
     expect(isAllowedRegistrationDocument({ name: "note.exe", size: 100, type: "application/octet-stream" })).toBe(false);
   });
 
-  it("allows JPEG, PNG and WebP for student photos used on the identity card", () => {
+  it("allows JPEG and PNG for student photos used on the identity card, not WebP", () => {
     expect(isAllowedStudentPhoto({ name: "face.jpg", size: 100, type: "image/jpeg" })).toBe(true);
     expect(isAllowedStudentPhoto({ name: "face.png", size: 100, type: "image/png" })).toBe(true);
+    expect(isAllowedStudentPhoto({ name: "face.webp", size: 100, type: "image/webp" })).toBe(false);
     expect(isAllowedStudentPhoto({ name: "face.pdf", size: 100, type: "application/pdf" })).toBe(false);
   });
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { UserRole } from "@prisma/client";
-import { canApplyForLeave } from "@/lib/staff-leave";
+import { canApplyForLeave } from "@/lib/staff-leave-access";
+import { countLeaveWorkingDays } from "@/lib/leave-days";
 import {
   isAllowedLeaveEvidence,
   leaveEvidenceFileFromForm,
@@ -72,5 +73,19 @@ describe("staff leave evidence", () => {
     expect(leaveEvidenceLabel("SICK", "doctor-note.pdf")).toBe("doctor-note.pdf");
     expect(leaveEvidenceLabel("SICK", null)).toBe("Sick note");
     expect(leaveEvidenceLabel("ANNUAL", null)).toBe("Supporting evidence");
+  });
+});
+
+describe("countLeaveWorkingDays", () => {
+  it("counts Monday to Friday as five working days", () => {
+    expect(countLeaveWorkingDays(new Date(2026, 8, 21), new Date(2026, 8, 25))).toBe(5);
+  });
+
+  it("skips the weekend inside a Thu–Mon range", () => {
+    expect(countLeaveWorkingDays(new Date(2026, 8, 24), new Date(2026, 8, 28))).toBe(3);
+  });
+
+  it("counts a weekend-only range as one day so unpaid leave can still be recorded", () => {
+    expect(countLeaveWorkingDays(new Date(2026, 8, 26), new Date(2026, 8, 27))).toBe(1);
   });
 });

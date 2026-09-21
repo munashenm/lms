@@ -127,7 +127,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
         <div className="flex flex-wrap items-center gap-2">
           {canWriteStudents ? <Button asChild><a href="#edit-student">Edit Student</a></Button> : null}
           {canPromote ? <Button variant="outline" asChild><a href="#promote-student">Promote Student</a></Button> : null}
-          <StudentCardButton href={`/api/students/${student.id}/card`} studentNumber={student.studentNumber} label={terms.identityCard} />
+          <StudentCardButton href={`/api/students/${student.id}/card`} studentNumber={student.studentNumber} label={terms.identityCard} hasPhoto={Boolean(student.photoUrl)} />
           {canExportPopia && <StudentExportButton studentId={student.id} />}
           {canFinance ? (
             <Button variant="outline" asChild>
