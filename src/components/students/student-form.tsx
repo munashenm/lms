@@ -91,7 +91,7 @@ export function StudentForm({
 
       toast.success(
         result.provision?.invitesSent
-          ? `${terms.student} created. Password setup email sent.`
+          ? `${terms.student} created. Welcome email sent with login details.`
           : `${terms.student} created successfully`
       );
 

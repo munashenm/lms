@@ -35,7 +35,7 @@ export function StaffCreateForm({ schoolId }: { schoolId?: string }) {
       }
       toast.success(
         json.provision?.invitesSent
-          ? "Staff member added. Password setup email sent."
+          ? "Staff member added. Welcome email sent with login details."
           : "Staff member added"
       );
       setForm({ firstName: "", lastName: "", employeeNumber: "", email: "", department: "" });

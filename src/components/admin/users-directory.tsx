@@ -96,7 +96,7 @@ export function UsersDirectory({
         toast.error(json.message ?? "Could not invite user");
         return;
       }
-      toast.success("User invited. Password setup email sent.");
+      toast.success("User invited. Welcome email sent with login details.");
       setForm({
         firstName: "",
         lastName: "",
@@ -124,7 +124,7 @@ export function UsersDirectory({
         toast.error(json.message ?? "Could not update user");
         return;
       }
-      if (body.resendInvite) toast.success("Password setup email sent.");
+      if (body.resendInvite) toast.success("Welcome email sent with login details.");
       else toast.success(body.isActive ? "User reactivated" : "User deactivated");
       router.refresh();
     } finally {

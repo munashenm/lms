@@ -31,7 +31,7 @@ export function TeacherPortalButton({
         return;
       }
       if (json.provision?.invitesSent) {
-        toast.success(linked ? "Password setup email sent." : "Teacher portal invited. Password setup email sent.");
+        toast.success(linked ? "Welcome email sent with login details." : "Teacher portal invited. Welcome email sent.");
       } else if (json.provision?.skipped) {
         toast.error("Add a unique email before inviting this teacher.");
       } else {

@@ -23,7 +23,7 @@ export default async function CommunicationsPage() {
     requirePermission(session, "announcements:write") ||
     requirePermission(session, "settings:write");
 
-  const [logs, queuedBatches, students, grades, classes] = await Promise.all([
+  const [logs, queuedBatches, students, grades, classes, staffUsers] = await Promise.all([
     prisma.communicationLog.findMany({
       where: filter,
       include: {
@@ -61,6 +61,28 @@ export default async function CommunicationsPage() {
           orderBy: { name: "asc" },
         })
       : Promise.resolve([]),
+    canCompose
+      ? prisma.user.findMany({
+          where: {
+            ...filter,
+            isActive: true,
+            role: {
+              in: [
+                "TEACHER",
+                "STAFF",
+                "FINANCE_OFFICER",
+                "HR_OFFICER",
+                "ADMISSIONS_OFFICER",
+                "PRINCIPAL",
+                "SCHOOL_ADMIN",
+              ],
+            },
+          },
+          select: { id: true, firstName: true, lastName: true, role: true },
+          orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+          take: 400,
+        })
+      : Promise.resolve([]),
   ]);
 
   const statusVariant: Record<string, "success" | "danger" | "warning" | "secondary"> = {
@@ -80,7 +102,7 @@ export default async function CommunicationsPage() {
       </div>
 
       {canCompose ? (
-        <NoticeComposeForm students={students} grades={grades} classes={classes} />
+        <NoticeComposeForm students={students} grades={grades} classes={classes} staffUsers={staffUsers} />
       ) : null}
 
       {queuedBatches.length > 0 ? (

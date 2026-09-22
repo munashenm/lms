@@ -10,7 +10,15 @@ import { prisma } from "./db";
 import { logCommunication } from "./communications";
 import { asInputJson } from "./json";
 
-export type NoticeAudience = "STUDENT" | "CLASS" | "GRADE" | "PARENTS" | "STUDENTS" | "STAFF";
+export type NoticeAudience =
+  | "STUDENT"
+  | "CLASS"
+  | "GRADE"
+  | "PARENTS"
+  | "STUDENTS"
+  | "STAFF"
+  | "ALL"
+  | "USER";
 export type NoticeChannel = "EMAIL" | "SMS" | "BOTH";
 
 export type NoticeRecipient = {
@@ -33,29 +41,60 @@ function contactKey(channel: CommunicationChannel, contact: string) {
   return `${channel}:${contact.trim().toLowerCase()}`;
 }
 
+const STAFF_ROLES = [
+  UserRole.TEACHER,
+  UserRole.STAFF,
+  UserRole.FINANCE_OFFICER,
+  UserRole.HR_OFFICER,
+  UserRole.ADMISSIONS_OFFICER,
+  UserRole.PRINCIPAL,
+  UserRole.SCHOOL_ADMIN,
+] as const;
+
 export async function resolveNoticeRecipients(params: {
   schoolId: string;
   audience: NoticeAudience;
   studentId?: string | null;
   classId?: string | null;
   gradeId?: string | null;
+  userId?: string | null;
 }): Promise<NoticeRecipient[]> {
+  if (params.audience === "ALL") {
+    const [staff, students, parents] = await Promise.all([
+      resolveNoticeRecipients({ ...params, audience: "STAFF" }),
+      resolveNoticeRecipients({ ...params, audience: "STUDENTS" }),
+      resolveNoticeRecipients({ ...params, audience: "PARENTS" }),
+    ]);
+    return [...staff, ...students, ...parents];
+  }
+
+  if (params.audience === "USER" && params.userId) {
+    const user = await prisma.user.findFirst({
+      where: {
+        id: params.userId,
+        schoolId: params.schoolId,
+        isActive: true,
+        role: { in: [...STAFF_ROLES] },
+      },
+      select: { firstName: true, lastName: true, email: true, phone: true },
+    });
+    if (!user) return [];
+    return [
+      {
+        studentId: null,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        phone: user.phone,
+      },
+    ];
+  }
+
   if (params.audience === "STAFF") {
     const users = await prisma.user.findMany({
       where: {
         schoolId: params.schoolId,
         isActive: true,
-        role: {
-          in: [
-            UserRole.TEACHER,
-            UserRole.STAFF,
-            UserRole.FINANCE_OFFICER,
-            UserRole.HR_OFFICER,
-            UserRole.ADMISSIONS_OFFICER,
-            UserRole.PRINCIPAL,
-            UserRole.SCHOOL_ADMIN,
-          ],
-        },
+        role: { in: [...STAFF_ROLES] },
       },
       select: { firstName: true, lastName: true, email: true, phone: true },
     });
@@ -140,6 +179,7 @@ export async function createNoticeBatch(params: {
   studentId?: string | null;
   classId?: string | null;
   gradeId?: string | null;
+  userId?: string | null;
   createdById?: string | null;
 }) {
   const recipients = await resolveNoticeRecipients({
@@ -148,6 +188,7 @@ export async function createNoticeBatch(params: {
     studentId: params.studentId,
     classId: params.classId,
     gradeId: params.gradeId,
+    userId: params.userId,
   });
 
   const channels: CommunicationChannel[] =
@@ -169,6 +210,7 @@ export async function createNoticeBatch(params: {
         studentId: params.studentId ?? null,
         classId: params.classId ?? null,
         gradeId: params.gradeId ?? null,
+        userId: params.userId ?? null,
         recipientCount: recipients.length,
       }),
       createdById: params.createdById ?? null,

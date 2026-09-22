@@ -68,7 +68,7 @@ export function EmployeeManager(props: {
       if (!res.ok) throw new Error(data.message || "Could not create employee");
       toast.success(
         data.provision?.invitesSent
-          ? "Employee created. Password setup email sent."
+          ? "Employee created. Welcome email sent with login details."
           : "Employee created"
       );
       const employeeId = data.employee?.id as string | undefined;

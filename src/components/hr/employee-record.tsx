@@ -170,7 +170,7 @@ export function EmployeeRecord(props: {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Could not set up portal");
       if (data.provision?.invitesSent) {
-        toast.success("Password setup email sent.");
+        toast.success("Welcome email sent with login details.");
       } else if (data.provision?.linked) {
         toast.success("Portal account is already linked.");
       } else {
@@ -238,7 +238,7 @@ export function EmployeeRecord(props: {
           <CardHeader><CardTitle>Staff portal</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted">
-              Creates a staff login from the employee email, or resends the password setup link if a portal account is already linked. Plaintext passwords are never emailed.
+              Creates a staff login from the employee email, or resends welcome credentials if a portal account is already linked.
             </p>
             <Button type="button" variant="outline" disabled={loading === "portal"} onClick={invitePortal}>
               {props.employee.userId ? "Resend portal invite" : "Set up portal"}

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { denyUnless } from "@/lib/access";
 import { userPatchSchema } from "@/lib/validators";
-import { issuePasswordSetup } from "@/lib/password-reset";
+import { issuePasswordSetup, issuePortalCredentials } from "@/lib/password-reset";
 import { canAssignDirectoryRole, setLinkedUserActive } from "@/lib/portal-provision";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
@@ -151,22 +151,46 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (parsed.data.resendInvite || parsed.data.resetPassword) {
     const user = await prisma.user.findFirst({
       where: { id: existing.id, isActive: true },
-      select: { id: true, email: true, firstName: true, schoolId: true },
+      select: { id: true, email: true, firstName: true, schoolId: true, role: true },
     });
     if (!user) {
       return NextResponse.json({ message: "Reactivate the user before resending an invite" }, { status: 400 });
     }
-    await issuePasswordSetup({
-      userId: user.id,
-      schoolId: user.schoolId,
-      email: user.email,
-      firstName: user.firstName,
-      kind: "reset",
-    });
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { mustResetPassword: true, sessionVersion: { increment: 1 } },
-    });
+    if (parsed.data.resendInvite) {
+      const student =
+        user.role === UserRole.STUDENT && user.schoolId
+          ? await prisma.student.findFirst({
+              where: { userId: user.id, schoolId: user.schoolId },
+              select: { studentNumber: true },
+            })
+          : null;
+      const credentialRole =
+        user.role === UserRole.STUDENT
+          ? "student"
+          : user.role === UserRole.PARENT
+            ? "parent"
+            : "staff";
+      await issuePortalCredentials({
+        userId: user.id,
+        schoolId: user.schoolId,
+        email: user.email,
+        firstName: user.firstName,
+        role: credentialRole,
+        studentNumber: student?.studentNumber,
+      });
+    } else {
+      await issuePasswordSetup({
+        userId: user.id,
+        schoolId: user.schoolId,
+        email: user.email,
+        firstName: user.firstName,
+        kind: "reset",
+      });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { mustResetPassword: true, sessionVersion: { increment: 1 } },
+      });
+    }
     invitesSent = 1;
   }
 

@@ -45,9 +45,11 @@ export function StudentPortalPanel(props: {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Could not set up portal");
       if (data.provision?.invitesSent) {
-        toast.success(`Portal setup complete. ${data.provision.invitesSent} password setup email(s) sent.`);
+        toast.success(
+          `Portal setup complete. ${data.provision.invitesSent} welcome email(s) sent with login details.`
+        );
       } else if (data.provision?.studentLoginCreated || data.provision?.guardianLinked) {
-        toast.success("Portal accounts linked. No new invites were sent.");
+        toast.success("Portal accounts linked. No new welcome emails were sent.");
       } else {
         toast.success(
           "No new portal accounts created. Add an email, or that address may already belong to another role or school."
@@ -95,7 +97,7 @@ export function StudentPortalPanel(props: {
       if (!res.ok) throw new Error(json.message || "Could not add guardian");
       toast.success(
         json.provision?.invitesSent
-          ? "Guardian linked. Password setup email sent."
+          ? "Guardian linked. Welcome email sent with login details."
           : "Guardian linked"
       );
       form.reset();

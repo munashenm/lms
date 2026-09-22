@@ -3,7 +3,7 @@ import { UserRole } from "@prisma/client";
 import { prisma } from "./db";
 import { hashPassword } from "./auth";
 import { logAudit } from "./audit";
-import { issuePasswordSetup } from "./password-reset";
+import { issuePortalCredentials, type PortalCredentialRole } from "./password-reset";
 
 export { learnerPortalShouldBeActive, staffPortalShouldBeActive, nextSelfAttendanceAction } from "./portal-lifecycle";
 
@@ -133,12 +133,10 @@ export function defaultStaffPortalRole(input: {
   return UserRole.STAFF;
 }
 
-function portalWelcomeKind(
-  role: UserRole
-): "welcome_student" | "welcome_parent" | "welcome_staff" {
-  if (role === UserRole.STUDENT) return "welcome_student";
-  if (role === UserRole.PARENT) return "welcome_parent";
-  return "welcome_staff";
+function portalCredentialRole(role: UserRole): PortalCredentialRole {
+  if (role === UserRole.STUDENT) return "student";
+  if (role === UserRole.PARENT) return "parent";
+  return "staff";
 }
 
 export async function findOrCreatePortalUser(params: {
@@ -150,14 +148,29 @@ export async function findOrCreatePortalUser(params: {
   role: UserRole;
   actorId: string;
   source?: string;
-}): Promise<{ userId: string; created: boolean } | { skipped: true }> {
+  studentNumber?: string | null;
+  resendCredentials?: boolean;
+}): Promise<{ userId: string; created: boolean; emailSent: boolean } | { skipped: true }> {
   const email = normalizePortalEmail(params.email);
   if (!email) return { skipped: true };
+
+  const credentialRole = portalCredentialRole(params.role);
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     if (existing.schoolId === params.schoolId && existing.role === params.role && existing.isActive) {
-      return { userId: existing.id, created: false };
+      if (params.resendCredentials) {
+        await issuePortalCredentials({
+          userId: existing.id,
+          schoolId: params.schoolId,
+          email,
+          firstName: existing.firstName,
+          role: credentialRole,
+          studentNumber: params.studentNumber,
+        });
+        return { userId: existing.id, created: false, emailSent: true };
+      }
+      return { userId: existing.id, created: false, emailSent: false };
     }
     return { skipped: true };
   }
@@ -175,12 +188,13 @@ export async function findOrCreatePortalUser(params: {
       emailVerified: false,
     },
   });
-  await issuePasswordSetup({
+  await issuePortalCredentials({
     userId: user.id,
     schoolId: params.schoolId,
     email,
     firstName: params.firstName,
-    kind: portalWelcomeKind(params.role),
+    role: credentialRole,
+    studentNumber: params.studentNumber,
   });
   await logAudit({
     schoolId: params.schoolId,
@@ -190,13 +204,14 @@ export async function findOrCreatePortalUser(params: {
     entityId: user.id,
     metadata: { role: params.role, source: params.source ?? "application" },
   });
-  return { userId: user.id, created: true };
+  return { userId: user.id, created: true, emailSent: true };
 }
 
 export async function provisionPortalAccounts(params: {
   studentId: string;
   schoolId: string;
   actorId: string;
+  resendCredentials?: boolean;
   application: {
     firstName: string;
     lastName: string;
@@ -221,7 +236,7 @@ export async function provisionPortalAccounts(params: {
 
   const student = await prisma.student.findFirst({
     where: { id: params.studentId, schoolId: params.schoolId },
-    select: { userId: true },
+    select: { userId: true, studentNumber: true },
   });
   if (!student) return { studentLoginCreated: false, guardianLinked: false, invitesSent: 0 };
 
@@ -229,7 +244,7 @@ export async function provisionPortalAccounts(params: {
   let guardianLinked = false;
   let invitesSent = 0;
 
-  if (plan.studentLoginEmail && !student.userId) {
+  if (plan.studentLoginEmail && (params.resendCredentials || !student.userId)) {
     const result = await findOrCreatePortalUser({
       schoolId: params.schoolId,
       email: plan.studentLoginEmail,
@@ -238,14 +253,18 @@ export async function provisionPortalAccounts(params: {
       phone: params.application.phone,
       role: UserRole.STUDENT,
       actorId: params.actorId,
+      studentNumber: student.studentNumber,
+      resendCredentials: params.resendCredentials,
     });
     if (!("skipped" in result)) {
-      await prisma.student.update({
-        where: { id: params.studentId },
-        data: { userId: result.userId },
-      });
-      studentLoginCreated = result.created;
-      if (result.created) invitesSent += 1;
+      if (!student.userId) {
+        await prisma.student.update({
+          where: { id: params.studentId },
+          data: { userId: result.userId },
+        });
+      }
+      studentLoginCreated = result.created || !student.userId;
+      if (result.emailSent) invitesSent += 1;
     }
   }
 
@@ -260,10 +279,11 @@ export async function provisionPortalAccounts(params: {
         phone: plan.guardian.phone,
         role: UserRole.PARENT,
         actorId: params.actorId,
+        resendCredentials: params.resendCredentials,
       });
       if (!("skipped" in result)) {
         userId = result.userId;
-        if (result.created) invitesSent += 1;
+        if (result.emailSent) invitesSent += 1;
       }
     }
 
@@ -360,12 +380,12 @@ export async function provisionStaffAccount(params: {
         select: { id: true, email: true, firstName: true, role: true },
       });
       if (user) {
-        await issuePasswordSetup({
+        await issuePortalCredentials({
           userId: user.id,
           schoolId: params.schoolId,
           email: user.email,
           firstName: user.firstName,
-          kind: "reset",
+          role: portalCredentialRole(user.role),
         });
         return { created: false, linked: true, invitesSent: 1, skipped: false };
       }
@@ -455,6 +475,7 @@ export async function provisionExistingStudent(params: {
     studentId: student.id,
     schoolId: params.schoolId,
     actorId: params.actorId,
+    resendCredentials: true,
     application: {
       firstName: student.firstName,
       lastName: student.lastName,
@@ -475,6 +496,7 @@ export async function provisionExistingStudent(params: {
       studentId: student.id,
       schoolId: params.schoolId,
       actorId: params.actorId,
+      resendCredentials: true,
       application: {
         firstName: student.firstName,
         lastName: student.lastName,

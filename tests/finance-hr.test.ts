@@ -635,6 +635,14 @@ describe("refund approval", () => {
   });
 });
 
+describe("portal welcome credentials", () => {
+  it("generates readable temporary passwords", async () => {
+    const { generateTemporaryPassword } = await import("@/lib/password-reset");
+    const password = generateTemporaryPassword();
+    expect(password).toMatch(/^Learn@\d{4}[a-f0-9]{2}$/);
+  });
+});
+
 describe("notice templates and teacher announcements", () => {
   it("substitutes learner names in notice copy", () => {
     expect(applyNoticeTemplate("Hello {{firstName}} {{lastName}}", { firstName: "Thabo", lastName: "Mahlangu" }))

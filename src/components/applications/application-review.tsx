@@ -69,13 +69,13 @@ export function ApplicationReview({ applications }: { applications: Application[
       const label = APPLICATION_STATUS_LABELS[status] ?? status;
       if (data.student?.studentNumber) {
         const invite = data.provision?.invitesSent
-          ? " Password setup email sent where an address was provided."
+          ? " Welcome email sent with login details where an address was provided."
           : "";
         toast.success(`Accepted and enrolled ${data.student.studentNumber}.${invite}`);
       } else if (status === "ACCEPTED" && data.provision) {
         if (data.provision.invitesSent) {
           toast.success(
-            `Portal setup complete. ${data.provision.invitesSent} password setup email(s) sent.`
+            `Portal setup complete. ${data.provision.invitesSent} welcome email(s) sent with login details.`
           );
         } else if (data.provision.studentLoginCreated || data.provision.guardianLinked) {
           toast.success("Portal accounts linked. No new invites were sent.");

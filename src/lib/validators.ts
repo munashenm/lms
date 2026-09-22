@@ -348,10 +348,11 @@ export const announcementSchema = z.object({
 export const noticeComposeSchema = z.object({
   channel: z.enum(["EMAIL", "SMS", "BOTH"]).default("EMAIL"),
   category: z.enum(["GENERAL", "ACADEMIC_NOTICE", "EXAM_NOTICE", "ANNOUNCEMENT", "EMERGENCY"]).default("GENERAL"),
-  audience: z.enum(["STUDENT", "CLASS", "GRADE", "PARENTS", "STUDENTS", "STAFF"]),
+  audience: z.enum(["STUDENT", "CLASS", "GRADE", "PARENTS", "STUDENTS", "STAFF", "ALL", "USER"]),
   studentId: z.string().optional().nullable(),
   classId: z.string().optional().nullable(),
   gradeId: z.string().optional().nullable(),
+  userId: z.string().optional().nullable(),
   subject: z.string().min(1, "Subject is required").max(200),
   message: z.string().min(1, "Message is required"),
   processImmediately: z.boolean().optional(),

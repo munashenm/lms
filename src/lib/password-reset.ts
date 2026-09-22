@@ -5,8 +5,67 @@ import { sendOutboundMessage } from "./notifications";
 
 const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+export type PortalCredentialRole = "student" | "parent" | "staff";
+
 export function generateResetToken(): string {
   return crypto.randomBytes(32).toString("hex");
+}
+
+/** Readable temporary password for welcome emails (user must change on first login). */
+export function generateTemporaryPassword(): string {
+  const digits = crypto.randomInt(1000, 9999);
+  const suffix = crypto.randomBytes(2).toString("hex").slice(0, 2);
+  return `Learn@${digits}${suffix}`;
+}
+
+export async function issuePortalCredentials(params: {
+  userId: string;
+  schoolId: string | null;
+  email: string;
+  firstName: string;
+  role: PortalCredentialRole;
+  studentNumber?: string | null;
+}) {
+  const tempPassword = generateTemporaryPassword();
+  const passwordHash = await hashPassword(tempPassword);
+
+  await prisma.user.update({
+    where: { id: params.userId },
+    data: {
+      passwordHash,
+      passwordResetTokenHash: null,
+      passwordResetExpires: null,
+      mustResetPassword: true,
+      sessionVersion: { increment: 1 },
+    },
+  });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const loginPath =
+    params.role === "parent"
+      ? "/parent/login"
+      : params.role === "staff"
+        ? "/staff/login"
+        : "/student/login";
+  const loginUrl = `${appUrl}${loginPath}`;
+
+  const school = params.schoolId
+    ? await prisma.school.findUnique({ where: { id: params.schoolId }, select: { name: true } })
+    : null;
+  const schoolName = school?.name ?? "your school";
+
+  const subject = `Your ${schoolName} portal login`;
+  let body = `Hi ${params.firstName},\n\nYour portal account is ready.\n\n`;
+  body += `Login email: ${params.email}\n`;
+  if (params.role === "student" && params.studentNumber?.trim()) {
+    body += `Student ID: ${params.studentNumber.trim()}\n`;
+  }
+  body += `Temporary password: ${tempPassword}\n\n`;
+  body += `Sign in at: ${loginUrl}\n\n`;
+  body += `Please change your password after your first login.\n\n`;
+  body += `If you were not expecting this email, contact ${schoolName}.`;
+
+  await sendOutboundMessage(params.schoolId, "email", params.email, subject, body);
 }
 
 export function hashResetToken(token: string): string {

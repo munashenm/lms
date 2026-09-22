@@ -21,14 +21,23 @@ interface StudentOpt {
   studentNumber: string;
 }
 
+interface StaffOpt {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+}
+
 export function NoticeComposeForm({
   students,
   grades,
   classes,
+  staffUsers,
 }: {
   students: StudentOpt[];
   grades: Opt[];
   classes: Opt[];
+  staffUsers: StaffOpt[];
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -49,6 +58,7 @@ export function NoticeComposeForm({
           studentId: form.get("studentId") || null,
           classId: form.get("classId") || null,
           gradeId: form.get("gradeId") || null,
+          userId: form.get("userId") || null,
           subject: form.get("subject"),
           message: form.get("message"),
           processImmediately: true,
@@ -89,9 +99,11 @@ export function NoticeComposeForm({
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
               >
+                <option value="ALL">Everyone (staff, students, parents)</option>
                 <option value="PARENTS">All parents</option>
                 <option value="STUDENTS">All students</option>
-                <option value="STAFF">Staff</option>
+                <option value="STAFF">All staff</option>
+                <option value="USER">One staff member</option>
                 <option value="GRADE">A grade</option>
                 <option value="CLASS">A class</option>
                 <option value="STUDENT">One student / family</option>
@@ -125,6 +137,19 @@ export function NoticeComposeForm({
                 {students.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.lastName}, {s.firstName} ({s.studentNumber})
+                  </option>
+                ))}
+              </Select>
+            </div>
+          ) : null}
+          {audience === "USER" ? (
+            <div className="space-y-1">
+              <Label htmlFor="userId">Staff member</Label>
+              <Select id="userId" name="userId" required>
+                <option value="">Select...</option>
+                {staffUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.lastName}, {u.firstName} ({u.role.replaceAll("_", " ")})
                   </option>
                 ))}
               </Select>

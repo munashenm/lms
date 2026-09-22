@@ -65,6 +65,9 @@ export async function POST(request: NextRequest) {
   if (parsed.data.audience === "GRADE" && !parsed.data.gradeId) {
     return NextResponse.json({ message: "Select a grade" }, { status: 400 });
   }
+  if (parsed.data.audience === "USER" && !parsed.data.userId) {
+    return NextResponse.json({ message: "Select a staff member" }, { status: 400 });
+  }
 
   const schoolId = await requireSchoolId(session);
   const denied = await requireLicenseWrite(schoolId);
@@ -88,6 +91,7 @@ export async function POST(request: NextRequest) {
     studentId: parsed.data.studentId,
     classId: parsed.data.classId,
     gradeId: parsed.data.gradeId,
+    userId: parsed.data.userId,
     createdById: session.userId,
   });
 
