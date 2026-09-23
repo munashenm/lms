@@ -4,12 +4,11 @@ import { prisma } from "@/lib/db";
 import { ChildFilter } from "@/components/finance/child-filter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
 import { getDocumentReleases, summarizeDocumentReleases } from "@/lib/fee-clearance";
 import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
+import { OfficialDocumentActions } from "@/components/documents/official-document-actions";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
@@ -23,14 +22,12 @@ export default async function ParentCertificatesPage({ searchParams }: PageProps
   const children = guardian?.students.map((sg) => sg.student) ?? [];
   const childIds = children.map((c) => c.id);
   const filterIds = studentId && childIds.includes(studentId) ? [studentId] : childIds;
-  const { releasedIds, blocked } = summarizeDocumentReleases(
-    filterIds,
-    await getDocumentReleases(filterIds)
-  );
+  const releaseMap = await getDocumentReleases(filterIds);
+  const { blocked } = summarizeDocumentReleases(filterIds, releaseMap);
 
-  const certificates = releasedIds.length
+  const certificates = filterIds.length
     ? await prisma.certificate.findMany({
-        where: { studentId: { in: releasedIds } },
+        where: { studentId: { in: filterIds } },
         include: {
           course: { select: { name: true } },
           student: { select: { firstName: true, lastName: true } },
@@ -53,10 +50,14 @@ export default async function ParentCertificatesPage({ searchParams }: PageProps
       />
 
       {blocked ? (
-        <DocumentsHoldNotice outstandingCents={blocked.outstandingCents} feesHref="/parent/fees" />
+        <DocumentsHoldNotice
+          outstandingCents={blocked.outstandingCents}
+          feesHref="/parent/fees"
+          compact={certificates.length > 0}
+        />
       ) : null}
 
-      {certificates.length === 0 && !blocked ? (
+      {certificates.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted">
             No certificates issued yet.
@@ -78,12 +79,11 @@ export default async function ParentCertificatesPage({ searchParams }: PageProps
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <Badge variant="secondary">{CERTIFICATE_TYPE_LABELS[cert.type] ?? cert.type}</Badge>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`/api/certificates/${cert.id}/pdf`}>
-                      <Download className="h-4 w-4" />
-                      PDF
-                    </a>
-                  </Button>
+                  <OfficialDocumentActions
+                    released={releaseMap.get(cert.studentId)?.released ?? true}
+                    href={`/api/certificates/${cert.id}/pdf`}
+                    feesHref="/parent/fees"
+                  />
                 </div>
               </CardContent>
             </Card>
