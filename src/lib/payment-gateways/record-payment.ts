@@ -154,5 +154,11 @@ export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
     previous: previousRelease,
   });
 
+  const { syncDepositApplicationsForInvoice } = await import("../admissions-deposit");
+  await syncDepositApplicationsForInvoice({
+    invoiceId: params.invoiceId,
+    actorId: "gateway",
+  });
+
   return { ok: true as const, duplicate: false };
 }

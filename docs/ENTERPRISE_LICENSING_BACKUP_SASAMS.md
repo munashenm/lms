@@ -100,6 +100,14 @@ All require `Authorization: Bearer $CRON_SECRET` (or `x-cron-secret` / `?secret=
 - `POST /api/integrations/sasams` (multipart upload or JSON actions)
 - `GET /api/integrations/sasams/:id`
 
+### Compliance Centre (SA-SAMS export / LURITS / CEMIS)
+- `GET /api/compliance/summary` — EMIS field readiness for active learners/educators
+- `GET/POST /api/compliance/export` — `SASAMS_PACKAGE`, `CEMIS_MARKS`, `LURITS_PROMOTION`
+- `GET/POST /api/compliance/lurits` — import LURITS feedback XML/CSV and update LURITS numbers
+- UI: `/admin/compliance`
+
+SchoolHub remains the operational system of record. Exports produce tabular packages for deployment into SA-SAMS / Valistractor / district CEMIS templates — they do not replace DBE filing tools. Native Access `.mdb` export remains a placeholder until an authorised sample arrives.
+
 ### Health
 - `GET /api/system-health`
 

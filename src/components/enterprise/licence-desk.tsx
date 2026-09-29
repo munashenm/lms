@@ -84,7 +84,11 @@ export function LicenceDesk() {
   }
 
   useEffect(() => {
-    void load();
+    // Defer so setState after fetch is not synchronous inside the effect body.
+    const id = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   const visible = useMemo(() => {

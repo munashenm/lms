@@ -95,7 +95,11 @@ export function FeeCollectionDesk({
 
   useEffect(() => {
     if (!initialStudentId) return;
-    void search({ studentId: initialStudentId });
+    // Defer so setLoading/search setState is not synchronous inside the effect body.
+    const id = window.setTimeout(() => {
+      void search({ studentId: initialStudentId });
+    }, 0);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialStudentId]);
 

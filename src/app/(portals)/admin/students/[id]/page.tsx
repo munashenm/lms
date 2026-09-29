@@ -73,6 +73,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
   const canFinance = requirePermission(session, "finance.view");
   const canFinanceWrite = requirePermission(session, "finance.record_payment");
   const canWriteStudents = requirePermission(session, "students.edit");
+  const canEditEmisSensitive = requirePermission(session, "students.emis_sensitive");
   const canPromote = requirePermission(session, "students.promote");
   const canAudit = requirePermission(session, "audit:read");
 
@@ -156,7 +157,11 @@ export default async function StudentDetailPage({ params }: PageProps) {
                     <Row label="Date of Birth" value={student.dateOfBirth ? formatDate(student.dateOfBirth) : null} />
                     <Row label="Gender" value={student.gender} />
                     <Row label="Nationality" value={student.nationality} />
+                    <Row label="Citizenship" value={student.citizenship} />
                     <Row label="Home language" value={student.homeLanguage} />
+                    <Row label="Population group" value={student.populationGroup} />
+                    <Row label="LURITS" value={student.luritsNumber} />
+                    <Row label="Disability / SNE" value={student.disabilityStatus || student.sneStatus ? "Yes" : "No"} />
                   </CardContent>
                 </Card>
                 <Card>
@@ -187,6 +192,16 @@ export default async function StudentDetailPage({ params }: PageProps) {
                         gender: student.gender,
                         nationality: student.nationality,
                         homeLanguage: student.homeLanguage,
+                        preferredLanguage: student.preferredLanguage,
+                        populationGroup: student.populationGroup,
+                        citizenship: student.citizenship,
+                        countryOfBirth: student.countryOfBirth,
+                        disabilityStatus: student.disabilityStatus,
+                        sneStatus: student.sneStatus,
+                        disabilityNotes: student.disabilityNotes,
+                        luritsNumber: student.luritsNumber,
+                        previousEmisSchool: student.previousEmisSchool,
+                        transferReason: student.transferReason,
                         campusId: student.campusId,
                         studentNumber: student.studentNumber,
                         enrolledAt: toIsoDateInput(student.enrolledAt),
@@ -203,6 +218,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
                         status: student.status,
                       }}
                       campuses={campuses}
+                      canEditEmisSensitive={canEditEmisSensitive}
                     />
                   </div>
                 ) : null}

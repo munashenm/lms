@@ -65,10 +65,18 @@ function errorMessage(payload: unknown, fallback: string) {
 }
 
 export function LicenceManager({ schoolId }: { schoolId?: string }) {
+  const [trackedSchoolId, setTrackedSchoolId] = useState(schoolId);
   const [data, setData] = useState<LicensePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [key, setKey] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Reset local licence state when the school selection changes (render-time adjust).
+  if (schoolId !== trackedSchoolId) {
+    setTrackedSchoolId(schoolId);
+    setData(null);
+    setError(null);
+  }
 
   async function load() {
     const qs = schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : "";
@@ -92,10 +100,11 @@ export function LicenceManager({ schoolId }: { schoolId?: string }) {
   }
 
   useEffect(() => {
-    setData(null);
-    setError(null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load remote licence when school changes
-    void load();
+    // Defer so setState after fetch is not synchronous inside the effect body.
+    const id = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 

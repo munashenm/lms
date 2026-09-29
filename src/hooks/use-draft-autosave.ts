@@ -2,20 +2,41 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+export function readStoredDraft<T>(key: string): T | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+function readHasDraft(key: string, enabled: boolean): boolean {
+  if (!enabled || typeof window === "undefined") return false;
+  try {
+    return Boolean(localStorage.getItem(key));
+  } catch {
+    return false;
+  }
+}
+
 export function useDraftAutosave<T>(key: string, value: T, enabled = true) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [hasDraft, setHasDraft] = useState(false);
+  const [trackedKey, setTrackedKey] = useState(key);
+  const [hasDraft, setHasDraft] = useState(() => readHasDraft(key, enabled));
   const restored = useRef(false);
 
+  // React-recommended: adjust state when the draft key prop changes (not via effect).
+  if (key !== trackedKey) {
+    setTrackedKey(key);
+    setHasDraft(readHasDraft(key, enabled));
+  }
+
   useEffect(() => {
-    if (!enabled || restored.current) return;
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) setHasDraft(true);
-    } catch {
-      /* ignore */
-    }
-  }, [key, enabled]);
+    restored.current = false;
+  }, [key]);
 
   useEffect(() => {
     if (!enabled) return;

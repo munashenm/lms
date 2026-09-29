@@ -115,6 +115,7 @@ export function navHrefModule(href: string): SystemModuleKey | null {
   if (href.includes("/website")) return "website";
   if (href.includes("/visitor")) return "visitor_management";
   if (href.includes("/backup")) return "backup";
+  if (href.includes("/compliance") || href.includes("/sa-sams")) return "reports";
   if (href === "/admin/reports" || href.startsWith("/admin/reports/")) return "reports";
   if (href.includes("/letters")) return "transfers";
   return null;

@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   });
   if (!student) return NextResponse.json({ message: "Student not found" }, { status: 404 });
 
-  let paymentId: string | null = parsed.data.paymentId ?? null;
+  const paymentId: string | null = parsed.data.paymentId ?? null;
   if (paymentId) {
     const payment = await prisma.payment.findFirst({
       where: { id: paymentId, schoolId, reversedAt: null },

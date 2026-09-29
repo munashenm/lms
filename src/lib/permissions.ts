@@ -11,6 +11,8 @@ export const ACTION_PERMISSIONS = [
   "students.promote",
   "students.transfer",
   "students.promotion_override",
+  "students.emis_sensitive",
+  "admissions.deposit_waive",
   "attendance.view",
   "attendance.capture",
   "attendance.edit",
@@ -58,6 +60,8 @@ export type ActionPermission = (typeof ACTION_PERMISSIONS)[number];
 export type LegacyPermission =
   | "students:read"
   | "students:write"
+  | "students.emis_sensitive"
+  | "admissions.deposit_waive"
   | "staff:read"
   | "staff:write"
   | "classes:read"
@@ -130,6 +134,8 @@ export const ACTION_TO_LEGACY: Record<ActionPermission, LegacyPermission[]> = {
   "students.promote": ["students:write"],
   "students.transfer": ["students:write"],
   "students.promotion_override": ["settings:write"],
+  "students.emis_sensitive": ["students.emis_sensitive"],
+  "admissions.deposit_waive": ["admissions.deposit_waive", "finance.payments.approve"],
   "attendance.view": ["attendance:read"],
   "attendance.capture": ["attendance:write"],
   "attendance.edit": ["attendance:write"],
@@ -190,6 +196,8 @@ export const PERMISSION_GROUPS: Array<{
       "students.promote",
       "students.transfer",
       "students.promotion_override",
+      "students.emis_sensitive",
+      "admissions.deposit_waive",
     ],
   },
   {
@@ -274,6 +282,8 @@ export const PERMISSION_LABELS: Record<ActionPermission, string> = {
   "students.promote": "Promote Students",
   "students.transfer": "Transfer Students",
   "students.promotion_override": "Override Promotion Decision",
+  "students.emis_sensitive": "Edit EMIS / SNE sensitive fields",
+  "admissions.deposit_waive": "Waive admissions deposit",
   "attendance.view": "View Attendance",
   "attendance.capture": "Capture Attendance",
   "attendance.edit": "Edit Attendance",

@@ -89,6 +89,7 @@ src/
 | [Sales one-pager](docs/SALES_ONE_PAGER.md) | Email / print leave-behind |
 | [Project plan](docs/PROJECT_PLAN.md) | Delivery scope |
 | [Licensing, backup, SA-SAMS](docs/ENTERPRISE_LICENSING_BACKUP_SASAMS.md) | Hosting and IT |
+| [d6 gap & differentiation (2026)](docs/D6_GAP_ANALYSIS_2026.md) | SA requirements gaps and SchoolHub differentiators |
 
 See `docs/PROJECT_PLAN.md` for the full delivered module list.
 

@@ -44,7 +44,8 @@ const PAYROLL_ALL: Permission[] = [
 
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   SUPER_ADMIN: [
-    "students:read", "students:write", "staff:read", "staff:write",
+    "students:read", "students:write", "students.emis_sensitive", "admissions.deposit_waive",
+    "staff:read", "staff:write",
     "classes:read", "classes:write", "attendance:read", "attendance:write",
     "marks:read", "marks:write",
     "reports:read", "settings:read", "settings:write", "audit:read",
@@ -54,7 +55,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     ...ENTERPRISE_FULL,
   ],
   SCHOOL_ADMIN: [
-    "students:read", "students:write", "staff:read", "staff:write",
+    "students:read", "students:write", "students.emis_sensitive", "admissions.deposit_waive",
+    "staff:read", "staff:write",
     "classes:read", "classes:write", "attendance:read", "attendance:write",
     "marks:read", "marks:write",
     "reports:read", "settings:read", "settings:write", "audit:read",
@@ -64,7 +66,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     ...ENTERPRISE_FULL,
   ],
   PRINCIPAL: [
-    "students:read", "staff:read", "classes:read", "attendance:read",
+    "students:read", "students.emis_sensitive", "admissions.deposit_waive",
+    "staff:read", "classes:read", "attendance:read",
     "marks:read", "finance:read", "finance.view", "finance.reports.view",
     "hr.view", "payroll.view",
     "reports:read", "settings:read",
@@ -81,12 +84,12 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   STUDENT: ["marks:read", "attendance:read", "messaging.view", "messaging.send"],
   PARENT: ["students:read", "marks:read", "attendance:read", "finance:read", "finance.receipts.view", "messaging.view", "messaging.send"],
   FINANCE_OFFICER: [
-    "students:read", ...FINANCE_ALL, "reports:read",
+    "students:read", "admissions.deposit_waive", ...FINANCE_ALL, "reports:read",
     "visitors:read", "visitors:write", "visitors.create", "visitors.checkout",
     "sms.view", "sms.send", "messaging.view", "messaging.send",
   ],
   ADMISSIONS_OFFICER: [
-    "students:read", "students:write", "reports:read",
+    "students:read", "students:write", "admissions.deposit_waive", "reports:read",
     "visitors:read", "visitors:write",
   ],
   HR_OFFICER: [

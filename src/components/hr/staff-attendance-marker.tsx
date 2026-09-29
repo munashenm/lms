@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useDraftAutosave } from "@/hooks/use-draft-autosave";
+import { readStoredDraft, useDraftAutosave } from "@/hooks/use-draft-autosave";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,12 +53,11 @@ function roleLabel(role: string): string {
   return role.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function StaffAttendanceMarker({
-  date,
-  schoolId,
-  staff,
-  existingRecords = [],
-}: StaffAttendanceMarkerProps) {
+function buildStaffStatuses(
+  date: string,
+  staff: StaffRow[],
+  existingRecords: StaffAttendanceMarkerProps["existingRecords"] = []
+) {
   const initial: Record<string, StaffAttendanceStatus> = {};
   staff.forEach((s) => {
     const existing = existingRecords.find((r) => r.userId === s.id);
@@ -70,23 +69,33 @@ export function StaffAttendanceMarker({
       initial[s.id] = "PRESENT";
     }
   });
+  const draft = readStoredDraft<Record<string, StaffAttendanceStatus>>(
+    `draft-staff-attendance-${date}`
+  );
+  if (draft && Object.keys(draft).length > 0) {
+    return { statuses: draft, restored: true };
+  }
+  return { statuses: initial, restored: false };
+}
 
-  const [statuses, setStatuses] = useState(initial);
+export function StaffAttendanceMarker({
+  date,
+  schoolId,
+  staff,
+  existingRecords = [],
+}: StaffAttendanceMarkerProps) {
+  const [boot] = useState(() => buildStaffStatuses(date, staff, existingRecords));
+  const [statuses, setStatuses] = useState(boot.statuses);
+  const [draftNotice] = useState(boot.restored);
   const [loading, setLoading] = useState(false);
   const draftKey = `draft-staff-attendance-${date}`;
-  const { lastSaved, hasDraft, restoreDraft, clearDraft } = useDraftAutosave(
-    draftKey,
-    statuses
-  );
+  const { lastSaved, hasDraft, clearDraft } = useDraftAutosave(draftKey, statuses);
 
   useEffect(() => {
-    const draft = restoreDraft();
-    if (draft && Object.keys(draft).length > 0) {
-      setStatuses(draft);
+    if (draftNotice) {
       toast.info("Restored unsaved staff attendance draft");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftKey]);
+  }, [draftNotice]);
 
   function setAll(status: StaffAttendanceStatus) {
     const next: Record<string, StaffAttendanceStatus> = {};
