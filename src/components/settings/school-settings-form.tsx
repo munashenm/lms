@@ -50,6 +50,7 @@ interface SchoolData {
   teacherReviewsAnonymous?: boolean;
   studentLeaveRequiresGuardian?: boolean;
   requireFeesPaidForDocuments?: boolean;
+  cemisEnabled?: boolean;
   heroHeadline?: string | null;
   heroSubtitle?: string | null;
   aboutText?: string | null;
@@ -122,6 +123,7 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             teacherReviewsAnonymous: form.get("teacherReviewsAnonymous") === "on",
             studentLeaveRequiresGuardian: form.get("studentLeaveRequiresGuardian") === "on",
             requireFeesPaidForDocuments: form.get("requireFeesPaidForDocuments") === "on",
+            cemisEnabled: form.get("cemisEnabled") === "on",
             heroHeadline: form.get("heroHeadline") || "",
             heroSubtitle: form.get("heroSubtitle") || "",
             aboutText: form.get("aboutText") || "",
@@ -536,6 +538,27 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
               className="rounded"
             />
             Release reports, certificates and letters only when school fees are paid in full
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Western Cape CEMIS</CardTitle>
+          <p className="text-sm text-muted">
+            CEMIS marks export is opt-in per institution. Do not enable for every South African school —
+            only where the Western Cape CEMIS MVP is required.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="cemisEnabled"
+              defaultChecked={school.cemisEnabled ?? false}
+              className="rounded"
+            />
+            Enable CEMIS compliance provider for this institution
           </label>
         </CardContent>
       </Card>

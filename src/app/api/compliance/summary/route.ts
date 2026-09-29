@@ -54,7 +54,13 @@ export async function GET(_request: NextRequest) {
     }),
     prisma.school.findUnique({
       where: { id: schoolId },
-      select: { id: true, name: true, province: true, registrationNo: true },
+      select: {
+        id: true,
+        name: true,
+        province: true,
+        registrationNo: true,
+        cemisEnabled: true,
+      },
     }),
   ]);
 
@@ -72,6 +78,7 @@ export async function GET(_request: NextRequest) {
   const summary = summariseCompliance(issues);
   return NextResponse.json({
     school,
+    cemisEnabled: Boolean(school?.cemisEnabled),
     summary: {
       ...summary,
       activeLearners: learners.length,

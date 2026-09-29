@@ -187,6 +187,7 @@ describe("other portal groups", () => {
     expect(financeNav.find((item) => item.href === "/finance/ledger")?.section).toBe("Books");
     expect(financeNav.map((item) => item.href)).toContain("/finance/invoices");
     expect(financeNav.map((item) => item.href)).toContain("/finance/payments");
+    expect(financeNav.map((item) => item.href)).toContain("/finance/debtors/age");
     expect(financeNav.find((item) => item.href === "/finance/letters")?.section).toBe("Collections");
   });
 

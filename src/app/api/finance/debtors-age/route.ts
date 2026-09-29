@@ -7,10 +7,15 @@ import { buildDebtorsAgeAnalysis } from "@/lib/finance/debtors-age";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
-  if (!session || !requirePermission(session, "finance.view")) {
+  const canView =
+    session &&
+    (requirePermission(session, "finance.view") ||
+      requirePermission(session, "finance.reports") ||
+      requirePermission(session, "finance.reports.view"));
+  if (!canView) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
-  const filter = getSchoolFilter(session);
+  const filter = getSchoolFilter(session!);
   const schoolId = "schoolId" in filter ? filter.schoolId : null;
   if (!schoolId) return NextResponse.json({ message: "Select a school" }, { status: 400 });
 
@@ -36,6 +41,7 @@ export async function GET(request: NextRequest) {
     },
   });
 
+  // Age only the remaining unpaid portion of each invoice (partial payments already applied).
   const agedInput = invoices.map((inv) => ({
     invoiceId: inv.id,
     studentId: inv.studentId,
@@ -50,6 +56,7 @@ export async function GET(request: NextRequest) {
     asOf: asOf.toISOString(),
     totals: analysis.totals,
     totalOutstanding: analysis.totalOutstanding,
+    debtorAccountCount: analysis.debtorAccountCount,
     rows: analysis.rows.map((row) => ({
       ...row,
       student: studentMap.get(row.studentId) ?? null,

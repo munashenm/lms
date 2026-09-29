@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatZAR } from "@/lib/utils";
-import { AGE_BUCKET_LABELS, type AgeBucket } from "@/lib/finance/debtors-age";
+import { AGE_BUCKETS, AGE_BUCKET_LABELS, type AgeBucket } from "@/lib/finance/debtors-age";
 
 type Row = {
   studentId: string;
@@ -22,28 +22,35 @@ type Row = {
   } | null;
 };
 
-const BUCKETS: AgeBucket[] = ["current", "1_30", "31_60", "61_90", "90_plus"];
-
-export function DebtorsAgePanel() {
+export function DebtorsAgePanel({
+  invoiceBasePath = "/admin/finance/invoices",
+}: {
+  invoiceBasePath?: string;
+}) {
   const [rows, setRows] = useState<Row[]>([]);
   const [totals, setTotals] = useState<Record<AgeBucket, number> | null>(null);
   const [totalOutstanding, setTotalOutstanding] = useState(0);
+  const [debtorAccountCount, setDebtorAccountCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch("/api/finance/debtors-age");
-        const data = await res.json();
-        if (res.ok) {
-          setRows(data.rows ?? []);
-          setTotals(data.totals ?? null);
-          setTotalOutstanding(data.totalOutstanding ?? 0);
+    const id = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch("/api/finance/debtors-age");
+          const data = await res.json();
+          if (res.ok) {
+            setRows(data.rows ?? []);
+            setTotals(data.totals ?? null);
+            setTotalOutstanding(data.totalOutstanding ?? 0);
+            setDebtorAccountCount(data.debtorAccountCount ?? data.rows?.length ?? 0);
+          }
+        } finally {
+          setLoading(false);
         }
-      } finally {
-        setLoading(false);
-      }
-    })();
+      })();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   if (loading) return <p className="text-sm text-muted">Loading age analysis…</p>;
@@ -51,7 +58,7 @@ export function DebtorsAgePanel() {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {BUCKETS.map((bucket) => (
+        {AGE_BUCKETS.map((bucket) => (
           <Card key={bucket}>
             <CardContent className="pt-4">
               <p className="text-xs text-muted uppercase tracking-wide">{AGE_BUCKET_LABELS[bucket]}</p>
@@ -61,7 +68,11 @@ export function DebtorsAgePanel() {
         ))}
       </div>
       <p className="text-sm text-muted">
-        Total outstanding: <span className="font-semibold text-foreground">{formatZAR(totalOutstanding)}</span>
+        Debtor accounts:{" "}
+        <span className="font-semibold text-foreground">{debtorAccountCount}</span>
+        {" · "}
+        Total outstanding:{" "}
+        <span className="font-semibold text-foreground">{formatZAR(totalOutstanding)}</span>
       </p>
       <Card>
         <CardHeader>
@@ -72,9 +83,9 @@ export function DebtorsAgePanel() {
             <thead>
               <tr className="border-b border-border bg-background/50">
                 <th className="text-left px-4 py-3 font-medium text-muted">Student</th>
-                {BUCKETS.map((b) => (
+                {AGE_BUCKETS.map((b) => (
                   <th key={b} className="text-right px-3 py-3 font-medium text-muted hidden md:table-cell">
-                    {AGE_BUCKET_LABELS[b].split(" ")[0]}
+                    {AGE_BUCKET_LABELS[b]}
                   </th>
                 ))}
                 <th className="text-right px-4 py-3 font-medium text-muted">Total</th>
@@ -95,7 +106,7 @@ export function DebtorsAgePanel() {
                       {row.student ? (
                         <>
                           <Link
-                            href={`/admin/finance/invoices?studentId=${row.student.id}`}
+                            href={`${invoiceBasePath}?studentId=${row.student.id}`}
                             className="font-medium text-primary hover:underline"
                           >
                             {row.student.firstName} {row.student.lastName}
@@ -106,7 +117,7 @@ export function DebtorsAgePanel() {
                         row.studentId
                       )}
                     </td>
-                    {BUCKETS.map((b) => (
+                    {AGE_BUCKETS.map((b) => (
                       <td key={b} className="px-3 py-3 text-right hidden md:table-cell text-muted">
                         {row.buckets[b] ? formatZAR(row.buckets[b]) : "—"}
                       </td>

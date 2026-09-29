@@ -143,6 +143,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (kind === "CEMIS_MARKS") {
+      if (!school.cemisEnabled) {
+        return NextResponse.json(
+          {
+            message:
+              "CEMIS is not enabled for this institution. A Super Admin can enable it under school settings.",
+          },
+          { status: 403 }
+        );
+      }
       const marks = await prisma.mark.findMany({
         where: {
           student: { schoolId },

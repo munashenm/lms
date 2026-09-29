@@ -168,6 +168,13 @@ export async function postApprovedPayment(opts: {
     previous: previousRelease,
   });
 
+  // Dynamic import avoids a circular dependency with admissions-deposit → createManualPayment.
+  const { syncDepositApplicationsForInvoice } = await import("./admissions-deposit");
+  await syncDepositApplicationsForInvoice({
+    invoiceId: invoice.id,
+    actorId: opts.userId,
+  });
+
   return posted;
 }
 

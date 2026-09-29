@@ -12,7 +12,9 @@ import { APPLICATION_STATUS_LABELS } from "@/lib/application-status";
 import {
   ADMISSIONS_PIPELINE_STAGES,
   ADMISSIONS_TERMINAL_STAGES,
+  canAcceptOffer,
   canIssueOffer,
+  canMarkDepositPaid,
 } from "@/lib/admissions-pipeline";
 import { formatDate, formatZAR } from "@/lib/utils";
 
@@ -28,6 +30,8 @@ type AppRow = {
   submittedAt: string | Date;
   depositAmount: string | number | null;
   depositPaidAt: string | Date | null;
+  depositWaivedAt?: string | Date | null;
+  depositInvoiceId?: string | null;
   offerSentAt: string | Date | null;
   offerExpiresAt: string | Date | null;
   studentId: string | null;
@@ -42,6 +46,8 @@ const statusVariant: Record<string, "success" | "warning" | "danger" | "secondar
   WAITLISTED: "secondary",
   PROVISIONALLY_ACCEPTED: "success",
   OFFER_ISSUED: "success",
+  DEPOSIT_PENDING: "warning",
+  DEPOSIT_PAID: "success",
   ACCEPTED: "success",
   ENROLLED: "success",
   REJECTED: "danger",
@@ -145,31 +151,52 @@ export function AdmissionsPipelineBoard({ applications }: { applications: AppRow
                           </Button>
                         </>
                       ) : null}
-                      {app.status === "OFFER_ISSUED" ? (
-                        <>
-                          <Button
-                            size="sm"
-                            disabled={loading === app.id}
-                            onClick={() => void patch(app.id, { status: "ACCEPTED" })}
-                          >
-                            Accept & enrol
-                          </Button>
-                          {!app.depositPaidAt && Number(app.depositAmount ?? 0) > 0 ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={loading === app.id}
-                              onClick={() =>
-                                void patch(app.id, {
-                                  status: "OFFER_ISSUED",
-                                  markDepositPaid: true,
-                                })
-                              }
-                            >
-                              Mark deposit paid
-                            </Button>
-                          ) : null}
-                        </>
+                      {canMarkDepositPaid(app) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={loading === app.id}
+                          onClick={() =>
+                            void patch(app.id, {
+                              status: app.status === "DEPOSIT_PENDING" ? "DEPOSIT_PENDING" : "OFFER_ISSUED",
+                              markDepositPaid: true,
+                            })
+                          }
+                        >
+                          Record deposit payment
+                        </Button>
+                      ) : null}
+                      {canMarkDepositPaid(app) ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={loading === app.id}
+                          onClick={() => {
+                            const reason = window.prompt("Waiver reason (required for audit):");
+                            if (!reason?.trim()) return;
+                            void patch(app.id, {
+                              status: "DEPOSIT_PAID",
+                              waiveDeposit: true,
+                              waiverReason: reason.trim(),
+                            });
+                          }}
+                        >
+                          Waive deposit
+                        </Button>
+                      ) : null}
+                      {canAcceptOffer(app.status) || app.status === "DEPOSIT_PAID" ? (
+                        <Button
+                          size="sm"
+                          disabled={loading === app.id}
+                          onClick={() => void patch(app.id, { status: "ACCEPTED" })}
+                        >
+                          Accept & enrol
+                        </Button>
+                      ) : null}
+                      {app.depositInvoiceId ? (
+                        <Button size="sm" variant="ghost" asChild>
+                          <Link href={`/admin/finance/invoices/${app.depositInvoiceId}`}>Deposit invoice</Link>
+                        </Button>
                       ) : null}
                       {app.studentId ? (
                         <Button size="sm" variant="ghost" asChild>

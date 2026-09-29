@@ -571,6 +571,8 @@ export const applicationStatusSchema = z.object({
     "WAITLISTED",
     "PROVISIONALLY_ACCEPTED",
     "OFFER_ISSUED",
+    "DEPOSIT_PENDING",
+    "DEPOSIT_PAID",
     "ACCEPTED",
     "REJECTED",
     "ENROLLED",
@@ -582,6 +584,8 @@ export const applicationStatusSchema = z.object({
   depositAmount: z.number().nonnegative().optional(),
   offerExpiresAt: z.string().optional().nullable(),
   markDepositPaid: z.boolean().optional(),
+  waiveDeposit: z.boolean().optional(),
+  waiverReason: z.string().optional(),
 });
 
 export const invoiceLineItemSchema = z.object({
@@ -739,6 +743,7 @@ export const schoolSettingsSchema = z.object({
   teacherReviewsAnonymous: z.coerce.boolean().optional(),
   studentLeaveRequiresGuardian: z.coerce.boolean().optional(),
   requireFeesPaidForDocuments: z.coerce.boolean().optional(),
+  cemisEnabled: z.coerce.boolean().optional(),
   heroHeadline: z.string().optional(),
   heroSubtitle: z.string().optional(),
   aboutText: z.string().optional(),

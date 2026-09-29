@@ -3,11 +3,13 @@ import { Gender, PopulationGroup, StudentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { denyUnless } from "@/lib/access";
+import { requirePermission } from "@/lib/rbac";
 import { studentPatchSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { emptyToNull } from "@/lib/class-teachers";
 import { recordStudentChanges } from "@/lib/student-history";
 import { scopedId } from "@/lib/tenant";
+import { requestedEmisSensitiveFields } from "@/lib/emis-sensitive";
 import {
   learnerPortalShouldBeActive,
   provisionExistingStudent,
@@ -44,6 +46,18 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const data = parsed.data;
+  const sensitiveRequested = requestedEmisSensitiveFields(data as Record<string, unknown>);
+  if (sensitiveRequested.length > 0 && !requirePermission(actor, "students.emis_sensitive")) {
+    return NextResponse.json(
+      {
+        message:
+          "EMIS / SNE demographic fields require the students.emis_sensitive permission",
+        fields: sensitiveRequested,
+      },
+      { status: 403 }
+    );
+  }
+
   const fieldUpdate = {
     ...(data.firstName !== undefined ? { firstName: data.firstName } : {}),
     ...(data.lastName !== undefined ? { lastName: data.lastName } : {}),
@@ -156,6 +170,24 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       action: "UPDATE",
       entity: "Student",
       entityId: id,
+      metadata: sensitiveRequested.length
+        ? {
+            kind: "EMIS_SENSITIVE_UPDATE",
+            fields: sensitiveRequested,
+            before: Object.fromEntries(
+              sensitiveRequested.map((field) => [
+                field,
+                (existing as unknown as Record<string, unknown>)[field] ?? null,
+              ])
+            ),
+            after: Object.fromEntries(
+              sensitiveRequested.map((field) => [
+                field,
+                (student as unknown as Record<string, unknown>)[field] ?? null,
+              ])
+            ),
+          }
+        : undefined,
     });
   }
 

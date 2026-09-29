@@ -73,6 +73,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
   const canFinance = requirePermission(session, "finance.view");
   const canFinanceWrite = requirePermission(session, "finance.record_payment");
   const canWriteStudents = requirePermission(session, "students.edit");
+  const canEditEmisSensitive = requirePermission(session, "students.emis_sensitive");
   const canPromote = requirePermission(session, "students.promote");
   const canAudit = requirePermission(session, "audit:read");
 
@@ -217,6 +218,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
                         status: student.status,
                       }}
                       campuses={campuses}
+                      canEditEmisSensitive={canEditEmisSensitive}
                     />
                   </div>
                 ) : null}

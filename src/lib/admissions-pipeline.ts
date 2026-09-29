@@ -10,6 +10,8 @@ export const ADMISSIONS_PIPELINE_STAGES: ApplicationStatusValue[] = [
   "WAITLISTED",
   "PROVISIONALLY_ACCEPTED",
   "OFFER_ISSUED",
+  "DEPOSIT_PENDING",
+  "DEPOSIT_PAID",
   "ACCEPTED",
   "ENROLLED",
 ];
@@ -29,17 +31,27 @@ export function canIssueOffer(status: string): boolean {
 }
 
 export function canAcceptOffer(status: string): boolean {
-  return status === "OFFER_ISSUED" || status === "PROVISIONALLY_ACCEPTED";
+  return (
+    status === "OFFER_ISSUED" ||
+    status === "PROVISIONALLY_ACCEPTED" ||
+    status === "DEPOSIT_PAID"
+  );
 }
 
 export function canMarkDepositPaid(application: {
   status: string;
   depositAmount?: number | string | null;
   depositPaidAt?: Date | string | null;
+  depositWaivedAt?: Date | string | null;
 }): boolean {
-  if (application.depositPaidAt) return false;
+  if (application.depositPaidAt || application.depositWaivedAt) return false;
   const amount = Number(application.depositAmount ?? 0);
-  return amount > 0 && ["OFFER_ISSUED", "ACCEPTED", "PROVISIONALLY_ACCEPTED"].includes(application.status);
+  return (
+    amount > 0 &&
+    ["OFFER_ISSUED", "DEPOSIT_PENDING", "ACCEPTED", "PROVISIONALLY_ACCEPTED"].includes(
+      application.status
+    )
+  );
 }
 
 export function pipelineColumnForStatus(status: string): string {

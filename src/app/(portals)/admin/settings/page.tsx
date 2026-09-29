@@ -105,6 +105,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           teacherReviewsAnonymous: school.teacherReviewsAnonymous,
           studentLeaveRequiresGuardian: school.studentLeaveRequiresGuardian,
           requireFeesPaidForDocuments: school.requireFeesPaidForDocuments,
+          cemisEnabled: school.cemisEnabled,
           heroHeadline: school.heroHeadline,
           heroSubtitle: school.heroSubtitle,
           aboutText: school.aboutText,

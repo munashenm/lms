@@ -180,11 +180,13 @@ describe("CEMIS and promotion exports", () => {
 });
 
 describe("Debtors age analysis", () => {
-  it("buckets overdue invoices", () => {
+  it("buckets Current / 30 / 60 / 90 / 120+ from due dates", () => {
     expect(bucketForDays(-2)).toBe("current");
     expect(bucketForDays(10)).toBe("1_30");
     expect(bucketForDays(45)).toBe("31_60");
-    expect(bucketForDays(120)).toBe("90_plus");
+    expect(bucketForDays(75)).toBe("61_90");
+    expect(bucketForDays(91)).toBe("120_plus");
+    expect(bucketForDays(120)).toBe("120_plus");
 
     const asOf = new Date("2026-09-29T12:00:00Z");
     const analysis = buildDebtorsAgeAnalysis(
@@ -205,9 +207,35 @@ describe("Debtors age analysis", () => {
       asOf
     );
     expect(analysis.totalOutstanding).toBe(1500);
+    expect(analysis.debtorAccountCount).toBe(1);
     expect(analysis.rows).toHaveLength(1);
     expect(analysis.totals["1_30"]).toBe(1000);
-    expect(analysis.totals["90_plus"]).toBe(500);
+    expect(analysis.totals["120_plus"]).toBe(500);
+  });
+
+  it("ages only the remaining unpaid portion after partial payment", () => {
+    const asOf = new Date("2026-09-29T12:00:00Z");
+    const analysis = buildDebtorsAgeAnalysis(
+      [
+        {
+          invoiceId: "i1",
+          studentId: "s1",
+          outstanding: 250, // R1000 invoice with R750 paid
+          dueDate: "2026-07-01T00:00:00Z",
+        },
+        {
+          invoiceId: "i2",
+          studentId: "s2",
+          outstanding: 0,
+          dueDate: "2026-01-01T00:00:00Z",
+        },
+      ],
+      asOf
+    );
+    expect(analysis.debtorAccountCount).toBe(1);
+    expect(analysis.totalOutstanding).toBe(250);
+    expect(analysis.totals["61_90"]).toBe(250);
+    expect(analysis.totals["120_plus"]).toBe(0);
   });
 });
 

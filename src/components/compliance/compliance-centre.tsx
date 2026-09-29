@@ -32,6 +32,7 @@ export function ComplianceCentre() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [schoolName, setSchoolName] = useState("");
+  const [cemisEnabled, setCemisEnabled] = useState(false);
   const [lastExport, setLastExport] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -43,6 +44,7 @@ export function ComplianceCentre() {
       setSummary(data.summary);
       setIssues(data.issues ?? []);
       setSchoolName(data.school?.name ?? "");
+      setCemisEnabled(Boolean(data.cemisEnabled));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load compliance");
     } finally {
@@ -150,9 +152,11 @@ export function ComplianceCentre() {
         >
           Export with warnings/errors
         </Button>
-        <Button variant="outline" onClick={() => void runExport("CEMIS_MARKS")} disabled={!!busy}>
-          {busy === "CEMIS_MARKS" ? "Exporting…" : "CEMIS marks (MVP)"}
-        </Button>
+        {cemisEnabled ? (
+          <Button variant="outline" onClick={() => void runExport("CEMIS_MARKS")} disabled={!!busy}>
+            {busy === "CEMIS_MARKS" ? "Exporting…" : "CEMIS marks (MVP)"}
+          </Button>
+        ) : null}
         <Button variant="outline" onClick={() => void runExport("LURITS_PROMOTION")} disabled={!!busy}>
           {busy === "LURITS_PROMOTION" ? "Exporting…" : "Promotion → LURITS"}
         </Button>

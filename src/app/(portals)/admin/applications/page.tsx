@@ -29,6 +29,8 @@ export default async function ApplicationsPage() {
       "WAITLISTED",
       "PROVISIONALLY_ACCEPTED",
       "OFFER_ISSUED",
+      "DEPOSIT_PENDING",
+      "DEPOSIT_PAID",
     ].includes(a.status)
   ).length;
 
@@ -44,6 +46,8 @@ export default async function ApplicationsPage() {
     submittedAt: a.submittedAt,
     depositAmount: a.depositAmount != null ? Number(a.depositAmount) : null,
     depositPaidAt: a.depositPaidAt,
+    depositWaivedAt: a.depositWaivedAt,
+    depositInvoiceId: a.depositInvoiceId,
     offerSentAt: a.offerSentAt,
     offerExpiresAt: a.offerExpiresAt,
     studentId: a.studentId,
