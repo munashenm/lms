@@ -52,7 +52,15 @@ export function SystemHealthCards({ health, schoolId }: { health: Health; school
         <CardContent className="space-y-2 text-sm">
           <div className="flex items-center justify-between">
             <span>Health</span>
-            <Badge variant={health.backups.health === "healthy" ? "success" : "warning"}>
+            <Badge
+              variant={
+                health.backups.health === "healthy"
+                  ? "success"
+                  : health.backups.health === "missing"
+                    ? "warning"
+                    : "secondary"
+              }
+            >
               {health.backups.health}
             </Badge>
           </div>
