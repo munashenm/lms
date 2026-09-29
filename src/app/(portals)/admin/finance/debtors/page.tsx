@@ -71,9 +71,14 @@ export default async function AdminDebtorsPage() {
           <h1 className="text-2xl font-bold">Debtors</h1>
           <p className="text-muted text-sm mt-1">Students with outstanding fee balances</p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/admin/finance">← Finance overview</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/admin/finance/debtors/age">Age analysis</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/admin/finance">← Finance overview</Link>
+          </Button>
+        </div>
       </div>
       <DebtorTable debtors={debtors} totalOutstanding={totalOutstanding} />
     </div>

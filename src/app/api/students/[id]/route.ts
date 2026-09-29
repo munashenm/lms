@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Gender, StudentStatus } from "@prisma/client";
+import { Gender, PopulationGroup, StudentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { denyUnless } from "@/lib/access";
@@ -13,6 +13,14 @@ import {
   provisionExistingStudent,
   setLinkedUserActive,
 } from "@/lib/portal-provision";
+
+function parseCheckbox(value: unknown): boolean | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === "boolean") return value;
+  if (value === "true" || value === "on") return true;
+  if (value === "false" || value === "") return false;
+  return undefined;
+}
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -43,6 +51,28 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     ...(data.preferredName !== undefined ? { preferredName: emptyToNull(data.preferredName) } : {}),
     ...(data.nationality !== undefined ? { nationality: emptyToNull(data.nationality) } : {}),
     ...(data.homeLanguage !== undefined ? { homeLanguage: emptyToNull(data.homeLanguage) } : {}),
+    ...(data.preferredLanguage !== undefined
+      ? { preferredLanguage: emptyToNull(data.preferredLanguage) }
+      : {}),
+    ...(data.populationGroup !== undefined
+      ? {
+          populationGroup: emptyToNull(data.populationGroup)
+            ? (data.populationGroup as PopulationGroup)
+            : null,
+        }
+      : {}),
+    ...(data.citizenship !== undefined ? { citizenship: emptyToNull(data.citizenship) } : {}),
+    ...(data.countryOfBirth !== undefined ? { countryOfBirth: emptyToNull(data.countryOfBirth) } : {}),
+    ...(parseCheckbox(data.disabilityStatus) !== undefined
+      ? { disabilityStatus: parseCheckbox(data.disabilityStatus)! }
+      : {}),
+    ...(parseCheckbox(data.sneStatus) !== undefined ? { sneStatus: parseCheckbox(data.sneStatus)! } : {}),
+    ...(data.disabilityNotes !== undefined ? { disabilityNotes: emptyToNull(data.disabilityNotes) } : {}),
+    ...(data.luritsNumber !== undefined ? { luritsNumber: emptyToNull(data.luritsNumber) } : {}),
+    ...(data.previousEmisSchool !== undefined
+      ? { previousEmisSchool: emptyToNull(data.previousEmisSchool) }
+      : {}),
+    ...(data.transferReason !== undefined ? { transferReason: emptyToNull(data.transferReason) } : {}),
     ...(data.saIdNumber !== undefined ? { saIdNumber: emptyToNull(data.saIdNumber) } : {}),
     ...(data.passportNumber !== undefined ? { passportNumber: emptyToNull(data.passportNumber) } : {}),
     ...(data.alternativeId !== undefined ? { alternativeId: emptyToNull(data.alternativeId) } : {}),

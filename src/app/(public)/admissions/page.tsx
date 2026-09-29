@@ -10,9 +10,9 @@ export const dynamic = "force-dynamic";
 
 const STEPS = [
   { title: "Enquire & visit", body: "Get in touch and book a walkabout to experience the campus." },
-  { title: "Apply online", body: "Complete the online application and submit the required documents." },
-  { title: "Review", body: "The admissions team reviews your application and may arrange a meeting." },
-  { title: "Offer & enrolment", body: "Accept your place and complete enrolment with the campus office." },
+  { title: "Apply online", body: "Complete the online application, upload documents and track your reference." },
+  { title: "Review", body: "Admissions reviews your file, may request documents or arrange an interview." },
+  { title: "Offer, deposit & enrol", body: "Receive a digital offer, pay any deposit, then enrol into the open intake." },
 ];
 
 export default async function AdmissionsPage() {

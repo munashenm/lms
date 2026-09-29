@@ -4,7 +4,7 @@
 **Audience:** Product, sales, engineering prioritisation  
 **Sources:** SchoolHub codebase & docs (live product); d6 public site/help (capability signals); DBE/LURITS/CEMIS policy context  
 **Date:** September 2026  
-**Status:** Analysis — no UI or proprietary design claims about d6
+**Status:** Analysis + Waves A–C implementation started (Compliance Centre, EMIS fields, SA-SAMS/LURITS/CEMIS exports, promotion batch, debtors age, budgets/projects, admissions pipeline, LMS polish, website intake sync, public `/pricing`)
 
 ---
 

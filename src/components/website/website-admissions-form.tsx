@@ -110,6 +110,10 @@ export function WebsiteAdmissionsForm({
               />
             </div>
           </div>
+          <p className="text-xs text-muted">
+            The public admissions page and Apply form read this intake window so the website stays in sync
+            with the open academic session — no separate site update required.
+          </p>
           <div className="space-y-2">
             <Label>Admission session / intake</Label>
             <Select name="admissionYearId" defaultValue={admissionYearId ?? ""}>

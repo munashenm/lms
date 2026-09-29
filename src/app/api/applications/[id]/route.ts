@@ -70,6 +70,29 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const studentId = enrolled?.studentId ?? existing.studentId;
 
+  const offerFields =
+    parsed.data.status === "OFFER_ISSUED"
+      ? {
+          offerSentAt: existing.offerSentAt ?? new Date(),
+          offerExpiresAt: parsed.data.offerExpiresAt
+            ? new Date(parsed.data.offerExpiresAt)
+            : existing.offerExpiresAt,
+          depositAmount:
+            parsed.data.depositAmount !== undefined
+              ? parsed.data.depositAmount
+              : existing.depositAmount,
+        }
+      : {};
+
+  const acceptOfferFields =
+    parsed.data.status === "ACCEPTED" && existing.status === "OFFER_ISSUED"
+      ? { offerAcceptedAt: new Date() }
+      : {};
+
+  const depositFields = parsed.data.markDepositPaid
+    ? { depositPaidAt: existing.depositPaidAt ?? new Date() }
+    : {};
+
   const application = await prisma.application.update({
     where: { id },
     data: {
@@ -77,6 +100,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       notes: parsed.data.notes ?? undefined,
       reviewedAt: new Date(),
       studentId: enrolled?.studentId ?? undefined,
+      ...offerFields,
+      ...acceptOfferFields,
+      ...depositFields,
     },
   });
 

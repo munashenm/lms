@@ -30,6 +30,16 @@ export interface StudentEditValues {
   gender: string | null;
   nationality: string | null;
   homeLanguage: string | null;
+  preferredLanguage: string | null;
+  populationGroup: string | null;
+  citizenship: string | null;
+  countryOfBirth: string | null;
+  disabilityStatus: boolean;
+  sneStatus: boolean;
+  disabilityNotes: string | null;
+  luritsNumber: string | null;
+  previousEmisSchool: string | null;
+  transferReason: string | null;
   campusId: string | null;
   studentNumber: string;
   enrolledAt: string | null;
@@ -112,16 +122,46 @@ export function StudentEditForm({
             </Select>
           </div>
           <Field id="nationality" label="Nationality" defaultValue={student.nationality} />
+          <Field id="citizenship" label="Citizenship" defaultValue={student.citizenship} />
+          <Field id="countryOfBirth" label="Country of birth" defaultValue={student.countryOfBirth} />
           <Field id="homeLanguage" label="Home language" defaultValue={student.homeLanguage} />
+          <Field id="preferredLanguage" label="Preferred language of learning" defaultValue={student.preferredLanguage} />
+          <div className="space-y-2">
+            <Label htmlFor="populationGroup">Population group (EMIS)</Label>
+            <Select id="populationGroup" name="populationGroup" defaultValue={student.populationGroup ?? ""}>
+              <option value="">Select...</option>
+              <option value="AFRICAN">African</option>
+              <option value="COLOURED">Coloured</option>
+              <option value="INDIAN">Indian/Asian</option>
+              <option value="WHITE">White</option>
+              <option value="OTHER">Other</option>
+              <option value="UNSPECIFIED">Unspecified</option>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Identification</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Identification & EMIS</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field id="saIdNumber" label="SA ID" defaultValue={student.saIdNumber} maxLength={13} error={errors.saIdNumber} />
           <Field id="passportNumber" label="Passport number" defaultValue={student.passportNumber} />
           <Field id="alternativeId" label="Alternative ID" defaultValue={student.alternativeId} />
+          <Field id="luritsNumber" label="LURITS number" defaultValue={student.luritsNumber} />
+          <Field id="previousEmisSchool" label="Previous EMIS school" defaultValue={student.previousEmisSchool} />
+          <Field id="transferReason" label="Transfer reason" defaultValue={student.transferReason} />
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" name="disabilityStatus" value="true" defaultChecked={student.disabilityStatus} />
+            Disability / special needs flagged
+          </label>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+            <input type="checkbox" name="sneStatus" value="true" defaultChecked={student.sneStatus} />
+            SNE learner
+          </label>
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="disabilityNotes">Disability / SNE notes</Label>
+            <Input id="disabilityNotes" name="disabilityNotes" defaultValue={student.disabilityNotes ?? ""} />
+          </div>
         </CardContent>
       </Card>
 

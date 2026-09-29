@@ -132,11 +132,13 @@ export function getAdminFinanceNavItems(): Array<Omit<NavItem, "section" | "sect
       { label: "Payments", href: "/admin/finance/payments", icon: "Wallet" },
       { label: "Student Accounts", href: "/admin/finance/student-accounts", icon: "CreditCard" },
       { label: "Debtors", href: "/admin/finance/debtors", icon: "TrendingDown" },
+      { label: "Age analysis", href: "/admin/finance/debtors/age", icon: "BarChart3" },
       { label: "Fee Reminders", href: "/admin/finance/reminders", icon: "Megaphone" },
     ]),
     ...cluster("Books", [
       { label: "Expenses", href: "/admin/finance/expenses", icon: "TrendingDown" },
       { label: "Credits & aid", href: "/admin/finance/adjustments", icon: "FileText" },
+      { label: "Budgets & projects", href: "/admin/finance/budgets", icon: "Wallet" },
       { label: "Income & Expenses", href: "/admin/finance/ledger", icon: "Wallet" },
       { label: "Reports", href: "/admin/finance/reports", icon: "BarChart3" },
     ]),
@@ -244,6 +246,7 @@ export function getAdminNav(
       ...cluster("Platform", [
         { label: "Backup & Restore", href: "/admin/settings/backup", icon: "DatabaseBackup" },
         { label: "System Health", href: "/admin/system-health", icon: "Shield" },
+        { label: "Compliance Centre", href: "/admin/compliance", icon: "Shield" },
         { label: "SA-SAMS", href: "/admin/integrations/sa-sams", icon: "Plug" },
         { label: "Audit Log", href: "/admin/audit", icon: "FileText" },
       ]),

@@ -84,6 +84,19 @@ export const studentPatchSchema = z.object({
   preferredName: z.string().max(100).optional().or(z.literal("")),
   nationality: z.string().max(80).optional().or(z.literal("")),
   homeLanguage: z.string().max(80).optional().or(z.literal("")),
+  preferredLanguage: z.string().max(80).optional().or(z.literal("")),
+  populationGroup: z
+    .enum(["AFRICAN", "COLOURED", "INDIAN", "WHITE", "OTHER", "UNSPECIFIED"])
+    .optional()
+    .or(z.literal("")),
+  citizenship: z.string().max(80).optional().or(z.literal("")),
+  countryOfBirth: z.string().max(80).optional().or(z.literal("")),
+  disabilityStatus: z.union([z.boolean(), z.literal("true"), z.literal("false"), z.literal("on"), z.literal("")]).optional(),
+  sneStatus: z.union([z.boolean(), z.literal("true"), z.literal("false"), z.literal("on"), z.literal("")]).optional(),
+  disabilityNotes: z.string().optional().or(z.literal("")),
+  luritsNumber: z.string().max(40).optional().or(z.literal("")),
+  previousEmisSchool: z.string().max(160).optional().or(z.literal("")),
+  transferReason: z.string().max(160).optional().or(z.literal("")),
   saIdNumber: z
     .string()
     .optional()
@@ -557,6 +570,7 @@ export const applicationStatusSchema = z.object({
     "ASSESSMENT_REQUIRED",
     "WAITLISTED",
     "PROVISIONALLY_ACCEPTED",
+    "OFFER_ISSUED",
     "ACCEPTED",
     "REJECTED",
     "ENROLLED",
@@ -565,6 +579,9 @@ export const applicationStatusSchema = z.object({
   notes: z.string().optional(),
   hostel: z.boolean().optional(),
   transport: z.boolean().optional(),
+  depositAmount: z.number().nonnegative().optional(),
+  offerExpiresAt: z.string().optional().nullable(),
+  markDepositPaid: z.boolean().optional(),
 });
 
 export const invoiceLineItemSchema = z.object({

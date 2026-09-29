@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter } from "@/lib/rbac";
 import { ApplicationReview } from "@/components/applications/application-review";
+import { AdmissionsPipelineBoard } from "@/components/applications/admissions-pipeline-board";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -27,8 +28,26 @@ export default async function ApplicationsPage() {
       "ASSESSMENT_REQUIRED",
       "WAITLISTED",
       "PROVISIONALLY_ACCEPTED",
+      "OFFER_ISSUED",
     ].includes(a.status)
   ).length;
+
+  const pipelineApps = applications.map((a) => ({
+    id: a.id,
+    referenceNo: a.referenceNo,
+    firstName: a.firstName,
+    lastName: a.lastName,
+    email: a.email,
+    gradeApplied: a.gradeApplied,
+    courseApplied: a.courseApplied,
+    status: a.status,
+    submittedAt: a.submittedAt,
+    depositAmount: a.depositAmount != null ? Number(a.depositAmount) : null,
+    depositPaidAt: a.depositPaidAt,
+    offerSentAt: a.offerSentAt,
+    offerExpiresAt: a.offerExpiresAt,
+    studentId: a.studentId,
+  }));
 
   return (
     <div className="space-y-6">
@@ -36,7 +55,7 @@ export default async function ApplicationsPage() {
         <div>
           <h1 className="text-2xl font-bold">Online applications</h1>
           <p className="text-muted text-sm mt-1">
-            {applications.length} applications · {pending} pending review
+            {applications.length} applications · {pending} in pipeline
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -48,7 +67,14 @@ export default async function ApplicationsPage() {
           </Button>
         </div>
       </div>
-      <ApplicationReview applications={applications} />
+      <div>
+        <h2 className="text-lg font-semibold mb-3">Admissions pipeline</h2>
+        <AdmissionsPipelineBoard applications={pipelineApps} />
+      </div>
+      <div>
+        <h2 className="text-lg font-semibold mb-3">All applications</h2>
+        <ApplicationReview applications={applications} />
+      </div>
     </div>
   );
 }
