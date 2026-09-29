@@ -1,10 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+
+function issueHref(issue: { entityType: string; entityId: string; field?: string }): string {
+  if (issue.entityType === "learner") {
+    const focus = issue.field ? `?focus=${encodeURIComponent(issue.field)}` : "";
+    return `/admin/students/${issue.entityId}${focus}`;
+  }
+  if (issue.entityType === "educator") {
+    return "/admin/staff";
+  }
+  return "/admin/settings";
+}
 
 type Issue = {
   severity: "ERROR" | "WARNING";
@@ -113,9 +125,21 @@ export function ComplianceCentre() {
     }
   }
 
+  const learnerErrorIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const issue of issues) {
+      if (issue.entityType === "learner" && issue.severity === "ERROR") {
+        ids.add(issue.entityId);
+      }
+    }
+    return ids;
+  }, [issues]);
+
   if (loading) {
     return <p className="text-sm text-muted">Checking EMIS readiness…</p>;
   }
+
+  const fixCount = learnerErrorIds.size || summary?.errorCount || 0;
 
   return (
     <div className="space-y-6">
@@ -123,15 +147,33 @@ export function ComplianceCentre() {
         <CardHeader>
           <CardTitle className="text-base">Compliance summary{schoolName ? ` — ${schoolName}` : ""}</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-          <Stat label="Active learners" value={summary?.activeLearners ?? 0} />
-          <Stat label="Active educators" value={summary?.activeEducators ?? 0} />
-          <Stat
-            label="Blocking errors"
-            value={summary?.errorCount ?? 0}
-            tone={(summary?.errorCount ?? 0) > 0 ? "danger" : "ok"}
-          />
-          <Stat label="Warnings" value={summary?.warningCount ?? 0} tone="warn" />
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+            <Stat label="Active learners" value={summary?.activeLearners ?? 0} />
+            <Stat label="Active educators" value={summary?.activeEducators ?? 0} />
+            <Stat
+              label="Blocking errors"
+              value={summary?.errorCount ?? 0}
+              tone={(summary?.errorCount ?? 0) > 0 ? "danger" : "ok"}
+            />
+            <Stat label="Warnings" value={summary?.warningCount ?? 0} tone="warn" />
+          </div>
+          {fixCount > 0 ? (
+            <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm">
+              <p className="font-medium">
+                Fix these {learnerErrorIds.size || fixCount} learner
+                {(learnerErrorIds.size || fixCount) === 1 ? "" : "s"} before export
+              </p>
+              <p className="text-xs text-muted mt-1">
+                Open each learner below and complete the missing EMIS fields. Codes stay visible for
+                audit — the action is the link.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted">
+              Ready for export — no blocking learner errors on active records.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -191,15 +233,29 @@ export function ComplianceCentre() {
           ) : (
             <ul className="divide-y divide-border">
               {issues.slice(0, 100).map((issue, index) => (
-                <li key={`${issue.entityId}-${issue.code}-${index}`} className="py-2 flex gap-3 text-sm">
-                  <Badge variant={issue.severity === "ERROR" ? "danger" : "warning"}>{issue.severity}</Badge>
-                  <div>
+                <li
+                  key={`${issue.entityId}-${issue.code}-${index}`}
+                  className="py-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm"
+                >
+                  <Badge variant={issue.severity === "ERROR" ? "danger" : "warning"}>
+                    {issue.severity}
+                  </Badge>
+                  <div className="min-w-0 flex-1">
                     <p>{issue.message}</p>
                     <p className="text-xs text-muted">
                       {issue.entityType}
                       {issue.field ? ` · ${issue.field}` : ""} · {issue.code}
                     </p>
                   </div>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={issueHref(issue)}>
+                      {issue.entityType === "learner"
+                        ? "Open learner"
+                        : issue.entityType === "educator"
+                          ? "Open staff"
+                          : "Open settings"}
+                    </Link>
+                  </Button>
                 </li>
               ))}
             </ul>

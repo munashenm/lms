@@ -170,12 +170,19 @@ describe("other portal groups", () => {
     ]);
   });
 
-  it("groups parent academics and teacher self-service", () => {
-    expect(getParentNav().find((item) => item.href === "/parent/exams")?.section).toBe("Academics");
-    expect(getParentNav().find((item) => item.href === "/parent/exams")?.group).toBe("Results");
-    expect(getParentNav().find((item) => item.href === "/parent/letters")?.group).toBe("Results");
+  it("keeps parent home shallow and teacher today-first", () => {
+    const parent = getParentNav();
+    expect(parent.find((item) => item.href === "/parent/dashboard")?.label).toBe("Home");
+    expect(parent.find((item) => item.href === "/parent/fees")?.section).toBeUndefined();
+    expect(parent.find((item) => item.href === "/parent/attendance")?.section).toBeUndefined();
+    expect(parent.find((item) => item.href === "/parent/messages")?.section).toBeUndefined();
+    expect(parent.find((item) => item.href === "/parent/exams")?.section).toBe("More");
+    expect(parent.find((item) => item.href === "/parent/exams")?.group).toBe("Learning");
+    expect(parent.find((item) => item.href === "/parent/letters")?.group).toBe("School life");
     expect(getStudentNav().find((item) => item.href === "/student/letters")?.section).toBe("Examinations");
+    expect(getTeacherNav().find((item) => item.href === "/teacher/dashboard")?.label).toBe("Today");
     expect(getTeacherNav().find((item) => item.href === "/staff/payslips")?.section).toBe("My work");
+    expect(getTeacherNav().find((item) => item.href === "/teacher/attendance")?.group).toBe("Daily");
     expect(getTeacherNav().find((item) => item.href === "/teacher/classes")?.group).toBe("Classwork");
     expect(getTeacherNav().find((item) => item.href === "/teacher/report-cards")?.group).toBe("Classwork");
     expect(getTeacherNav().find((item) => item.href === "/teacher/report-cards")?.section).toBe("Teaching");

@@ -8,7 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { APPLICATION_STATUS_LABELS } from "@/lib/application-status";
+import {
+  APPLICATION_STATUS_LABELS,
+  APPLICATION_STATUS_NEXT,
+} from "@/lib/application-status";
 import {
   ADMISSIONS_PIPELINE_STAGES,
   ADMISSIONS_TERMINAL_STAGES,
@@ -54,7 +57,13 @@ const statusVariant: Record<string, "success" | "warning" | "danger" | "secondar
   WITHDRAWN: "secondary",
 };
 
-export function AdmissionsPipelineBoard({ applications }: { applications: AppRow[] }) {
+export function AdmissionsPipelineBoard({
+  applications,
+  invoiceBasePath = "/admin/finance/invoices",
+}: {
+  applications: AppRow[];
+  invoiceBasePath?: string;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [depositDraft, setDepositDraft] = useState<Record<string, string>>({});
@@ -101,111 +110,155 @@ export function AdmissionsPipelineBoard({ applications }: { applications: AppRow
               {col.items.length === 0 ? (
                 <p className="text-xs text-muted">No applications</p>
               ) : (
-                col.items.map((app) => (
-                  <div key={app.id} className="rounded-md border border-border p-3 space-y-2 text-sm">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium">
-                          {app.firstName} {app.lastName}
-                        </p>
-                        <p className="text-xs text-muted">{app.referenceNo}</p>
+                col.items.map((app) => {
+                  const primaryIssue = canIssueOffer(app.status);
+                  const primaryDeposit = !primaryIssue && canMarkDepositPaid(app);
+                  const primaryAccept =
+                    !primaryIssue &&
+                    !primaryDeposit &&
+                    (canAcceptOffer(app.status) || app.status === "DEPOSIT_PAID");
+
+                  return (
+                    <div
+                      key={app.id}
+                      id={app.id}
+                      className="rounded-md border border-border p-3 space-y-2 text-sm"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium">
+                            {app.firstName} {app.lastName}
+                          </p>
+                          <p className="text-xs text-muted">{app.referenceNo}</p>
+                        </div>
+                        <Badge variant={statusVariant[app.status] ?? "default"}>
+                          {APPLICATION_STATUS_LABELS[app.status] ?? app.status}
+                        </Badge>
                       </div>
-                      <Badge variant={statusVariant[app.status] ?? "default"}>
-                        {APPLICATION_STATUS_LABELS[app.status] ?? app.status}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted">
-                      {app.gradeApplied || app.courseApplied || "—"} · {formatDate(app.submittedAt)}
-                    </p>
-                    {app.depositAmount != null ? (
-                      <p className="text-xs">
-                        Deposit {formatZAR(Number(app.depositAmount))}
-                        {app.depositPaidAt ? " · paid" : " · unpaid"}
+                      <p className="text-xs text-muted">
+                        {app.gradeApplied || app.courseApplied || "—"} · {formatDate(app.submittedAt)}
                       </p>
-                    ) : null}
-                    <div className="flex flex-wrap gap-1">
-                      {canIssueOffer(app.status) ? (
-                        <>
-                          <Input
-                            className="h-8 text-xs"
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            placeholder="Deposit ZAR"
-                            value={depositDraft[app.id] ?? ""}
-                            onChange={(e) =>
-                              setDepositDraft((prev) => ({ ...prev, [app.id]: e.target.value }))
-                            }
-                          />
+                      {app.depositAmount != null ? (
+                        <p className="text-xs">
+                          Deposit {formatZAR(Number(app.depositAmount))}
+                          {app.depositWaivedAt
+                            ? " · waived"
+                            : app.depositPaidAt
+                              ? " · paid"
+                              : " · unpaid"}
+                        </p>
+                      ) : null}
+                      <p className="text-xs text-muted leading-snug">
+                        {APPLICATION_STATUS_NEXT[app.status] ?? "Next: check with admissions."}
+                      </p>
+                      <div className="flex flex-col gap-1.5">
+                        {primaryIssue ? (
+                          <>
+                            <Input
+                              className="h-8 text-xs"
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="Deposit ZAR (0 = none)"
+                              value={depositDraft[app.id] ?? ""}
+                              onChange={(e) =>
+                                setDepositDraft((prev) => ({ ...prev, [app.id]: e.target.value }))
+                              }
+                            />
+                            <Button
+                              size="sm"
+                              disabled={loading === app.id}
+                              onClick={() =>
+                                void patch(app.id, {
+                                  status: "OFFER_ISSUED",
+                                  depositAmount: Number(depositDraft[app.id] || 0),
+                                })
+                              }
+                            >
+                              Send offer letter
+                            </Button>
+                          </>
+                        ) : null}
+                        {primaryDeposit ? (
                           <Button
                             size="sm"
                             disabled={loading === app.id}
                             onClick={() =>
                               void patch(app.id, {
-                                status: "OFFER_ISSUED",
-                                depositAmount: Number(depositDraft[app.id] || 0),
+                                status:
+                                  app.status === "DEPOSIT_PENDING"
+                                    ? "DEPOSIT_PENDING"
+                                    : "OFFER_ISSUED",
+                                markDepositPaid: true,
                               })
                             }
                           >
-                            Issue offer
+                            Mark deposit received
                           </Button>
-                        </>
-                      ) : null}
-                      {canMarkDepositPaid(app) ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={loading === app.id}
-                          onClick={() =>
-                            void patch(app.id, {
-                              status: app.status === "DEPOSIT_PENDING" ? "DEPOSIT_PENDING" : "OFFER_ISSUED",
-                              markDepositPaid: true,
-                            })
-                          }
-                        >
-                          Record deposit payment
-                        </Button>
-                      ) : null}
-                      {canMarkDepositPaid(app) ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={loading === app.id}
-                          onClick={() => {
-                            const reason = window.prompt("Waiver reason (required for audit):");
-                            if (!reason?.trim()) return;
-                            void patch(app.id, {
-                              status: "DEPOSIT_PAID",
-                              waiveDeposit: true,
-                              waiverReason: reason.trim(),
-                            });
-                          }}
-                        >
-                          Waive deposit
-                        </Button>
-                      ) : null}
-                      {canAcceptOffer(app.status) || app.status === "DEPOSIT_PAID" ? (
-                        <Button
-                          size="sm"
-                          disabled={loading === app.id}
-                          onClick={() => void patch(app.id, { status: "ACCEPTED" })}
-                        >
-                          Accept & enrol
-                        </Button>
-                      ) : null}
-                      {app.depositInvoiceId ? (
-                        <Button size="sm" variant="ghost" asChild>
-                          <Link href={`/admin/finance/invoices/${app.depositInvoiceId}`}>Deposit invoice</Link>
-                        </Button>
-                      ) : null}
-                      {app.studentId ? (
-                        <Button size="sm" variant="ghost" asChild>
-                          <Link href={`/admin/students/${app.studentId}`}>Student</Link>
-                        </Button>
-                      ) : null}
+                        ) : null}
+                        {primaryAccept ? (
+                          <Button
+                            size="sm"
+                            disabled={loading === app.id}
+                            onClick={() => void patch(app.id, { status: "ACCEPTED" })}
+                          >
+                            Accept and enrol
+                          </Button>
+                        ) : null}
+                        <div className="flex flex-wrap gap-1">
+                          {canMarkDepositPaid(app) && !primaryDeposit ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={loading === app.id}
+                              onClick={() =>
+                                void patch(app.id, {
+                                  status:
+                                    app.status === "DEPOSIT_PENDING"
+                                      ? "DEPOSIT_PENDING"
+                                      : "OFFER_ISSUED",
+                                  markDepositPaid: true,
+                                })
+                              }
+                            >
+                              Mark deposit received
+                            </Button>
+                          ) : null}
+                          {canMarkDepositPaid(app) ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={loading === app.id}
+                              onClick={() => {
+                                const reason = window.prompt("Waiver reason (required for audit):");
+                                if (!reason?.trim()) return;
+                                void patch(app.id, {
+                                  status: "DEPOSIT_PAID",
+                                  waiveDeposit: true,
+                                  waiverReason: reason.trim(),
+                                });
+                              }}
+                            >
+                              Waive deposit
+                            </Button>
+                          ) : null}
+                          {app.depositInvoiceId ? (
+                            <Button size="sm" variant="ghost" asChild>
+                              <Link href={`${invoiceBasePath}/${app.depositInvoiceId}`}>
+                                Deposit invoice
+                              </Link>
+                            </Button>
+                          ) : null}
+                          {app.studentId ? (
+                            <Button size="sm" variant="ghost" asChild>
+                              <Link href={`/admin/students/${app.studentId}`}>Learner</Link>
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </CardContent>
           </Card>

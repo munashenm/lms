@@ -106,8 +106,8 @@ describe("portal login separation", () => {
 
 describe("application statuses", () => {
   it("covers the public admissions workflow", () => {
-    expect(APPLICATION_STATUS_LABELS.DOCUMENTS_OUTSTANDING).toBe("Documents Outstanding");
+    expect(APPLICATION_STATUS_LABELS.DOCUMENTS_OUTSTANDING).toBe("Waiting for documents");
     expect(APPLICATION_STATUS_LABELS.ENROLLED).toBe("Enrolled");
-    expect(APPLICATION_STATUS_LABELS.PROVISIONALLY_ACCEPTED).toBe("Provisionally Accepted");
+    expect(APPLICATION_STATUS_LABELS.PROVISIONALLY_ACCEPTED).toBe("Provisionally accepted");
   });
 });

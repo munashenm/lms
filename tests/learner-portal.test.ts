@@ -369,6 +369,10 @@ describe("South African terminology", () => {
 
   it("labels parent nav with examinations, downloads and notice board", () => {
     const nav = getParentNav();
+    expect(nav.some((item) => item.href === "/parent/dashboard" && item.label === "Home")).toBe(true);
+    expect(nav.some((item) => item.href === "/parent/fees")).toBe(true);
+    expect(nav.some((item) => item.href === "/parent/attendance")).toBe(true);
+    expect(nav.some((item) => item.href === "/parent/messages")).toBe(true);
     expect(nav.some((item) => item.href === "/parent/exams" && item.label === "Examinations")).toBe(true);
     expect(nav.some((item) => item.href === "/parent/downloads" && item.label === "Download Centre")).toBe(true);
     expect(nav.some((item) => item.href === "/parent/calendar" && item.label === "Academic Calendar")).toBe(true);

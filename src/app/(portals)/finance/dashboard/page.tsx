@@ -15,7 +15,7 @@ export default async function FinanceDashboardPage() {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
 
-  const [invoices, recentPayments, ledger] = await Promise.all([
+  const [invoices, recentPayments, ledger, depositPending] = await Promise.all([
     prisma.invoice.findMany({
       where: { ...filter, status: { not: "CANCELLED" } },
       include: {
@@ -37,6 +37,23 @@ export default async function FinanceDashboardPage() {
       },
     }),
     prisma.ledgerEntry.findMany({ where: filter, select: { type: true, amount: true, entryDate: true } }),
+    prisma.application.findMany({
+      where: {
+        ...filter,
+        status: "DEPOSIT_PENDING",
+        depositInvoiceId: { not: null },
+      },
+      select: {
+        id: true,
+        referenceNo: true,
+        firstName: true,
+        lastName: true,
+        depositAmount: true,
+        depositInvoiceId: true,
+      },
+      orderBy: { submittedAt: "desc" },
+      take: 8,
+    }),
   ]);
 
   const totalBilled = invoices.reduce((s, i) => s + Number(i.total), 0);
@@ -83,20 +100,79 @@ export default async function FinanceDashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Finance Dashboard</h1>
+          <h1 className="text-2xl font-bold">Finance home</h1>
           <p className="text-muted text-sm mt-1">
-            Welcome, {session!.firstName}. Manage billing and payments.
+            Welcome, {session!.firstName}. Collections, ageing and deposits — no admin detours.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild>
-            <Link href="/finance/invoices/new">New Invoice</Link>
-          </Button>
-          <Button asChild>
             <Link href="/finance/collect">Collect fees</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/finance/debtors/age">Age analysis</Link>
           </Button>
         </div>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Your workspace</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button asChild>
+            <Link href="/finance/debtors/age">Age analysis</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/finance/collect">Collect fees</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/finance/invoices">Invoices</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/finance/debtors">Debtors</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/finance/reports">Reports</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      {depositPending.length > 0 ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Waiting for deposit</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-xs text-muted mb-2">
+              Admissions offers with an unpaid deposit invoice. Open the invoice to record payment.
+            </p>
+            {depositPending.map((app) => (
+              <div
+                key={app.id}
+                className="flex items-center justify-between gap-3 text-sm border-b border-border last:border-0 py-2"
+              >
+                <div>
+                  <p className="font-medium">
+                    {app.firstName} {app.lastName}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {app.referenceNo}
+                    {app.depositAmount != null
+                      ? ` · ${formatZAR(Number(app.depositAmount))}`
+                      : ""}
+                  </p>
+                </div>
+                {app.depositInvoiceId ? (
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={`/finance/invoices/${app.depositInvoiceId}`}>Open invoice</Link>
+                  </Button>
+                ) : null}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard title="Total Fees Raised" value={formatZAR(totalBilled)} icon={FileText} />
@@ -147,32 +223,6 @@ export default async function FinanceDashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Finance operations</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/finance/collect">Collect fees</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/finance/charges">Charges</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/finance/payments">Payments</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/finance/expenses">Expenses</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/finance/adjustments">Credits & aid</Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/finance/reports">Reports</Link>
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 }

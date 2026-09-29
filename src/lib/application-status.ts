@@ -19,17 +19,17 @@ export type ApplicationStatusValue = (typeof APPLICATION_STATUSES)[number];
 
 export const APPLICATION_STATUS_LABELS: Record<string, string> = {
   SUBMITTED: "Submitted",
-  UNDER_REVIEW: "Under Review",
-  DOCUMENTS_OUTSTANDING: "Documents Outstanding",
-  INTERVIEW_REQUIRED: "Interview Required",
-  ASSESSMENT_REQUIRED: "Assessment Required",
-  WAITLISTED: "Waitlisted",
-  PROVISIONALLY_ACCEPTED: "Provisionally Accepted",
-  OFFER_ISSUED: "Offer Issued",
-  DEPOSIT_PENDING: "Deposit Pending",
-  DEPOSIT_PAID: "Deposit Paid",
-  ACCEPTED: "Offer Accepted",
-  REJECTED: "Rejected",
+  UNDER_REVIEW: "Under review",
+  DOCUMENTS_OUTSTANDING: "Waiting for documents",
+  INTERVIEW_REQUIRED: "Interview needed",
+  ASSESSMENT_REQUIRED: "Assessment needed",
+  WAITLISTED: "On the waitlist",
+  PROVISIONALLY_ACCEPTED: "Provisionally accepted",
+  OFFER_ISSUED: "Offer sent",
+  DEPOSIT_PENDING: "Waiting for deposit",
+  DEPOSIT_PAID: "Ready to enrol",
+  ACCEPTED: "Offer accepted",
+  REJECTED: "Not successful",
   ENROLLED: "Enrolled",
   WITHDRAWN: "Withdrawn",
 };
@@ -49,6 +49,24 @@ export const APPLICATION_STATUS_DESCRIPTIONS: Record<string, string> = {
   REJECTED: "Unfortunately your application was not successful this intake.",
   ENROLLED: "You are enrolled. Use the student portal to access your account.",
   WITHDRAWN: "This application has been withdrawn.",
+};
+
+/** Short “what happens next” line for parents and staff cards. */
+export const APPLICATION_STATUS_NEXT: Record<string, string> = {
+  SUBMITTED: "Next: admissions will review this application.",
+  UNDER_REVIEW: "Next: complete any document or interview requests.",
+  DOCUMENTS_OUTSTANDING: "Next: upload the missing documents.",
+  INTERVIEW_REQUIRED: "Next: attend the scheduled interview.",
+  ASSESSMENT_REQUIRED: "Next: complete the admissions assessment.",
+  WAITLISTED: "Next: wait for a place — we will contact you.",
+  PROVISIONALLY_ACCEPTED: "Next: meet remaining conditions, then receive an offer.",
+  OFFER_ISSUED: "Next: pay the deposit (if any), then accept the offer.",
+  DEPOSIT_PENDING: "Next: pay the deposit invoice to continue enrolment.",
+  DEPOSIT_PAID: "Next: accept the offer so the learner can be enrolled.",
+  ACCEPTED: "Next: the school will complete enrolment.",
+  REJECTED: "No further action on this application.",
+  ENROLLED: "Next: use the learner portal for classes and fees.",
+  WITHDRAWN: "No further action on this application.",
 };
 
 export const REVIEW_ACTION_STATUSES: ApplicationStatusValue[] = [
