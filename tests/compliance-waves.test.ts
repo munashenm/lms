@@ -12,7 +12,6 @@ import {
 import { buildCemisMarksPackage, cemisPackageToCsv } from "@/lib/compliance/cemis-export";
 import { buildPromotionLuritsPackage } from "@/lib/compliance/promotion-export";
 import { bucketForDays, buildDebtorsAgeAnalysis } from "@/lib/finance/debtors-age";
-import { estimateMonthlyZar, PRICING_TIERS } from "@/lib/pricing";
 import { assignmentStatusLabel } from "@/lib/lms-timeline";
 import { canIssueOffer } from "@/lib/admissions-pipeline";
 
@@ -239,12 +238,7 @@ describe("Debtors age analysis", () => {
   });
 });
 
-describe("Pricing and admissions helpers", () => {
-  it("publishes transparent pricing tiers", () => {
-    expect(PRICING_TIERS.some((t) => t.id === "compliance")).toBe(true);
-    expect(estimateMonthlyZar("professional", 100)).toBeGreaterThan(3490);
-  });
-
+describe("Admissions and LMS helpers", () => {
   it("allows issuing offers from review stages", () => {
     expect(canIssueOffer("UNDER_REVIEW")).toBe(true);
     expect(canIssueOffer("OFFER_ISSUED")).toBe(false);

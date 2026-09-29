@@ -34,7 +34,6 @@ export function PublicHeader({
     { href: "/fees", label: "Fees" },
     { href: "/news", label: "News" },
     { href: "/calendar", label: "Calendar" },
-    { href: "/pricing", label: "Pricing" },
     { href: "/contact", label: "Contact" },
   ];
 
