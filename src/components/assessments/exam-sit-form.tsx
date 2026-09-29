@@ -93,9 +93,11 @@ export function ExamSitForm({
     }
   }
 
-  submitRef.current = (auto) => {
-    void submit(auto);
-  };
+  useEffect(() => {
+    submitRef.current = (auto) => {
+      void submit(auto);
+    };
+  });
 
   const mins = remaining == null ? null : Math.floor(remaining / 60);
   const secs = remaining == null ? null : remaining % 60;

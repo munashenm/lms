@@ -45,9 +45,17 @@ export function NotificationBell() {
   }
 
   useEffect(() => {
-    load();
-    const interval = setInterval(load, 60000);
-    return () => clearInterval(interval);
+    // Defer initial load so setState after fetch is not synchronous inside the effect body.
+    const id = window.setTimeout(() => {
+      void load();
+    }, 0);
+    const interval = setInterval(() => {
+      void load();
+    }, 60000);
+    return () => {
+      window.clearTimeout(id);
+      clearInterval(interval);
+    };
   }, []);
 
   async function markRead(id: string) {

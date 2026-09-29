@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useDraftAutosave } from "@/hooks/use-draft-autosave";
+import { readStoredDraft, useDraftAutosave } from "@/hooks/use-draft-autosave";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,28 +26,33 @@ interface MarksEntryProps {
   students: StudentMark[];
 }
 
+function buildInitialScores(assessmentId: string, students: StudentMark[]) {
+  const init: Record<string, string> = {};
+  students.forEach((s) => {
+    if (s.existingScore !== undefined) init[s.id] = String(s.existingScore);
+  });
+  const draft = readStoredDraft<Record<string, string>>(`draft-marks-${assessmentId}`);
+  if (draft && Object.keys(draft).length > 0) {
+    return { scores: { ...init, ...draft }, restored: true };
+  }
+  return { scores: init, restored: false };
+}
+
 export function MarksEntry({ assessmentId, maxMarks, students }: MarksEntryProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [scores, setScores] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    students.forEach((s) => {
-      if (s.existingScore !== undefined) init[s.id] = String(s.existingScore);
-    });
-    return init;
-  });
+  const [boot] = useState(() => buildInitialScores(assessmentId, students));
+  const [scores, setScores] = useState(boot.scores);
+  const [draftNotice] = useState(boot.restored);
 
   const draftKey = `draft-marks-${assessmentId}`;
-  const { lastSaved, hasDraft, restoreDraft, clearDraft } = useDraftAutosave(draftKey, scores);
+  const { lastSaved, hasDraft, clearDraft } = useDraftAutosave(draftKey, scores);
 
   useEffect(() => {
-    const draft = restoreDraft();
-    if (draft && Object.keys(draft).length > 0) {
-      setScores((prev) => ({ ...prev, ...draft }));
+    if (draftNotice) {
       toast.info("Restored unsaved marks draft");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftKey]);
+  }, [draftNotice]);
 
   async function handleSave() {
     setLoading(true);

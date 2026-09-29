@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useDraftAutosave } from "@/hooks/use-draft-autosave";
+import { readStoredDraft, useDraftAutosave } from "@/hooks/use-draft-autosave";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,6 +47,34 @@ const STATUS_OPTIONS: {
   { value: "SICK", label: "Sick", short: "S", variant: "accent" },
 ];
 
+type AttendanceDraft = {
+  statuses?: Record<string, AttendanceStatus>;
+  notes?: Record<string, string>;
+};
+
+function buildAttendanceBoot(
+  draftKey: string,
+  students: StudentRow[],
+  existingRecords: AttendanceMarkerProps["existingRecords"] = []
+) {
+  const initialStatus: Record<string, AttendanceStatus> = {};
+  const initialNotes: Record<string, string> = {};
+  students.forEach((s) => {
+    const existing = existingRecords.find((r) => r.studentId === s.id);
+    initialStatus[s.id] = existing?.status ?? "PRESENT";
+    initialNotes[s.id] = existing?.notes ?? "";
+  });
+  const draft = readStoredDraft<AttendanceDraft>(draftKey);
+  if (draft?.statuses && Object.keys(draft.statuses).length > 0) {
+    return {
+      statuses: draft.statuses,
+      notes: draft.notes ? { ...initialNotes, ...draft.notes } : initialNotes,
+      restored: true,
+    };
+  }
+  return { statuses: initialStatus, notes: initialNotes, restored: false };
+}
+
 export function AttendanceMarker({
   classId,
   moduleId,
@@ -58,33 +86,23 @@ export function AttendanceMarker({
   existingRecords = [],
   studentLabel = "Learner",
 }: AttendanceMarkerProps) {
-  const initialStatus: Record<string, AttendanceStatus> = {};
-  const initialNotes: Record<string, string> = {};
-  students.forEach((s) => {
-    const existing = existingRecords.find((r) => r.studentId === s.id);
-    initialStatus[s.id] = existing?.status ?? "PRESENT";
-    initialNotes[s.id] = existing?.notes ?? "";
-  });
-
-  const [statuses, setStatuses] = useState(initialStatus);
-  const [notes, setNotes] = useState(initialNotes);
+  const draftKey = `draft-attendance-${classId ?? moduleId ?? "x"}-${date}-${sessionStart ?? ""}`;
+  const [boot] = useState(() => buildAttendanceBoot(draftKey, students, existingRecords));
+  const [statuses, setStatuses] = useState(boot.statuses);
+  const [notes, setNotes] = useState(boot.notes);
+  const [draftNotice] = useState(boot.restored);
   const [expandedNotes, setExpandedNotes] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const draftKey = `draft-attendance-${classId ?? moduleId ?? "x"}-${date}-${sessionStart ?? ""}`;
-  const { lastSaved, hasDraft, restoreDraft, clearDraft } = useDraftAutosave(draftKey, {
+  const { lastSaved, hasDraft, clearDraft } = useDraftAutosave(draftKey, {
     statuses,
     notes,
   });
 
   useEffect(() => {
-    const draft = restoreDraft() as { statuses?: Record<string, AttendanceStatus>; notes?: Record<string, string> } | null;
-    if (draft?.statuses && Object.keys(draft.statuses).length > 0) {
-      setStatuses(draft.statuses);
-      if (draft.notes) setNotes(draft.notes);
+    if (draftNotice) {
       toast.info("Restored unsaved attendance draft");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftKey]);
+  }, [draftNotice]);
 
   function setAll(status: AttendanceStatus) {
     const next: Record<string, AttendanceStatus> = {};

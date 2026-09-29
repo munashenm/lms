@@ -51,7 +51,11 @@ export function ComplianceCentre() {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    // Defer so setState after fetch is not synchronous inside the effect body.
+    const id = window.setTimeout(() => {
+      void refresh();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [refresh]);
 
   async function runExport(kind: string, allowWithErrors = false) {

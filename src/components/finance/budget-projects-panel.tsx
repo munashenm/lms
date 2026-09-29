@@ -44,7 +44,11 @@ export function BudgetProjectsPanel() {
   }
 
   useEffect(() => {
-    void refresh();
+    // Defer so setState after fetch is not synchronous inside the effect body.
+    const id = window.setTimeout(() => {
+      void refresh();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   async function createBudget(form: HTMLFormElement) {
