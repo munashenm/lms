@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Menu, LogOut, KeyRound } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { MessageUnread } from "@/components/messages/message-unread";
+import { GlobalSearch } from "@/components/search/global-search";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ROLE_LABELS } from "@/lib/constants";
@@ -57,6 +58,7 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-3">
+        <GlobalSearch />
         <NotificationBell />
         <MessageUnread href={ROLE_MESSAGES[user.role]} />
 

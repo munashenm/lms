@@ -268,22 +268,24 @@ export const adminNav: NavItem[] = getAdminNav();
 export function getTeacherNav(terms?: Terminology): NavItem[] {
   const t = terms ?? getTerminology();
   return [
-    { label: "Dashboard", href: "/teacher/dashboard", icon: "LayoutDashboard" },
+    { label: "Today", href: "/teacher/dashboard", icon: "LayoutDashboard" },
     ...grouped("Teaching", "GraduationCap", [
+      ...cluster("Daily", [
+        { label: "Attendance", href: "/teacher/attendance", icon: "ClipboardCheck" },
+        { label: "Assessments", href: "/teacher/assessments", icon: "FileText" },
+        { label: "Homework", href: "/teacher/homework", icon: "FileText" },
+        { label: "Messages", href: "/teacher/messages", icon: "MessageSquare" },
+      ]),
       ...cluster("Classwork", [
         { label: `My ${t.classes}`, href: "/teacher/classes", icon: "GraduationCap" },
-        { label: "Assessments", href: "/teacher/assessments", icon: "FileText" },
         { label: t.reportCards, href: "/teacher/report-cards", icon: "Award" },
         { label: "Timetable", href: "/teacher/timetable", icon: "Calendar" },
-        { label: "Attendance", href: "/teacher/attendance", icon: "ClipboardCheck" },
         { label: "Materials", href: "/teacher/materials", icon: "Upload" },
-        { label: "Homework", href: "/teacher/homework", icon: "FileText" },
         { label: "Lesson Plans", href: "/teacher/lesson-plans", icon: "BookOpen" },
         { label: "Curriculum", href: "/teacher/curriculum", icon: "ClipboardList" },
       ]),
       ...cluster("Campus", [
         { label: `${t.student} Leave`, href: "/teacher/learner-leave", icon: "Palmtree" },
-        { label: "Messages", href: "/teacher/messages", icon: "MessageSquare" },
         { label: "Announcements", href: "/teacher/announcements", icon: "Megaphone" },
       ]),
     ]),
@@ -414,36 +416,28 @@ export const hrNav: NavItem[] = [
 export function getParentNav(terms?: Terminology): NavItem[] {
   const t = terms ?? getTerminology();
   return [
-    { label: "Dashboard", href: "/parent/dashboard", icon: "LayoutDashboard" },
+    { label: "Home", href: "/parent/dashboard", icon: "LayoutDashboard" },
     { label: "My Children", href: "/parent/children", icon: "Users" },
-    ...grouped("Academics", "BookOpen", [
-      ...cluster("Classroom", [
-        { label: t.homework, href: "/parent/assignments", icon: "FileText" },
+    { label: t.fees, href: "/parent/fees", icon: "CreditCard" },
+    { label: "Attendance", href: "/parent/attendance", icon: "ClipboardCheck" },
+    { label: "Assessments", href: "/parent/assignments", icon: "FileText" },
+    { label: "Messages", href: "/parent/messages", icon: "MessageSquare" },
+    ...grouped("More", "FolderOpen", [
+      ...cluster("Learning", [
+        { label: "Results", href: "/parent/results", icon: "Award" },
+        { label: "Examinations", href: "/parent/exams", icon: "Award" },
+        { label: t.reportCards, href: "/parent/report-cards", icon: "Award" },
         { label: "Materials", href: "/parent/materials", icon: "FolderOpen" },
         { label: "Timetable", href: "/parent/timetable", icon: "Calendar" },
         { label: "Academic Calendar", href: "/parent/calendar", icon: "CalendarDays" },
       ]),
-      ...cluster("Results", [
-        { label: "Examinations", href: "/parent/exams", icon: "Award" },
-        { label: "Results", href: "/parent/results", icon: "Award" },
-        { label: t.reportCards, href: "/parent/report-cards", icon: "Award" },
+      ...cluster("School life", [
+        { label: "Apply Leave", href: "/parent/leave", icon: "Palmtree" },
+        { label: "Notice Board", href: "/parent/announcements", icon: "Megaphone" },
         { label: "Certificates", href: "/parent/certificates", icon: "Award" },
         { label: "Letters", href: "/parent/letters", icon: "FileText" },
+        { label: "Download Centre", href: "/parent/downloads", icon: "Download" },
       ]),
-    ]),
-    ...grouped("Wellbeing", "ClipboardCheck", [
-      { label: "Attendance", href: "/parent/attendance", icon: "ClipboardCheck" },
-      { label: "Apply Leave", href: "/parent/leave", icon: "Palmtree" },
-    ]),
-    ...grouped("Finance", "CreditCard", [
-      { label: t.fees, href: "/parent/fees", icon: "CreditCard" },
-    ]),
-    ...grouped("Communication", "Megaphone", [
-      { label: "Notice Board", href: "/parent/announcements", icon: "Megaphone" },
-      { label: "Messages", href: "/parent/messages", icon: "MessageSquare" },
-    ]),
-    ...grouped("Resources", "Download", [
-      { label: "Download Centre", href: "/parent/downloads", icon: "Download" },
     ]),
   ];
 }

@@ -5,10 +5,12 @@ import { ApplicationReview } from "@/components/applications/application-review"
 import { AdmissionsPipelineBoard } from "@/components/applications/admissions-pipeline-board";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { invoiceBasePathForRole } from "@/lib/portal-paths";
 
 export default async function ApplicationsPage() {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
+  const invoiceBasePath = invoiceBasePathForRole(session!.role);
 
   const applications = await prisma.application.findMany({
     where: filter,
@@ -73,7 +75,10 @@ export default async function ApplicationsPage() {
       </div>
       <div>
         <h2 className="text-lg font-semibold mb-3">Admissions pipeline</h2>
-        <AdmissionsPipelineBoard applications={pipelineApps} />
+        <AdmissionsPipelineBoard
+          applications={pipelineApps}
+          invoiceBasePath={invoiceBasePath}
+        />
       </div>
       <div>
         <h2 className="text-lg font-semibold mb-3">All applications</h2>

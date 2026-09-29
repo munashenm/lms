@@ -13,6 +13,7 @@ import { Loader2, Search, Clock } from "lucide-react";
 import {
   APPLICATION_STATUS_LABELS,
   APPLICATION_STATUS_DESCRIPTIONS,
+  APPLICATION_STATUS_NEXT,
 } from "@/lib/application-status";
 
 interface ApplicationStatus {
@@ -125,6 +126,9 @@ export function ApplicationStatusTracker() {
 
             <p className="text-sm text-muted">
               {APPLICATION_STATUS_DESCRIPTIONS[result.status] ?? "Status updated."}
+            </p>
+            <p className="text-sm font-medium">
+              {APPLICATION_STATUS_NEXT[result.status] ?? "Next: contact admissions if you need help."}
             </p>
 
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
