@@ -328,6 +328,7 @@ No. Each school is a tenant. Super Admin is the only role that spans institution
 | [Project plan](./PROJECT_PLAN.md) | Delivery / implementation |
 | [Finance & HR notes](./FINANCE_HR_PAYROLL.md) | Specialists |
 | [Licensing, backup, SA-SAMS](./ENTERPRISE_LICENSING_BACKUP_SASAMS.md) | IT / hosting |
+| [d6 gap & differentiation analysis (2026)](./D6_GAP_ANALYSIS_2026.md) | Product / sales prioritisation (requirements benchmark only) |
 | [UI structure](./UI_STRUCTURE.md) | Design / brand |
 
 **Vendor:** Cyber Developers · Proprietary © 2026
