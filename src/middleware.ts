@@ -6,6 +6,7 @@ import { ROLE_DASHBOARD } from "@/lib/constants";
 import { canApplyForLeave } from "@/lib/staff-leave-access";
 import { UserRole } from "@prisma/client";
 import { unauthenticatedLoginPath } from "@/lib/login-portals";
+import { isInstitutionPublicPath } from "@/lib/institution-portal";
 import { canAccessUploadPath, isPublicUploadPath } from "@/lib/upload-access";
 import { isForcedPasswordPathAllowed } from "@/lib/force-password-reset";
 import { readOrCreateRequestId, requestIdHeaderName } from "@/lib/request-id";
@@ -85,7 +86,8 @@ export async function middleware(request: NextRequest) {
     PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
     pathname === "/" ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon")
+    pathname.startsWith("/favicon") ||
+    isInstitutionPublicPath(pathname)
   ) {
     return withRequestId(request, NextResponse.next());
   }

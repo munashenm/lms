@@ -17,6 +17,8 @@ interface LoginFormProps {
   portal?: LoginPortal;
   title?: string;
   description?: string;
+  /** Branding context only — validated server-side against User.schoolId. */
+  schoolSlug?: string;
 }
 
 export function LoginForm({
@@ -24,6 +26,7 @@ export function LoginForm({
   portal,
   title = "Sign in to your portal",
   description = "Enter your credentials to access your dashboard",
+  schoolSlug,
 }: LoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,17 +34,26 @@ export function LoginForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [mismatch, setMismatch] = useState<{ message: string; href: string; label?: string } | null>(
+    null
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setErrors({});
+    setMismatch(null);
 
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, ...(portal ? { portal } : {}) }),
+        body: JSON.stringify({
+          email,
+          password,
+          ...(portal ? { portal } : {}),
+          ...(schoolSlug ? { schoolSlug } : {}),
+        }),
       });
 
       const data = await res.json();
@@ -49,10 +61,19 @@ export function LoginForm({
       if (!res.ok) {
         if (data.errors) {
           setErrors(data.errors);
+        } else if (data.code === "PORTAL_SCHOOL_MISMATCH") {
+          setMismatch({
+            message: data.message || "This account belongs to another institution.",
+            href: data.redirect || data.loginRedirect || "/login",
+            label: data.correctSchoolName
+              ? `Go to ${data.correctSchoolName}`
+              : "Go to your institution portal",
+          });
+          toast.error(data.message || "Wrong institution portal");
         } else {
           toast.error(data.message || "Login failed");
         }
-        if (data.redirect && res.status === 403) {
+        if (data.redirect && res.status === 403 && data.code !== "PORTAL_SCHOOL_MISMATCH") {
           router.push(data.redirect);
         }
         return;
@@ -76,6 +97,14 @@ export function LoginForm({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
+        {mismatch ? (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 space-y-2">
+            <p>{mismatch.message}</p>
+            <Link href={mismatch.href} className="font-medium text-primary hover:underline">
+              {mismatch.label ?? "Open the correct portal"}
+            </Link>
+          </div>
+        ) : null}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email address</Label>

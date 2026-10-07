@@ -7,6 +7,7 @@ import { BrandMark, SchoolLogo } from "@/components/layout/brand-mark";
 import { schoolThemeCssVars, toSchoolPortalBrand } from "@/lib/school-branding";
 import type { LoginPortal } from "@/lib/login-portals";
 import { portalLoginPath } from "@/lib/login-portals";
+import { institutionHomePath, institutionLoginPath } from "@/lib/institution-portal";
 
 const COPY: Record<
   LoginPortal,
@@ -40,13 +41,23 @@ export function PortalLoginScreen({
   displayName,
   branding,
   dbOk,
+  schoolSlug,
 }: {
   portal: LoginPortal;
   displayName: string;
   branding: ReturnType<typeof toSchoolPortalBrand>;
   dbOk: boolean;
+  schoolSlug?: string;
 }) {
   const copy = COPY[portal];
+  const homeHref = schoolSlug ? institutionHomePath(schoolSlug) : "/";
+  const studentHref = schoolSlug
+    ? institutionLoginPath(schoolSlug, "student")
+    : portalLoginPath("student");
+  const parentHref = schoolSlug
+    ? institutionLoginPath(schoolSlug, "parent")
+    : portalLoginPath("parent");
+  const staffHref = schoolSlug ? institutionLoginPath(schoolSlug, "staff") : portalLoginPath("staff");
 
   return (
     <div
@@ -108,13 +119,14 @@ export function PortalLoginScreen({
               portal={portal}
               title={copy.title}
               description={copy.description}
+              schoolSlug={schoolSlug}
             />
           </Suspense>
           <div className="text-center text-sm text-muted space-y-2">
             {portal !== "student" ? (
               <p>
                 Learner or student?{" "}
-                <Link href={portalLoginPath("student")} className="text-primary font-medium hover:underline">
+                <Link href={studentHref} className="text-primary font-medium hover:underline">
                   Student Portal
                 </Link>
               </p>
@@ -122,7 +134,7 @@ export function PortalLoginScreen({
             {portal !== "parent" ? (
               <p>
                 Parent or guardian?{" "}
-                <Link href={portalLoginPath("parent")} className="text-primary font-medium hover:underline">
+                <Link href={parentHref} className="text-primary font-medium hover:underline">
                   Parent Portal
                 </Link>
               </p>
@@ -130,19 +142,21 @@ export function PortalLoginScreen({
             {portal !== "staff" ? (
               <p>
                 Staff member?{" "}
-                <Link href={portalLoginPath("staff")} className="text-primary font-medium hover:underline">
+                <Link href={staffHref} className="text-primary font-medium hover:underline">
                   Staff Portal
                 </Link>
               </p>
             ) : null}
             <p>
-              <Link href="/" className="inline-flex items-center gap-1 hover:text-primary">
+              <Link href={homeHref} className="inline-flex items-center gap-1 hover:text-primary">
                 <ArrowLeft className="h-3 w-3" />
-                Back to public site
+                {schoolSlug ? `Back to ${displayName}` : "Back to public site"}
               </Link>
             </p>
           </div>
-          <p className="sr-only">{APP_NAME} {APP_TAGLINE}</p>
+          <p className="sr-only">
+            {APP_NAME} {APP_TAGLINE}
+          </p>
         </div>
       </div>
     </div>

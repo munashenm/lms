@@ -4,7 +4,17 @@ import { createToken, setSessionCookie, verifyPassword } from "@/lib/auth";
 import { loginSchema } from "@/lib/validators";
 import { ROLE_DASHBOARD } from "@/lib/constants";
 import { logAudit } from "@/lib/audit";
-import { portalMismatchMessage, roleAllowedForPortal } from "@/lib/login-portals";
+import {
+  portalForRole,
+  portalMismatchMessage,
+  roleAllowedForPortal,
+} from "@/lib/login-portals";
+import {
+  evaluateBrandedLoginTenant,
+  getSchoolBySlug,
+  institutionHomePath,
+  institutionLoginPath,
+} from "@/lib/institution-portal";
 import { clientIp, rateLimit, rateLimitedJson } from "@/lib/rate-limit";
 import { requestMeta } from "@/lib/request-meta";
 import { FORCE_PASSWORD_PATH } from "@/lib/force-password-reset";
@@ -30,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ errors }, { status: 400 });
     }
 
-    const { email, password, portal } = parsed.data;
+    const { email, password, portal, schoolSlug } = parsed.data;
     const emailKey = email.toLowerCase();
     const emailLimit = rateLimit({
       key: `login:email:${ip}:${emailKey}`,
@@ -42,8 +52,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(limited.body, { status: limited.status, headers: limited.headers });
     }
 
+    const portalSchool = schoolSlug ? await getSchoolBySlug(schoolSlug) : null;
+    if (schoolSlug && !portalSchool) {
+      return NextResponse.json({ message: "Institution portal not found" }, { status: 404 });
+    }
+
     const user = await prisma.user.findUnique({
       where: { email: emailKey },
+      include: { school: { select: { id: true, name: true, slug: true, isActive: true } } },
     });
 
     const meta = requestMeta(request);
@@ -84,6 +100,44 @@ export async function POST(request: NextRequest) {
         { message: mismatch.message, redirect: mismatch.redirect },
         { status: 403 }
       );
+    }
+
+    if (portalSchool) {
+      const tenant = evaluateBrandedLoginTenant({
+        userSchoolId: user.schoolId,
+        portalSchoolId: portalSchool.id,
+        userRole: user.role,
+      });
+      if (!tenant.ok) {
+        const homeSchool = user.school?.isActive ? user.school : null;
+        const correctPortal = homeSchool?.slug
+          ? institutionLoginPath(homeSchool.slug, portalForRole(user.role))
+          : portalMismatchMessage(user.role, portal ?? portalForRole(user.role)).redirect;
+        await logAudit({
+          schoolId: user.schoolId,
+          userId: user.id,
+          action: "LOGIN_FAILED",
+          entity: "User",
+          entityId: user.id,
+          metadata: {
+            reason: "portal_school_mismatch",
+            attemptedSlug: portalSchool.slug,
+          },
+          ...meta,
+        });
+        return NextResponse.json(
+          {
+            code: "PORTAL_SCHOOL_MISMATCH",
+            message: homeSchool
+              ? `This account belongs to ${homeSchool.name}. Please use the ${homeSchool.name} portal.`
+              : "This account does not belong to this institution portal.",
+            correctSchoolName: homeSchool?.name ?? null,
+            redirect: homeSchool?.slug ? institutionHomePath(homeSchool.slug) : correctPortal,
+            loginRedirect: correctPortal,
+          },
+          { status: 403 }
+        );
+      }
     }
 
     await prisma.user.update({
