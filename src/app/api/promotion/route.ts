@@ -8,6 +8,7 @@ import { commitPromotion, evaluateStudentPromotion } from "@/lib/promotion";
 import { promotionCommitSchema } from "@/lib/validators";
 import { emptyToNull } from "@/lib/class-teachers";
 import { assertSchoolFks, scopedId } from "@/lib/tenant";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -54,7 +55,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/promotion",
+      method: "POST",
+    });
+    if (__licDenied) return __licDenied;
+  }
+if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
   const parsed = promotionCommitSchema.safeParse(await request.json());

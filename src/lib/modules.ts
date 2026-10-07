@@ -53,6 +53,11 @@ export const SYSTEM_MODULE_LABELS: Record<SystemModuleKey, string> = {
   backup: "Backup & Restore",
 };
 
+/**
+ * SchoolModule keys that map onto commercially licensed feature flags.
+ * Modules omitted here are core/config (students, academics, website, backup, etc.)
+ * and may be toggled by School Admin without a separate licence feature entitlement.
+ */
 export const MODULE_LICENSE_FEATURE: Partial<Record<SystemModuleKey, LicenseFeatureKey>> = {
   admissions: "admissions",
   attendance: "attendance",
@@ -69,6 +74,10 @@ export const MODULE_LICENSE_FEATURE: Partial<Record<SystemModuleKey, LicenseFeat
   messaging: "messaging",
   sms: "sms",
 };
+
+export function licenseFeatureForModule(moduleKey: SystemModuleKey): LicenseFeatureKey | null {
+  return MODULE_LICENSE_FEATURE[moduleKey] ?? null;
+}
 
 export function isSystemModuleKey(value: string): value is SystemModuleKey {
   return (SYSTEM_MODULES as readonly string[]).includes(value);

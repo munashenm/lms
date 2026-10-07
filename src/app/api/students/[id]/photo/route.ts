@@ -6,6 +6,7 @@ import { requirePermission } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { validateStudentPhoto } from "@/lib/registration-docs";
 import { saveRegistrationFile } from "@/lib/registration-uploads";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -13,7 +14,16 @@ interface Params {
 
 export async function POST(request: NextRequest, { params }: Params) {
   const session = await getSession();
-  if (!requirePermission(session, "students:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/students/photo",
+      method: "POST",
+    });
+    if (__licDenied) return __licDenied;
+  }
+if (!requirePermission(session, "students:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;

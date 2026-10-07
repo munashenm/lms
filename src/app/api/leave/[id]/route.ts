@@ -5,6 +5,7 @@ import { requirePermission, getSchoolFilter } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { leaveStatusSchema } from "@/lib/validators";
 import { assertLeaveBalance, syncLeaveTakenOnStatusChange } from "@/lib/leave-entitlement";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -12,7 +13,17 @@ interface RouteParams {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
-  if (!requirePermission(session, "hr.leave.approve") && !requirePermission(session, "staff:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/leave",
+      method: "PATCH",
+      feature: "hr_payroll",
+    });
+    if (__licDenied) return __licDenied;
+  }
+if (!requirePermission(session, "hr.leave.approve") && !requirePermission(session, "staff:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

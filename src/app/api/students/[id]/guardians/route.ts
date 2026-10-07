@@ -5,6 +5,7 @@ import { scopedId } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 import { studentGuardianSchema } from "@/lib/validators";
 import { provisionPortalAccounts } from "@/lib/portal-provision";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -12,7 +13,16 @@ interface Params {
 
 export async function POST(request: NextRequest, { params }: Params) {
   const session = await getSession();
-  if (!requirePermission(session, "students:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/students/guardians",
+      method: "POST",
+    });
+    if (__licDenied) return __licDenied;
+  }
+if (!requirePermission(session, "students:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

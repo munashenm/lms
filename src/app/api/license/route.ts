@@ -105,7 +105,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!requirePermission(session, "license.manage")) {
+  const canActivate =
+    requirePermission(session, "license.activate") || requirePermission(session, "license.manage");
+  if (!canActivate) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const body = (await request.json()) as { licenseKey?: string; schoolId?: string; token?: string };

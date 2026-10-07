@@ -6,6 +6,7 @@ import { denyUnless } from "@/lib/access";
 import { promotionRuleSchema } from "@/lib/validators";
 import { emptyToNull } from "@/lib/class-teachers";
 import { logAudit } from "@/lib/audit";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -13,7 +14,16 @@ interface Params {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await getSession();
-  const denied = await denyUnless(session, "settings.manage");
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/promotion/rules",
+      method: "PATCH",
+    });
+    if (__licDenied) return __licDenied;
+  }
+const denied = await denyUnless(session, "settings.manage");
   if (denied) return denied;
   const { id } = await params;
   const existing = await prisma.promotionRule.findFirst({ where: scopedId(session!, id) });
@@ -50,7 +60,16 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const session = await getSession();
-  const denied = await denyUnless(session, "settings.manage");
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/promotion/rules",
+      method: "DELETE",
+    });
+    if (__licDenied) return __licDenied;
+  }
+const denied = await denyUnless(session, "settings.manage");
   if (denied) return denied;
   const { id } = await params;
   const existing = await prisma.promotionRule.findFirst({ where: scopedId(session!, id) });

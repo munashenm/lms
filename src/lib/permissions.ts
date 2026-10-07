@@ -96,6 +96,7 @@ export type LegacyPermission =
   | "audit:read"
   | "announcements:write"
   | "license.view"
+  | "license.activate"
   | "license.manage"
   | "backup.view"
   | "backup.create"

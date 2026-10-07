@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { requireStaffPermission, getSchoolFilter } from "@/lib/rbac";
 import { feeScheduleItemUpdateSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -11,7 +12,17 @@ interface RouteParams {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
-  if (!requireStaffPermission(session, "finance:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/fee-schedule",
+      method: "PATCH",
+      feature: "finance",
+    });
+    if (__licDenied) return __licDenied;
+  }
+if (!requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
@@ -57,7 +68,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
-  if (!requireStaffPermission(session, "finance:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/fee-schedule",
+      method: "DELETE",
+      feature: "finance",
+    });
+    if (__licDenied) return __licDenied;
+  }
+if (!requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

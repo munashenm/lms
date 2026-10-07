@@ -8,6 +8,7 @@ import { isFeatureEnabled } from "@/lib/licensing/portal";
 import { evaluateStoredLicense } from "@/lib/licensing/service";
 import { publicExamQuestion } from "@/lib/online-exams";
 import { assessmentSchoolInclude, institutionScope, studentCanAccessAssessment } from "@/lib/tenant";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -15,7 +16,17 @@ interface RouteParams {
 
 export async function POST(_request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/exams/start",
+      method: "POST",
+      feature: "online_exams",
+    });
+    if (__licDenied) return __licDenied;
+  }
+if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   const student = await getStudentForSession(session);
   if (!student) return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
 

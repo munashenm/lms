@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission } from "@/lib/rbac";
 import { z } from "zod";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -34,7 +35,17 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await getSession();
-  if (!session || !requirePermission(session, "messaging.view")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/messages",
+      method: "PATCH",
+      feature: "messaging",
+    });
+    if (__licDenied) return __licDenied;
+  }
+if (!session || !requirePermission(session, "messaging.view")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;

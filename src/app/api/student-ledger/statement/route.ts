@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/utils";
 import { getTerminology } from "@/lib/terminology";
 import { sendLoggedEmail } from "@/lib/communications";
 import { logAudit } from "@/lib/audit";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 async function resolveStudentId(
   session: NonNullable<Awaited<ReturnType<typeof getSession>>>,
@@ -124,7 +125,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!requirePermission(session, "finance:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/student-ledger/statement",
+      method: "POST",
+      feature: "finance",
+    });
+    if (__licDenied) return __licDenied;
+  }
+if (!requirePermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

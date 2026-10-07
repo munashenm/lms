@@ -7,6 +7,7 @@ import {
   retryFailedBatchMessages,
 } from "@/lib/bulk-fee-comms";
 import { logAudit } from "@/lib/audit";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -43,7 +44,17 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
-  if (!requireStaffPermission(session, "finance:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/finance/bulk-reminders",
+      method: "POST",
+      feature: "finance",
+    });
+    if (__licDenied) return __licDenied;
+  }
+if (!requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

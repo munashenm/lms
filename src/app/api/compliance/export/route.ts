@@ -8,6 +8,7 @@ import { buildSasamsExportPackage, packageToCsvBundle } from "@/lib/compliance/s
 import { buildCemisMarksPackage, cemisPackageToCsv } from "@/lib/compliance/cemis-export";
 import { buildPromotionLuritsPackage, promotionPackageToCsv } from "@/lib/compliance/promotion-export";
 import { logAudit } from "@/lib/audit";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -28,7 +29,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session || !requirePermission(session, "sasams.execute")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/compliance/export",
+      method: "POST",
+      feature: "reporting",
+    });
+    if (__licDenied) return __licDenied;
+  }
+if (!session || !requirePermission(session, "sasams.execute")) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
   const filter = getSchoolFilter(session);

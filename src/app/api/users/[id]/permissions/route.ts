@@ -15,6 +15,7 @@ import {
 import { logAudit } from "@/lib/audit";
 import { requestMeta } from "@/lib/request-meta";
 import { scopedId } from "@/lib/tenant";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -73,7 +74,16 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
 export async function PUT(request: NextRequest, { params }: Params) {
   const session = await getSession();
-  const denied = await denyUnless(session, "users.permissions");
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/users/permissions",
+      method: "PUT",
+    });
+    if (__licDenied) return __licDenied;
+  }
+const denied = await denyUnless(session, "users.permissions");
   if (denied) return denied;
 
   const { id } = await params;
