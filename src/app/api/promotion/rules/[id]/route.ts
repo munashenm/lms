@@ -23,6 +23,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     });
     if (__licDenied) return __licDenied;
   }
+
 const denied = await denyUnless(session, "settings.manage");
   if (denied) return denied;
   const { id } = await params;
@@ -69,6 +70,7 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     });
     if (__licDenied) return __licDenied;
   }
+
 const denied = await denyUnless(session, "settings.manage");
   if (denied) return denied;
   const { id } = await params;

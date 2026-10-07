@@ -23,6 +23,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     });
     if (__licDenied) return __licDenied;
   }
+
 if (!requirePermission(session, "students:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }

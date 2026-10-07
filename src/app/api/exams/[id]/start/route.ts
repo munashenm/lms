@@ -26,6 +26,7 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     });
     if (__licDenied) return __licDenied;
   }
+
 if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   const student = await getStudentForSession(session);
   if (!student) return NextResponse.json({ message: "Unauthorized" }, { status: 403 });

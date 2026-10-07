@@ -23,6 +23,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     });
     if (__licDenied) return __licDenied;
   }
+
 if (!requirePermission(session, "hr.leave.approve") && !requirePermission(session, "staff:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }

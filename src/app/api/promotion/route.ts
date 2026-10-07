@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
     });
     if (__licDenied) return __licDenied;
   }
+
 if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

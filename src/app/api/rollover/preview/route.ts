@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     });
     if (__licDenied) return __licDenied;
   }
+
 if (!requirePermission(session, "settings:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }

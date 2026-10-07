@@ -54,6 +54,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
     if (__licDenied) return __licDenied;
   }
+
 if (!requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }

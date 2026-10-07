@@ -45,6 +45,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     });
     if (__licDenied) return __licDenied;
   }
+
 if (!session || !requirePermission(session, "messaging.view")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }

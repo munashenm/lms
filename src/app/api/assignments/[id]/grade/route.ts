@@ -54,6 +54,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     });
     if (__licDenied) return __licDenied;
   }
+
 if (!requireStaffPermission(session, "homework.grade") && !requireStaffPermission(session, "marks:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }

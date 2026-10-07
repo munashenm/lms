@@ -22,6 +22,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     });
     if (__licDenied) return __licDenied;
   }
+
 if (!requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
@@ -78,6 +79,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     });
     if (__licDenied) return __licDenied;
   }
+
 if (!requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }

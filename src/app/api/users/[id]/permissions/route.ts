@@ -83,6 +83,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     });
     if (__licDenied) return __licDenied;
   }
+
 const denied = await denyUnless(session, "users.permissions");
   if (denied) return denied;
 

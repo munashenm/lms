@@ -10,8 +10,8 @@ import { emptyToNull } from "@/lib/class-teachers";
 import { recordStudentChanges } from "@/lib/student-history";
 import { scopedId } from "@/lib/tenant";
 import { requestedEmisSensitiveFields } from "@/lib/emis-sensitive";
-import {
 import { requireLicenseMutation } from "@/lib/licensing/enforce";
+import {
   learnerPortalShouldBeActive,
   provisionExistingStudent,
   setLinkedUserActive,
@@ -40,6 +40,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     });
     if (__licDenied) return __licDenied;
   }
+
 const denied = await denyUnless(session, "students.edit");
   if (denied) return denied;
   const actor = session!;

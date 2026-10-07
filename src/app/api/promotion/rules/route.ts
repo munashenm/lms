@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
     });
     if (__licDenied) return __licDenied;
   }
+
 const denied = await denyUnless(session, "settings.manage");
   if (denied) return denied;
   const schoolId = await requireSchoolId(session!);
