@@ -6,6 +6,8 @@ export const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   portal: z.enum(["student", "parent", "staff"]).optional(),
+  /** Branding/navigation context only — never grants tenant access. */
+  schoolSlug: z.string().min(1).max(80).optional(),
 });
 
 export const forgotPasswordSchema = z.object({

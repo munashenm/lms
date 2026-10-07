@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { prisma } from "./db";
 import { hashPassword, verifyPassword } from "./auth";
 import { sendOutboundMessage } from "./notifications";
+import { credentialSignInPath } from "./institution-portal";
 
 const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -40,22 +41,22 @@ export async function issuePortalCredentials(params: {
     },
   });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const loginPath =
-    params.role === "parent"
-      ? "/parent/login"
-      : params.role === "staff"
-        ? "/staff/login"
-        : "/student/login";
-  const loginUrl = `${appUrl}${loginPath}`;
-
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
   const school = params.schoolId
-    ? await prisma.school.findUnique({ where: { id: params.schoolId }, select: { name: true } })
+    ? await prisma.school.findUnique({
+        where: { id: params.schoolId },
+        select: { name: true, slug: true },
+      })
     : null;
   const schoolName = school?.name ?? "your school";
+  const loginPath = credentialSignInPath({
+    role: params.role,
+    schoolSlug: school?.slug,
+  });
+  const loginUrl = `${appUrl}${loginPath}`;
 
   const subject = `Your ${schoolName} portal login`;
-  let body = `Hi ${params.firstName},\n\nYour portal account is ready.\n\n`;
+  let body = `Hi ${params.firstName},\n\nYour portal account is ready for ${schoolName}.\n\n`;
   body += `Login email: ${params.email}\n`;
   if (params.role === "student" && params.studentNumber?.trim()) {
     body += `Student ID: ${params.studentNumber.trim()}\n`;
