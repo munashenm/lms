@@ -34,13 +34,20 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       licenseId: id,
       action: parsed.data.action,
       expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
+      planCode: parsed.data.planCode,
+      features: parsed.data.features,
     });
     await logLicenseServerAudit({
       action: `LICENSE_${parsed.data.action.toUpperCase()}`,
       licenseKey: result.licenseKey,
       actor: session.email,
       result: "ok",
-      metadata: { status: result.status, expiresAt: result.expiresAt?.toISOString() ?? null },
+      metadata: {
+        status: result.status,
+        expiresAt: result.expiresAt?.toISOString() ?? null,
+        planCode: parsed.data.planCode ?? null,
+        reason: parsed.data.reason ?? null,
+      },
       ipAddress: requestMeta(request).ipAddress,
     });
     return NextResponse.json({

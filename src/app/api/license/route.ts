@@ -76,6 +76,9 @@ export async function GET(request: NextRequest) {
             installationId,
             registeredDomain: license.registeredDomain ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
             customerName: license.customerName,
+            pricePerLearner: license.pricePerLearner?.toString() ?? null,
+            priceCurrency: license.priceCurrency ?? "ZAR",
+            priceNotes: license.priceNotes,
             limits: {
               learners: { used: usage.activeLearners, max: license.maxLearners },
               staff: { used: usage.educators, max: license.maxEducators },

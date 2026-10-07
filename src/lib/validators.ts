@@ -1035,7 +1035,55 @@ export const licenseCustomerSchema = z.object({
 });
 
 export const vendorLicenseActionSchema = z.object({
-  action: z.enum(["renew", "suspend", "revoke", "reactivate"]),
+  action: z.enum(["renew", "suspend", "revoke", "reactivate", "extend_trial", "convert_to_paid"]),
   expiresAt: z.string().optional().nullable(),
+  planCode: z.string().optional().nullable(),
+  features: z.record(z.string(), z.boolean()).optional(),
+  reason: z.string().max(2000).optional().nullable(),
+});
+
+export const schoolLicenseAdminActionSchema = z.object({
+  action: z.enum([
+    "extend_trial",
+    "convert_to_paid",
+    "suspend",
+    "reactivate",
+    "revoke",
+    "change_rate",
+    "update_features",
+  ]),
+  expiresAt: z.string().optional().nullable(),
+  planCode: z.string().optional().nullable(),
+  features: z.record(z.string(), z.boolean()).optional(),
+  pricePerLearner: z.union([z.string(), z.number()]).optional().nullable(),
+  priceCurrency: z.string().max(8).optional().nullable(),
+  priceNotes: z.string().max(2000).optional().nullable(),
+  reason: z.string().max(2000).optional().nullable(),
+});
+
+export const createInstitutionSchema = z.object({
+  name: z.string().min(2, "Institution name is required").max(200),
+  slug: z
+    .string()
+    .min(2)
+    .max(80)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase letters, numbers and hyphens"),
+  institutionType: z.enum([
+    "SCHOOL",
+    "PRIMARY_SCHOOL",
+    "HIGH_SCHOOL",
+    "COMBINED_SCHOOL",
+    "COLLEGE",
+    "TVET",
+    "TRAINING_CENTRE",
+    "TRAINING_INSTITUTION",
+  ]),
+  adminFirstName: z.string().min(1, "Admin first name is required").max(100),
+  adminLastName: z.string().min(1, "Admin last name is required").max(100),
+  adminEmail: z.string().email("Valid admin email is required"),
+  adminPhone: z.string().max(20).optional().or(z.literal("")),
+  trialExpiresAt: z.string().optional().nullable(),
+  pricePerLearner: z.union([z.string(), z.number()]).optional().nullable(),
+  maxLearners: z.number().int().positive().optional().nullable(),
 });
 

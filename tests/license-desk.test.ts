@@ -13,6 +13,8 @@ describe("vendor licence desk", () => {
     expect(licenseStatusAfterAction("reactivate")).toBe(LicenseStatus.ACTIVE);
     expect(licenseStatusAfterAction("suspend")).toBe(LicenseStatus.SUSPENDED);
     expect(licenseStatusAfterAction("revoke")).toBe(LicenseStatus.REVOKED);
+    expect(licenseStatusAfterAction("extend_trial")).toBe(LicenseStatus.TRIAL);
+    expect(licenseStatusAfterAction("convert_to_paid")).toBe(LicenseStatus.ACTIVE);
   });
 
   it("renews from the later of now or the current expiry", () => {

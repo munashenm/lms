@@ -1,6 +1,13 @@
 import { LicenseStatus } from "@prisma/client";
 
-export const VENDOR_LICENSE_ACTIONS = ["renew", "suspend", "revoke", "reactivate"] as const;
+export const VENDOR_LICENSE_ACTIONS = [
+  "renew",
+  "suspend",
+  "revoke",
+  "reactivate",
+  "extend_trial",
+  "convert_to_paid",
+] as const;
 export type VendorLicenseAction = (typeof VENDOR_LICENSE_ACTIONS)[number];
 
 export function isVendorLicenseAction(value: string): value is VendorLicenseAction {
@@ -13,6 +20,9 @@ export function licenseStatusAfterAction(action: VendorLicenseAction): LicenseSt
       return LicenseStatus.SUSPENDED;
     case "revoke":
       return LicenseStatus.REVOKED;
+    case "extend_trial":
+      return LicenseStatus.TRIAL;
+    case "convert_to_paid":
     case "renew":
     case "reactivate":
       return LicenseStatus.ACTIVE;
