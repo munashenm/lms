@@ -9,6 +9,7 @@ import {
   resolveSettingsSchoolId,
 } from "@/lib/school-integrations";
 import { sendEmailViaSendGrid, sendSmsViaTwilio } from "@/lib/outbound-messaging";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 const testSchema = z.object({
   schoolId: z.string().optional(),
@@ -18,7 +19,17 @@ const testSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!requirePermission(session, "settings:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/school/integrations/test",
+      method: "POST",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+if (!requirePermission(session, "settings:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

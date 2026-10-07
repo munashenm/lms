@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { canAccessSchool, requirePermission } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
-import { resolveLicenseSchoolId } from "@/lib/licensing/enforce";
+import { resolveLicenseSchoolId, requireLicenseMutation } from "@/lib/licensing/enforce";
 import { requestMeta } from "@/lib/request-meta";
 import {
   analyseImportJob,
@@ -43,7 +43,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  const schoolId = await resolveLicenseSchoolId(
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/integrations/sasams",
+      method: "POST",
+    });
+    if (__licDenied) return __licDenied;
+  }
+const schoolId = await resolveLicenseSchoolId(
     session!,
     request.nextUrl.searchParams.get("schoolId")
   );

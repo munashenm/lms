@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { z } from "zod";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 const projectSchema = z.object({
   name: z.string().min(1).max(120),
@@ -46,7 +47,18 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session || !requirePermission(session, "finance:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/finance/projects",
+      method: "POST",
+      feature: "finance",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+if (!session || !requirePermission(session, "finance:write")) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
   const filter = getSchoolFilter(session);

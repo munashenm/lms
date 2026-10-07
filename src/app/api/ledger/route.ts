@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requireStaffPermission, getSchoolFilter } from "@/lib/rbac";
 import { ledgerEntrySchema } from "@/lib/validators";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -32,7 +33,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!requireStaffPermission(session, "finance:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/ledger",
+      method: "POST",
+      feature: "finance",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+if (!requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

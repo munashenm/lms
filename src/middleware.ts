@@ -9,6 +9,7 @@ import { unauthenticatedLoginPath } from "@/lib/login-portals";
 import { canAccessUploadPath, isPublicUploadPath } from "@/lib/upload-access";
 import { isForcedPasswordPathAllowed } from "@/lib/force-password-reset";
 import { readOrCreateRequestId, requestIdHeaderName } from "@/lib/request-id";
+import { restrictedPathnameHeaderName } from "@/lib/licensing/restricted-ui";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -45,6 +46,7 @@ const STATIC_ASSET = /\.(?:png|jpe?g|gif|webp|svg|ico|woff2?|ttf|css|map)$/i;
 function withRequestId(request: NextRequest, response: NextResponse) {
   const requestId = readOrCreateRequestId(request.headers.get(requestIdHeaderName()));
   response.headers.set(requestIdHeaderName(), requestId);
+  response.headers.set(restrictedPathnameHeaderName(), request.nextUrl.pathname);
   return response;
 }
 

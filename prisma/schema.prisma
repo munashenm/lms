@@ -2371,6 +2371,10 @@ model SchoolLicense {
   stagingDomain       String?
   serverInstanceId    String?
   customerName        String?
+  /** Negotiated SaaS rate (ZAR per ACTIVE learner / month). Null = not commercially priced yet. */
+  pricePerLearner     Decimal?      @db.Decimal(12, 2)
+  priceCurrency       String        @default("ZAR")
+  priceNotes          String?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 

@@ -210,8 +210,10 @@ describe("multi-tenancy isolation", () => {
     expect(canAccessSchool(schoolB, "school-a")).toBe(false);
   });
 
-  it("grants Super Admin and School Admin enterprise permissions", () => {
+  it("grants Super Admin vendor licence manage and School Admin activate-only", () => {
     expect(hasPermission(UserRole.SUPER_ADMIN, "license.manage")).toBe(true);
+    expect(hasPermission(UserRole.SCHOOL_ADMIN, "license.manage")).toBe(false);
+    expect(hasPermission(UserRole.SCHOOL_ADMIN, "license.activate")).toBe(true);
     expect(hasPermission(UserRole.SCHOOL_ADMIN, "backup.restore")).toBe(true);
     expect(hasPermission(UserRole.TEACHER, "backup.delete")).toBe(false);
     expect(hasPermission(UserRole.SCHOOL_ADMIN, "sasams.execute")).toBe(true);

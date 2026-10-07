@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { scopedId } from "@/lib/tenant";
 import { requirePermission } from "@/lib/rbac";
 import { websiteFaqSchema } from "@/lib/validators";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -11,7 +12,17 @@ interface Params {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await getSession();
-  if (!requirePermission(session, "settings:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/website/faqs",
+      method: "PATCH",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+if (!requirePermission(session, "settings:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
@@ -29,7 +40,17 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const session = await getSession();
-  if (!requirePermission(session, "settings:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/website/faqs",
+      method: "DELETE",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+if (!requirePermission(session, "settings:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;

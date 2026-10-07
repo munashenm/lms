@@ -8,6 +8,7 @@ import { sendLoggedSms } from "@/lib/communications";
 import { resolveNoticeRecipients, type NoticeAudience } from "@/lib/notice-comms";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 const schema = z.object({
   to: z.string().min(8).optional(),
@@ -35,7 +36,18 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!requireStaffPermission(session, "sms.send")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/sms",
+      method: "POST",
+      feature: "sms",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+if (!requireStaffPermission(session, "sms.send")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const schoolId = await requireSchoolId(session!);

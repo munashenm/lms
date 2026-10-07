@@ -6,6 +6,7 @@ import { requireSchoolId } from "@/lib/portal-data";
 import { promotionRuleSchema } from "@/lib/validators";
 import { emptyToNull } from "@/lib/class-teachers";
 import { logAudit } from "@/lib/audit";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 export async function GET() {
   const session = await getSession();
@@ -22,7 +23,17 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  const denied = await denyUnless(session, "settings.manage");
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/promotion/rules",
+      method: "POST",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+const denied = await denyUnless(session, "settings.manage");
   if (denied) return denied;
   const schoolId = await requireSchoolId(session!);
   const parsed = promotionRuleSchema.safeParse(await request.json());

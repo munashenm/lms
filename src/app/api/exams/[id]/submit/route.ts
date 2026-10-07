@@ -6,6 +6,7 @@ import { examSubmitSchema } from "@/lib/validators";
 import { examTimeRemainingMs, scoreExamResponse } from "@/lib/online-exams";
 import { percentageToSymbol } from "@/lib/grading";
 import { assessmentSchoolInclude, studentCanAccessAssessment } from "@/lib/tenant";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -13,7 +14,18 @@ interface RouteParams {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/exams/submit",
+      method: "POST",
+      feature: "online_exams",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   const student = await getStudentForSession(session);
   if (!student) return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
 

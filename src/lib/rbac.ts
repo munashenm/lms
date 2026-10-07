@@ -6,8 +6,17 @@ import { permissionModule } from "./modules";
 
 export type Permission = AnyPermission;
 
-const ENTERPRISE_FULL: Permission[] = [
+/** Platform vendor authority — Super Admin only. */
+const ENTERPRISE_VENDOR: Permission[] = [
   "license.view", "license.manage",
+  "backup.view", "backup.create", "backup.download", "backup.restore",
+  "backup.delete", "backup.settings",
+  "sasams.view", "sasams.import", "sasams.map", "sasams.execute", "sasams.rollback",
+];
+
+/** School-side enterprise ops: view/activate own licence + backup/SA-SAMS. */
+const ENTERPRISE_SCHOOL: Permission[] = [
+  "license.view", "license.activate",
   "backup.view", "backup.create", "backup.download", "backup.restore",
   "backup.delete", "backup.settings",
   "sasams.view", "sasams.import", "sasams.map", "sasams.execute", "sasams.rollback",
@@ -52,7 +61,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "announcements:write",
     "visitors:read", "visitors:write", "visitors.create", "visitors.checkout",
     ...FINANCE_ALL, ...HR_ALL, ...PAYROLL_ALL, ...COMMS_ALL, ...HOMEWORK_ALL,
-    ...ENTERPRISE_FULL,
+    ...ENTERPRISE_VENDOR,
   ],
   SCHOOL_ADMIN: [
     "students:read", "students:write", "students.emis_sensitive", "admissions.deposit_waive",
@@ -63,7 +72,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "announcements:write",
     "visitors:read", "visitors:write", "visitors.create", "visitors.checkout",
     ...FINANCE_ALL, ...HR_ALL, ...PAYROLL_ALL, ...COMMS_ALL, ...HOMEWORK_ALL,
-    ...ENTERPRISE_FULL,
+    ...ENTERPRISE_SCHOOL,
   ],
   PRINCIPAL: [
     "students:read", "students.emis_sensitive", "admissions.deposit_waive",

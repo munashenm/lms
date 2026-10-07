@@ -253,6 +253,7 @@ export function getAdminNav(
       ...(opts?.superAdmin || opts?.vendorTools
         ? cluster("Control", [
             { label: "Institutions", href: "/admin/institutions", icon: "Globe" },
+            { label: "Licensing", href: "/admin/licensing", icon: "Shield" },
             { label: "Modules", href: "/admin/modules", icon: "Shield" },
             { label: "Roles & Permissions", href: "/admin/roles", icon: "Users" },
             { label: "Customers & licences", href: "/admin/settings/licence-server", icon: "Shield" },

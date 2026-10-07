@@ -124,8 +124,44 @@ export async function requireLicenseWrite(
   return null;
 }
 
+/**
+ * Path-aware mutation guard for routes that mutate school data.
+ * Allowed restricted paths (licence, backup, auth, account) skip the check.
+ * Prefer this (or requireLicenseWrite) on every school-scoped POST/PUT/PATCH/DELETE.
+ */
+export async function requireLicenseMutation(
+  schoolId: string | null | undefined,
+  opts?: {
+    feature?: LicenseFeatureKey;
+    action?: LicenseAction;
+    pathname?: string;
+    method?: string;
+  }
+): Promise<NextResponse | null> {
+  if (!schoolId) return null;
+  const method = (opts?.method ?? "POST").toUpperCase();
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return null;
+  if (opts?.pathname && isRestrictedPathAllowed(opts.pathname, method)) {
+    return null;
+  }
+  return requireLicenseWrite(schoolId, {
+    feature: opts?.feature,
+    action: opts?.action ?? "write",
+  });
+}
+
 export async function assertFeatureEnabled(schoolId: string, feature: LicenseFeatureKey) {
   return licenseWriteGuard({ schoolId, feature });
+}
+
+/** True when the licence entitles a feature (or there are no claims yet). */
+export function claimsAllowFeature(
+  features: Record<string, boolean> | null | undefined,
+  feature: LicenseFeatureKey
+): boolean {
+  if (!features) return true;
+  const normalized = normalizeFeatures(features);
+  return normalized[feature] !== false;
 }
 
 export function needsSuperAdminSchoolPicker(

@@ -76,6 +76,9 @@ export async function GET(request: NextRequest) {
             installationId,
             registeredDomain: license.registeredDomain ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
             customerName: license.customerName,
+            pricePerLearner: license.pricePerLearner?.toString() ?? null,
+            priceCurrency: license.priceCurrency ?? "ZAR",
+            priceNotes: license.priceNotes,
             limits: {
               learners: { used: usage.activeLearners, max: license.maxLearners },
               staff: { used: usage.educators, max: license.maxEducators },
@@ -105,7 +108,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!requirePermission(session, "license.manage")) {
+  const canActivate =
+    requirePermission(session, "license.activate") || requirePermission(session, "license.manage");
+  if (!canActivate) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const body = (await request.json()) as { licenseKey?: string; schoolId?: string; token?: string };

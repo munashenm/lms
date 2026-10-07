@@ -4,10 +4,21 @@ import { getSession } from "@/lib/auth";
 import { canAccessSchool, requirePermission } from "@/lib/rbac";
 import { websiteAdmissionsSchema } from "@/lib/validators";
 import { resolveSettingsSchoolId } from "@/lib/school-integrations";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 export async function PATCH(request: NextRequest) {
   const session = await getSession();
-  if (!requirePermission(session, "settings:write") && !requirePermission(session, "students:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/website/admissions",
+      method: "PATCH",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+if (!requirePermission(session, "settings:write") && !requirePermission(session, "students:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

@@ -6,6 +6,7 @@ import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { termUpdateSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { parseDateInput, setCurrentTerm } from "@/lib/academic-session";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -21,7 +22,17 @@ async function getOwnedTerm(id: string, session: NonNullable<Awaited<ReturnType<
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
-  if (!requirePermission(session, "settings:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/terms",
+      method: "PATCH",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+if (!requirePermission(session, "settings:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 
@@ -129,7 +140,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
-  if (!requirePermission(session, "settings:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/terms",
+      method: "DELETE",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+if (!requirePermission(session, "settings:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

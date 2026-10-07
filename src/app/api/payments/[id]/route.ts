@@ -8,6 +8,7 @@ import { scopedId } from "@/lib/tenant";
 import { saveFinanceSlip } from "@/lib/finance-uploads";
 import { postApprovedPayment } from "@/lib/manual-payment";
 import { z } from "zod";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -20,7 +21,18 @@ const schema = z.object({
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await getSession();
-  if (!session || !requireStaffPermission(session, "finance.payments.approve")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/payments",
+      method: "PATCH",
+      feature: "finance",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+if (!session || !requireStaffPermission(session, "finance.payments.approve")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
 

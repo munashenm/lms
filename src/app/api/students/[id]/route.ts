@@ -10,6 +10,7 @@ import { emptyToNull } from "@/lib/class-teachers";
 import { recordStudentChanges } from "@/lib/student-history";
 import { scopedId } from "@/lib/tenant";
 import { requestedEmisSensitiveFields } from "@/lib/emis-sensitive";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 import {
   learnerPortalShouldBeActive,
   provisionExistingStudent,
@@ -30,7 +31,17 @@ interface Params {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await getSession();
-  const denied = await denyUnless(session, "students.edit");
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/students",
+      method: "PATCH",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+const denied = await denyUnless(session, "students.edit");
   if (denied) return denied;
   const actor = session!;
 

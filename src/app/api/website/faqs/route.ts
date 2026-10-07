@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { requirePermission } from "@/lib/rbac";
 import { websiteFaqSchema } from "@/lib/validators";
 import { requireSchoolId } from "@/lib/portal-data";
+import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 export async function GET() {
   const session = await getSession();
@@ -20,7 +21,17 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!requirePermission(session, "settings:write")) {
+  
+  const __licSchoolId = session?.schoolId ?? null;
+  if (__licSchoolId) {
+    const __licDenied = await requireLicenseMutation(__licSchoolId, {
+      pathname: "/api/website/faqs",
+      method: "POST",
+    });
+    if (__licDenied) return __licDenied;
+  }
+
+if (!requirePermission(session, "settings:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const parsed = websiteFaqSchema.safeParse(await request.json());
