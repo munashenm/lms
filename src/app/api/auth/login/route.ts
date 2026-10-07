@@ -77,6 +77,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (
+      user.role !== "SUPER_ADMIN" &&
+      user.schoolId &&
+      user.school &&
+      !user.school.isActive
+    ) {
+      await logAudit({
+        schoolId: user.schoolId,
+        userId: user.id,
+        action: "LOGIN_FAILED",
+        entity: "User",
+        entityId: user.id,
+        metadata: { reason: "institution_inactive" },
+        ...meta,
+      });
+      return NextResponse.json(
+        { message: "This institution is currently inactive. Contact Cyber Developers support." },
+        { status: 403 }
+      );
+    }
+
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
       await logAudit({

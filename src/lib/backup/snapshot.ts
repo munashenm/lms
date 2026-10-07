@@ -250,8 +250,10 @@ export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnaps
       users.map((u) =>
         stripSecrets({
           ...u,
+          passwordHash: null,
           passwordResetTokenHash: null,
           passwordResetExpires: null,
+          mustResetPassword: true,
         } as unknown as Record<string, unknown>)
       )
     ),

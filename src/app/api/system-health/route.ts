@@ -6,6 +6,11 @@ import { resolveLicenseSchoolId } from "@/lib/licensing/enforce";
 import { evaluateStoredLicense } from "@/lib/licensing/service";
 import { countLicenseUsage } from "@/lib/licensing/usage";
 import { ensureDefaultSchedules } from "@/lib/backup/schedule";
+import {
+  backupConfigurationError,
+  backupStorageProviderName,
+  isDurableBackupStorageConfigured,
+} from "@/lib/backup/crypto";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -37,6 +42,9 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
+  const backupConfigError = backupConfigurationError();
+  const backupProvider = backupStorageProviderName();
+
   return NextResponse.json({
     licence: {
       status: evaluation.effectiveStatus,
@@ -52,6 +60,14 @@ export async function GET(request: NextRequest) {
       lastSuccessful: lastBackup?.completedAt ?? null,
       next: nextSchedule?.nextRunAt ?? null,
       health: lastBackup ? "healthy" : "missing",
+      storageProvider: backupProvider,
+      durableStorageConfigured: isDurableBackupStorageConfigured(),
+      configurationError: backupConfigError,
+    },
+    uploads: {
+      storage: "local-public-uploads",
+      durable: false,
+      note: "Learner/finance files are stored under public/uploads on the app filesystem. Mount a persistent volume or migrate to object storage before relying on Railway redeploys.",
     },
     integrations: {
       provider: "SA-SAMS",

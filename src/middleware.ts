@@ -7,7 +7,7 @@ import { canApplyForLeave } from "@/lib/staff-leave-access";
 import { UserRole } from "@prisma/client";
 import { unauthenticatedLoginPath } from "@/lib/login-portals";
 import { isInstitutionPublicPath } from "@/lib/institution-portal";
-import { canAccessUploadPath, isPublicUploadPath } from "@/lib/upload-access";
+import { isPublicUploadPath } from "@/lib/upload-path";
 import { isForcedPasswordPathAllowed } from "@/lib/force-password-reset";
 import { readOrCreateRequestId, requestIdHeaderName } from "@/lib/request-id";
 import { restrictedPathnameHeaderName } from "@/lib/licensing/restricted-ui";
@@ -68,14 +68,15 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/uploads")) {
+    // Branding may be served as a static public asset.
     if (isPublicUploadPath(pathname)) {
       return withRequestId(request, NextResponse.next());
     }
-    const session = await getSessionFromRequest(request.headers.get("cookie"));
-    if (!session || !canAccessUploadPath(session, pathname)) {
-      return withRequestId(request, NextResponse.json({ message: "Not found" }, { status: 404 }));
-    }
-    return withRequestId(request, NextResponse.next());
+    // Private uploads are never served as static files — rewrite to authenticated API ACL.
+    const rewriteUrl = request.nextUrl.clone();
+    const relative = pathname.replace(/^\/uploads\//, "");
+    rewriteUrl.pathname = `/api/files/${relative}`;
+    return withRequestId(request, NextResponse.rewrite(rewriteUrl));
   }
 
   if (STATIC_ASSET.test(pathname)) {

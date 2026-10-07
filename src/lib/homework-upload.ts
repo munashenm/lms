@@ -54,6 +54,8 @@ export async function saveSchoolUpload(opts: {
   folder: PortalUploadFolder;
   file: File;
   ownerId: string;
+  /** When set, nests under folder/{nestUnderId}/ for ownership ACL. */
+  nestUnderId?: string;
 }): Promise<string> {
   if (opts.file.size > PORTAL_UPLOAD_MAX_BYTES) {
     throw new Error("File must be under 10 MB");
@@ -63,13 +65,16 @@ export async function saveSchoolUpload(opts: {
   }
 
   const bytes = await opts.file.arrayBuffer();
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", opts.schoolId, opts.folder);
+  const relativeParts = opts.nestUnderId
+    ? [opts.folder, opts.nestUnderId]
+    : [opts.folder];
+  const uploadsDir = path.join(process.cwd(), "public", "uploads", opts.schoolId, ...relativeParts);
   await mkdir(uploadsDir, { recursive: true });
 
   const safeName = opts.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filename = `${Date.now()}-${opts.ownerId.slice(0, 8)}-${safeName}`;
+  const filename = `${Date.now()}-${safeName}`;
   await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
-  return `/uploads/${opts.schoolId}/${opts.folder}/${filename}`;
+  return `/uploads/${opts.schoolId}/${relativeParts.join("/")}/${filename}`;
 }
 
 export async function saveHomeworkSubmissionFile(
@@ -77,10 +82,24 @@ export async function saveHomeworkSubmissionFile(
   studentId: string,
   file: File
 ): Promise<string> {
-  return saveSchoolUpload({
+  if (file.size > PORTAL_UPLOAD_MAX_BYTES) {
+    throw new Error("File must be under 10 MB");
+  }
+  if (!isAllowedHomeworkFile(file)) {
+    throw new Error("Upload a PDF, Office, ZIP, or image file");
+  }
+  const bytes = await file.arrayBuffer();
+  const uploadsDir = path.join(
+    process.cwd(),
+    "public",
+    "uploads",
     schoolId,
-    folder: "submissions",
-    file,
-    ownerId: studentId,
-  });
+    "submissions",
+    studentId
+  );
+  await mkdir(uploadsDir, { recursive: true });
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const filename = `${Date.now()}-${safeName}`;
+  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
+  return `/uploads/${schoolId}/submissions/${studentId}/${filename}`;
 }

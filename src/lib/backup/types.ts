@@ -110,6 +110,7 @@ export interface BackupSnapshot {
 }
 
 export const SECRET_BACKUP_FIELDS = [
+  "passwordHash",
   "passwordResetTokenHash",
   "sendgridApiKey",
   "twilioAuthToken",

@@ -14,6 +14,33 @@ export function scopedId(session: SessionPayload, id: string) {
   return { id, ...institutionScope(session) };
 }
 
+/**
+ * Resolve a user-supplied classId against an already school-scoped class list.
+ * Foreign or unknown ids fall back to the first owned class (or null) — never trust raw searchParams.
+ */
+export function resolveOwnedClassId(
+  requestedClassId: string | null | undefined,
+  ownedClasses: Array<{ id: string }>
+): string | null {
+  if (!ownedClasses.length) return null;
+  if (requestedClassId && ownedClasses.some((c) => c.id === requestedClassId)) {
+    return requestedClassId;
+  }
+  return ownedClasses[0]?.id ?? null;
+}
+
+/** Same for modules / other owned entity lists. */
+export function resolveOwnedEntityId(
+  requestedId: string | null | undefined,
+  owned: Array<{ id: string }>
+): string | null {
+  if (!owned.length) return null;
+  if (requestedId && owned.some((row) => row.id === requestedId)) {
+    return requestedId;
+  }
+  return owned[0]?.id ?? null;
+}
+
 export function requireBoundSchoolId(session: SessionPayload): string {
   if (session.schoolId) return session.schoolId;
   throw new Error("School context required");

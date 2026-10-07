@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { buildAttendanceSessionKey } from "@/lib/attendance";
 import { getTerminology } from "@/lib/terminology";
+import { resolveOwnedClassId } from "@/lib/tenant";
 
 interface PageProps {
   searchParams: Promise<{ classId?: string; date?: string }>;
@@ -34,7 +35,7 @@ export default async function AttendancePage({ searchParams }: PageProps) {
     orderBy: { name: "asc" },
   });
 
-  const selectedClassId = params.classId ?? classes[0]?.id;
+  const selectedClassId = resolveOwnedClassId(params.classId, classes);
   const sessionKey = selectedClassId
     ? buildAttendanceSessionKey({ classId: selectedClassId })
     : null;
@@ -42,13 +43,17 @@ export default async function AttendancePage({ searchParams }: PageProps) {
   const [students, existingRecords, recentRecords] = await Promise.all([
     selectedClassId
       ? prisma.student.findMany({
-          where: { classId: selectedClassId, status: "ACTIVE" },
+          where: { classId: selectedClassId, status: "ACTIVE", ...filter },
           orderBy: { lastName: "asc" },
         })
       : Promise.resolve([]),
     selectedClassId && sessionKey
       ? prisma.attendanceRecord.findMany({
-          where: { sessionKey, date: new Date(date) },
+          where: {
+            sessionKey,
+            date: new Date(date),
+            ...filter,
+          },
         })
       : Promise.resolve([]),
     prisma.attendanceRecord.findMany({
@@ -81,12 +86,12 @@ export default async function AttendancePage({ searchParams }: PageProps) {
         <Suspense fallback={<div className="h-10" />}>
           <ClassFilter
             classes={classes.map((c) => ({ id: c.id, name: c.name }))}
-            selectedClassId={selectedClassId}
+            selectedClassId={selectedClassId ?? undefined}
             preserveParams={["date"]}
           />
         </Suspense>
         <form method="GET" className="flex gap-2 items-end">
-          <input type="hidden" name="classId" value={selectedClassId} />
+          <input type="hidden" name="classId" value={selectedClassId ?? ""} />
           <div>
             <label className="text-sm font-medium">Date</label>
             <input

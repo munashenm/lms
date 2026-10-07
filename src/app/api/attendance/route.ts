@@ -13,7 +13,13 @@ import {
 } from "@/lib/portal-data";
 import { buildAttendanceSessionKey } from "@/lib/attendance";
 import { licenseDeniedResponse, licenseWriteGuard } from "@/lib/licensing/enforce";
-import { assertStudentsInSchool, classInSchool, institutionScope, scopedStudentIdFilter } from "@/lib/tenant";
+import {
+  assertSchoolFks,
+  assertStudentsInSchool,
+  classInSchool,
+  institutionScope,
+  scopedStudentIdFilter,
+} from "@/lib/tenant";
 import { tenantMiss } from "@/lib/authorize";
 
 export async function GET(request: NextRequest) {
@@ -91,6 +97,11 @@ export async function POST(request: NextRequest) {
     const klass = await classInSchool(classId, schoolId);
     if (!klass) return tenantMiss();
   }
+  const fkError = await assertSchoolFks(schoolId, {
+    moduleId: moduleId || null,
+    subjectId: subjectId || null,
+  });
+  if (fkError) return tenantMiss();
   const studentIds = records.map((record) => record.studentId);
   if (!(await assertStudentsInSchool(studentIds, schoolId))) {
     return tenantMiss();

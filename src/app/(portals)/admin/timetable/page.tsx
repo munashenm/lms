@@ -6,6 +6,7 @@ import { TimetableGrid } from "@/components/academics/timetable-grid";
 import { TimetableForm } from "@/components/academics/timetable-form";
 import { TimetableConflicts } from "@/components/academics/timetable-conflicts";
 import { ClassFilter } from "@/components/academics/class-filter";
+import { resolveOwnedClassId } from "@/lib/tenant";
 
 interface PageProps {
   searchParams: Promise<{ classId?: string }>;
@@ -16,28 +17,30 @@ export default async function TimetablePage({ searchParams }: PageProps) {
   const session = await getSession();
   const filter = getSchoolFilter(session!);
 
-  const [classes, subjects, teachers, slots] = await Promise.all([
+  const [classes, subjects, teachers] = await Promise.all([
     prisma.class.findMany({ where: { ...filter, isActive: true }, orderBy: { name: "asc" } }),
     prisma.subject.findMany({ where: { ...filter, isActive: true }, orderBy: { name: "asc" } }),
     prisma.teacher.findMany({
       where: { ...filter, status: "ACTIVE" },
       select: { id: true, firstName: true, lastName: true },
     }),
-    prisma.timetableSlot.findMany({
-      where: {
-        ...(params.classId ? { classId: params.classId } : { class: filter }),
-      },
-      include: {
-        class: { select: { name: true } },
-        subject: { select: { name: true, code: true } },
-        module: { select: { name: true, code: true } },
-        teacher: { select: { firstName: true, lastName: true } },
-      },
-      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
-    }),
   ]);
 
-  const selectedClass = params.classId ?? classes[0]?.id;
+  const selectedClass = resolveOwnedClassId(params.classId, classes);
+
+  const slots = await prisma.timetableSlot.findMany({
+    where: {
+      ...filter,
+      ...(selectedClass ? { classId: selectedClass } : {}),
+    },
+    include: {
+      class: { select: { name: true } },
+      subject: { select: { name: true, code: true } },
+      module: { select: { name: true, code: true } },
+      teacher: { select: { firstName: true, lastName: true } },
+    },
+    orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+  });
 
   return (
     <div className="space-y-6">
@@ -49,20 +52,20 @@ export default async function TimetablePage({ searchParams }: PageProps) {
       <Suspense fallback={<div className="h-10" />}>
         <ClassFilter
           classes={classes.map((c) => ({ id: c.id, name: c.name }))}
-          selectedClassId={selectedClass}
+          selectedClassId={selectedClass ?? undefined}
         />
       </Suspense>
 
-      <TimetableConflicts classId={selectedClass} />
+      <TimetableConflicts classId={selectedClass ?? undefined} />
 
       <TimetableForm
         classes={classes.map((c) => ({ id: c.id, name: c.name }))}
         subjects={subjects.map((s) => ({ id: s.id, name: s.name, code: s.code }))}
         teachers={teachers}
-        defaultClassId={selectedClass}
+        defaultClassId={selectedClass ?? undefined}
       />
 
-      <TimetableGrid slots={slots} showClass={!params.classId} />
+      <TimetableGrid slots={slots} showClass={!selectedClass} />
     </div>
   );
 }
