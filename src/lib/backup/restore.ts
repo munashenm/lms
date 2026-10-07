@@ -1,6 +1,4 @@
 import crypto from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { RestoreJobStatus, BackupType, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
@@ -13,7 +11,7 @@ import { checkBackupCompatibility, describeSnapshot, assertBackupBelongsToSchool
 import { runBackupJob } from "./engine";
 import { getBackupStorage } from "./storage";
 import { asInputJson } from "@/lib/json";
-import { resolveSafeUploadRestoreDest } from "@/lib/upload-restore-path";
+import { restoreUploadSnapshotFile } from "@/lib/uploads/storage";
 
 /** Restored users never keep exported password hashes — force credential reset. */
 async function sanitizeRestoredUsers(
@@ -237,10 +235,7 @@ export async function executeRestore(opts: {
 
 async function restoreFiles(snapshot: BackupSnapshot) {
   for (const file of snapshot.files) {
-    const dest = resolveSafeUploadRestoreDest(file.relativePath);
-    if (!dest) continue;
-    await mkdir(path.dirname(dest), { recursive: true });
-    await writeFile(dest, Buffer.from(file.contentBase64, "base64"));
+    await restoreUploadSnapshotFile(file.relativePath, file.contentBase64);
   }
 }
 

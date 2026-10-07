@@ -11,6 +11,11 @@ import {
   backupStorageProviderName,
   isDurableBackupStorageConfigured,
 } from "@/lib/backup/crypto";
+import {
+  isDurableUploadStorageConfigured,
+  uploadStorageConfigurationError,
+  uploadStorageProviderName,
+} from "@/lib/uploads/storage";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -65,9 +70,13 @@ export async function GET(request: NextRequest) {
       configurationError: backupConfigError,
     },
     uploads: {
-      storage: "local-public-uploads",
-      durable: false,
-      note: "Learner/finance files are stored under public/uploads on the app filesystem. Mount a persistent volume or migrate to object storage before relying on Railway redeploys.",
+      storageProvider: uploadStorageProviderName(),
+      durableStorageConfigured: isDurableUploadStorageConfigured(),
+      configurationError: uploadStorageConfigurationError(),
+      note:
+        uploadStorageProviderName() === "s3"
+          ? "Uploads use S3-compatible object storage namespaced by schoolId."
+          : "Uploads use local public/uploads. Set UPLOAD_STORAGE_PROVIDER=s3 (or reuse BACKUP_S3_*) for durable Railway storage.",
     },
     integrations: {
       provider: "SA-SAMS",

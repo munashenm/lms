@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db";
-import { readdir, readFile, stat } from "fs/promises";
-import path from "path";
 import { SECRET_BACKUP_FIELDS, type BackupSnapshot } from "./types";
+import { listSchoolUploadSnapshotFiles } from "@/lib/uploads/storage";
 
 function stripSecrets<T extends Record<string, unknown>>(row: T): T {
   const copy = { ...row };
@@ -32,41 +31,7 @@ function jsonSafe<T>(value: T): T {
 }
 
 async function collectUploads(schoolId: string): Promise<BackupSnapshot["files"]> {
-  const roots = [
-    path.join(process.cwd(), "public", "uploads", schoolId),
-  ];
-  const files: BackupSnapshot["files"] = [];
-  for (const root of roots) {
-    await walkFiles(root, root, files);
-  }
-  return files;
-}
-
-async function walkFiles(
-  root: string,
-  current: string,
-  out: BackupSnapshot["files"]
-) {
-  let entries;
-  try {
-    entries = await readdir(current, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const entry of entries) {
-    const full = path.join(current, entry.name);
-    if (entry.isDirectory()) {
-      await walkFiles(root, full, out);
-      continue;
-    }
-    const info = await stat(full);
-    if (info.size > 25 * 1024 * 1024) continue;
-    const buf = await readFile(full);
-    out.push({
-      relativePath: path.relative(path.join(process.cwd(), "public"), full).replace(/\\/g, "/"),
-      contentBase64: buf.toString("base64"),
-    });
-  }
+  return listSchoolUploadSnapshotFiles(schoolId);
 }
 
 export async function buildSchoolSnapshot(schoolId: string): Promise<BackupSnapshot> {

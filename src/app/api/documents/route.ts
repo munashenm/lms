@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { requirePermission, getSchoolFilter } from "@/lib/rbac";
@@ -10,6 +8,7 @@ import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { documentVisibleToLearner } from "@/lib/learner-portal";
 import { validateLibraryDocument } from "@/lib/registration-docs";
 import { assertDocumentTargets } from "@/lib/tenant";
+import { putSchoolUpload } from "@/lib/uploads/storage";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -97,13 +96,14 @@ export async function POST(request: NextRequest) {
   if (denied) return denied;
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
-
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", schoolId);
-  await mkdir(uploadsDir, { recursive: true });
-
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const filename = `${Date.now()}-${safeName}`;
-  await writeFile(path.join(uploadsDir, filename), buffer);
+  const fileUrl = await putSchoolUpload({
+    schoolId,
+    relativePath: filename,
+    body: buffer,
+    contentType: file.type || "application/octet-stream",
+  });
 
   const document = await prisma.document.create({
     data: {
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       title,
       description,
       type,
-      fileUrl: `/uploads/${schoolId}/${filename}`,
+      fileUrl,
       fileSize: buffer.length,
       mimeType: file.type || null,
       isPublic,

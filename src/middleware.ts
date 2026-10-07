@@ -7,7 +7,6 @@ import { canApplyForLeave } from "@/lib/staff-leave-access";
 import { UserRole } from "@prisma/client";
 import { unauthenticatedLoginPath } from "@/lib/login-portals";
 import { isInstitutionPublicPath } from "@/lib/institution-portal";
-import { isPublicUploadPath } from "@/lib/upload-path";
 import { isForcedPasswordPathAllowed } from "@/lib/force-password-reset";
 import { readOrCreateRequestId, requestIdHeaderName } from "@/lib/request-id";
 import { restrictedPathnameHeaderName } from "@/lib/licensing/restricted-ui";
@@ -68,11 +67,8 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/uploads")) {
-    // Branding may be served as a static public asset.
-    if (isPublicUploadPath(pathname)) {
-      return withRequestId(request, NextResponse.next());
-    }
-    // Private uploads are never served as static files — rewrite to authenticated API ACL.
+    // All school uploads (including public branding) go through /api/files so local
+    // and S3-backed object storage both work. Branding remains unauthenticated in the API.
     const rewriteUrl = request.nextUrl.clone();
     const relative = pathname.replace(/^\/uploads\//, "");
     rewriteUrl.pathname = `/api/files/${relative}`;

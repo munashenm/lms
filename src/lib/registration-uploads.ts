@@ -1,5 +1,5 @@
-import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { putSchoolUpload } from "@/lib/uploads/storage";
 
 export async function saveRegistrationFile(opts: {
   schoolId: string;
@@ -7,21 +7,25 @@ export async function saveRegistrationFile(opts: {
   file: File;
 }): Promise<{ url: string; filename: string; mimeType: string; fileSize: number }> {
   const bytes = await opts.file.arrayBuffer();
-  const uploadsDir = path.join(
-    /* turbopackIgnore: true */ process.cwd(),
-    "public",
-    "uploads",
-    opts.schoolId,
-    opts.folder
-  );
-  await mkdir(uploadsDir, { recursive: true });
+  const buffer = Buffer.from(bytes);
   const safeName = opts.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const filename = `${Date.now()}-${safeName}`;
-  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
+  const folder = opts.folder.replace(/^\/+|\/+$/g, "").replace(/\\/g, "/");
+  const relativePath = `${folder}/${filename}`;
+  const url = await putSchoolUpload({
+    schoolId: opts.schoolId,
+    relativePath,
+    body: buffer,
+    contentType: opts.file.type || "application/octet-stream",
+  });
   return {
-    url: `/uploads/${opts.schoolId}/${opts.folder}/${filename}`,
+    url,
     filename: opts.file.name,
     mimeType: opts.file.type || "",
     fileSize: opts.file.size,
   };
+}
+
+export function registrationFileExtension(name: string): string {
+  return path.extname(name).toLowerCase();
 }

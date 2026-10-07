@@ -1,5 +1,5 @@
-import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { putSchoolUpload } from "@/lib/uploads/storage";
 
 export const HOMEWORK_MAX_BYTES = 10 * 1024 * 1024;
 export const PORTAL_UPLOAD_MAX_BYTES = HOMEWORK_MAX_BYTES;
@@ -68,13 +68,14 @@ export async function saveSchoolUpload(opts: {
   const relativeParts = opts.nestUnderId
     ? [opts.folder, opts.nestUnderId]
     : [opts.folder];
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", opts.schoolId, ...relativeParts);
-  await mkdir(uploadsDir, { recursive: true });
-
   const safeName = opts.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const filename = `${Date.now()}-${safeName}`;
-  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
-  return `/uploads/${opts.schoolId}/${relativeParts.join("/")}/${filename}`;
+  return putSchoolUpload({
+    schoolId: opts.schoolId,
+    relativePath: `${relativeParts.join("/")}/${filename}`,
+    body: Buffer.from(bytes),
+    contentType: opts.file.type || "application/octet-stream",
+  });
 }
 
 export async function saveHomeworkSubmissionFile(
@@ -89,17 +90,12 @@ export async function saveHomeworkSubmissionFile(
     throw new Error("Upload a PDF, Office, ZIP, or image file");
   }
   const bytes = await file.arrayBuffer();
-  const uploadsDir = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    schoolId,
-    "submissions",
-    studentId
-  );
-  await mkdir(uploadsDir, { recursive: true });
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const filename = `${Date.now()}-${safeName}`;
-  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
-  return `/uploads/${schoolId}/submissions/${studentId}/${filename}`;
+  return putSchoolUpload({
+    schoolId,
+    relativePath: `submissions/${studentId}/${filename}`,
+    body: Buffer.from(bytes),
+    contentType: file.type || "application/octet-stream",
+  });
 }

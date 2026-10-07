@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile, stat } from "fs/promises";
 import path from "path";
 import { getSession } from "@/lib/auth";
 import { canAccessUploadPath } from "@/lib/upload-access";
 import { isPublicUploadPath, parseUploadPath } from "@/lib/upload-path";
+import { readUploadByPathname } from "@/lib/uploads/storage";
 
 interface Params {
   params: Promise<{ path: string[] }>;
@@ -36,7 +36,7 @@ function contentTypeFor(filename: string): string {
   }
 }
 
-export async function GET(request: NextRequest, { params }: Params) {
+export async function GET(_request: NextRequest, { params }: Params) {
   const parts = (await params).path ?? [];
   if (!parts.length || parts.some((p) => p.includes("..") || p.includes("\\") || p.includes("\0"))) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
@@ -55,30 +55,20 @@ export async function GET(request: NextRequest, { params }: Params) {
     }
   }
 
-  const diskPath = path.resolve(process.cwd(), "public", "uploads", ...parts);
-  const uploadsRoot = path.resolve(process.cwd(), "public", "uploads");
-  if (!diskPath.startsWith(uploadsRoot + path.sep) && diskPath !== uploadsRoot) {
+  const data = await readUploadByPathname(pathname);
+  if (!data) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
-  try {
-    const info = await stat(diskPath);
-    if (!info.isFile()) {
-      return NextResponse.json({ message: "Not found" }, { status: 404 });
-    }
-    const data = await readFile(diskPath);
-    return new NextResponse(data, {
-      status: 200,
-      headers: {
-        "Content-Type": contentTypeFor(diskPath),
-        "Content-Length": String(info.size),
-        "Cache-Control": isPublicUploadPath(pathname)
-          ? "public, max-age=3600"
-          : "private, no-store",
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
-  } catch {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
-  }
+  return new NextResponse(new Uint8Array(data), {
+    status: 200,
+    headers: {
+      "Content-Type": contentTypeFor(parts[parts.length - 1] ?? "file"),
+      "Content-Length": String(data.length),
+      "Cache-Control": isPublicUploadPath(pathname)
+        ? "public, max-age=3600"
+        : "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
 }
