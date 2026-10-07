@@ -179,12 +179,23 @@ export function LicenceDesk() {
     if (action === "suspend" && !window.confirm(`Suspend ${row.licenseKey}?`)) {
       return;
     }
+    let expiresAt: string | null = null;
+    let planCode: string | undefined;
+    if (action === "extend_trial") {
+      const next = window.prompt("New trial expiry (YYYY-MM-DD)", row.expiresAt?.slice(0, 10) ?? "");
+      if (!next) return;
+      expiresAt = next;
+    }
+    if (action === "convert_to_paid") {
+      if (!window.confirm(`Convert ${row.licenseKey} from trial to paid (ACTIVE)?`)) return;
+      planCode = "standard";
+    }
     setLoading(`${row.id}-${action}`);
     try {
       const res = await fetch(`/api/license-server/v1/licenses/${row.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, expiresAt, planCode }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -194,11 +205,15 @@ export function LicenceDesk() {
       toast.success(
         action === "renew"
           ? "Licence renewed for 12 months"
-          : action === "suspend"
-            ? "Licence suspended"
-            : action === "revoke"
-              ? "Licence revoked"
-              : "Licence reactivated"
+          : action === "extend_trial"
+            ? "Trial extended"
+            : action === "convert_to_paid"
+              ? "Converted to paid (ACTIVE)"
+              : action === "suspend"
+                ? "Licence suspended"
+                : action === "revoke"
+                  ? "Licence revoked"
+                  : "Licence reactivated"
       );
       await load();
     } finally {
@@ -509,6 +524,28 @@ export function LicenceDesk() {
                         >
                           Renew
                         </Button>
+                        {row.status === "TRIAL" ? (
+                          <>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={!enabled || loading === `${row.id}-extend_trial`}
+                              onClick={() => void act(row, "extend_trial")}
+                            >
+                              Extend trial
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={!enabled || loading === `${row.id}-convert_to_paid`}
+                              onClick={() => void act(row, "convert_to_paid")}
+                            >
+                              Convert to paid
+                            </Button>
+                          </>
+                        ) : null}
                         {row.status === "SUSPENDED" || row.status === "REVOKED" ? (
                           <Button
                             type="button"
