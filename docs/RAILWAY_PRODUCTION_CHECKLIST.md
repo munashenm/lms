@@ -11,7 +11,9 @@ App release already runs `npx prisma migrate deploy` (`railway.toml` → `releas
 
 Open your **Postgres** service in Railway (not the web app).
 
-### A. Volume backups (scheduled snapshots)
+**Plan note:** Some Railway plans do not include volume backups / PITR. That is OK for early free trials if institution `.lmsbackup` → S3 and cron are working. Treat Postgres PITR as a **go-live upgrade before heavy paying usage**, not a blocker for first trial schools.
+
+### A. Volume backups (scheduled snapshots) — when plan allows
 
 1. Postgres service → **Backups** (or **Data** → Backups).
 2. Enable / confirm an automatic **volume backup schedule**.
@@ -20,7 +22,7 @@ Open your **Postgres** service in Railway (not the web app).
 
 Docs: [Postgres backups & restores](https://docs.railway.com/guides/postgres-backups-restores)
 
-### B. Point-in-Time Recovery (recommended)
+### B. Point-in-Time Recovery — when plan allows
 
 1. Same Postgres service → **Backups**.
 2. Enable **Point-in-Time Recovery / PITR**.
@@ -38,6 +40,13 @@ railway postgres pitr status
 ```
 
 Restore later creates a **new sibling** Postgres service at a chosen timestamp; it does not overwrite production automatically.
+
+### While PITR is unavailable
+
+Rely on:
+- Per-school encrypted `.lmsbackup` packages in S3 (Settings → Backup + cron)
+- Manual offline backup download for any trial school that matters
+- Upgrade Railway plan later, then enable section 1 immediately
 
 ---
 
