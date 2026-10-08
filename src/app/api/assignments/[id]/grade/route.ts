@@ -5,7 +5,11 @@ import { getSession } from "@/lib/auth";
 import { requireStaffPermission } from "@/lib/rbac";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
-import { assessmentSchoolInclude } from "@/lib/tenant";
+import {
+  assessmentSchoolId,
+  assessmentSchoolInclude,
+  denyCrossTenant,
+} from "@/lib/tenant";
 import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 interface Params {
@@ -28,7 +32,13 @@ export async function GET(_request: NextRequest, { params }: Params) {
   const assignment = await prisma.assignment.findUnique({
     where: { id },
     include: {
-      assessment: { include: { ...assessmentSchoolInclude, subject: { select: { name: true } } } },
+      assessment: {
+        include: {
+          subject: { select: { name: true, schoolId: true } },
+          module: { select: { course: { select: { schoolId: true } } } },
+          teacher: { select: { schoolId: true } },
+        },
+      },
       submissions: {
         include: { student: { select: { firstName: true, lastName: true, studentNumber: true } } },
         orderBy: { submittedAt: "desc" },
@@ -36,7 +46,8 @@ export async function GET(_request: NextRequest, { params }: Params) {
     },
   });
   if (!assignment) return NextResponse.json({ message: "Not found" }, { status: 404 });
-  if (session!.schoolId && assignment.assessment.schoolId !== session!.schoolId) {
+  const schoolId = assessmentSchoolId(assignment.assessment);
+  if (!schoolId || denyCrossTenant(session!, schoolId)) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
   return NextResponse.json({ assignment });
@@ -44,7 +55,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await getSession();
-  
+
   const __licSchoolId = session?.schoolId ?? null;
   if (__licSchoolId) {
     const __licDenied = await requireLicenseMutation(__licSchoolId, {
@@ -55,7 +66,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     if (__licDenied) return __licDenied;
   }
 
-if (!requireStaffPermission(session, "homework.grade") && !requireStaffPermission(session, "marks:write")) {
+  if (!requireStaffPermission(session, "homework.grade") && !requireStaffPermission(session, "marks:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const { id } = await params;
@@ -63,10 +74,17 @@ if (!requireStaffPermission(session, "homework.grade") && !requireStaffPermissio
   if (!parsed.success) return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   const submission = await prisma.assignmentSubmission.findFirst({
     where: { id: parsed.data.submissionId, assignmentId: id },
-    include: { assignment: { include: { assessment: true } } },
+    include: {
+      assignment: {
+        include: {
+          assessment: { include: assessmentSchoolInclude },
+        },
+      },
+    },
   });
   if (!submission) return NextResponse.json({ message: "Not found" }, { status: 404 });
-  if (session!.schoolId && submission.assignment.assessment.schoolId !== session!.schoolId) {
+  const schoolId = assessmentSchoolId(submission.assignment.assessment);
+  if (!schoolId || denyCrossTenant(session!, schoolId)) {
     return NextResponse.json({ message: "Not found" }, { status: 404 });
   }
 
@@ -87,7 +105,7 @@ if (!requireStaffPermission(session, "homework.grade") && !requireStaffPermissio
     },
   });
   await logAudit({
-    schoolId: submission.assignment.assessment.schoolId,
+    schoolId,
     userId: session!.userId,
     action: "HOMEWORK_GRADED",
     entity: "AssignmentSubmission",

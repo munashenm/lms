@@ -38,7 +38,8 @@ node -e "const {generateKeyPair} = require('crypto'); const {publicKey, privateK
 | Variable | Purpose |
 |---|---|
 | `BACKUP_ENCRYPTION_KEY` | 64-char hex (32 bytes) or passphrase. AES-256-GCM for `.lmsbackup` packages |
-| `BACKUP_STORAGE_PROVIDER` | `local` (default) or `s3` |
+| `BACKUP_STORAGE_PROVIDER` | `local` (dev default) or `s3` (**required in production** unless `BACKUP_ALLOW_LOCAL=true`) |
+| `BACKUP_ALLOW_LOCAL` | Set `true` only when a persistent volume backs local backup paths |
 | `BACKUP_LOCAL_PATH` | Local directory (default `./data/backups`) |
 | `BACKUP_S3_ENDPOINT` | S3-compatible endpoint |
 | `BACKUP_S3_REGION` | Default `us-east-1` |
@@ -46,6 +47,16 @@ node -e "const {generateKeyPair} = require('crypto'); const {publicKey, privateK
 | `BACKUP_S3_ACCESS_KEY_ID` | Access key (server-side only) |
 | `BACKUP_S3_SECRET_ACCESS_KEY` | Secret key (server-side only) |
 | `BACKUP_S3_FORCE_PATH_STYLE` | Default `true` |
+
+### Uploads (school files)
+
+| Variable | Purpose |
+|---|---|
+| `UPLOAD_STORAGE_PROVIDER` | `local` or `s3`. When empty, follows `BACKUP_STORAGE_PROVIDER` |
+| `UPLOAD_ALLOW_LOCAL` | Set `true` only with a persistent volume in production |
+| `UPLOAD_S3_*` | Optional overrides; otherwise reuses `BACKUP_S3_*` |
+
+Objects are stored under keys `uploads/{schoolId}/...` and served via `/api/files/...` (public branding remains unauthenticated).
 
 ### SA-SAMS imports
 

@@ -1323,7 +1323,7 @@ model WebsiteGalleryItem {
 
 model AttendanceRecord {
   id           String           @id @default(cuid())
-  schoolId     String?
+  schoolId     String
   studentId    String
   classId      String?
   subjectId    String?
@@ -1339,7 +1339,7 @@ model AttendanceRecord {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
-  school    School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   class     Class?   @relation(fields: [classId], references: [id])
   subject   Subject? @relation(fields: [subjectId], references: [id])
@@ -1359,7 +1359,7 @@ model AttendanceRecord {
 
 model TimetableSlot {
   id        String    @id @default(cuid())
-  schoolId  String?
+  schoolId  String
   classId   String
   subjectId String?
   moduleId  String?
@@ -1372,7 +1372,7 @@ model TimetableSlot {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  school    School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
   subject   Subject? @relation(fields: [subjectId], references: [id])
   module    Module?  @relation(fields: [moduleId], references: [id])
@@ -1387,7 +1387,7 @@ model TimetableSlot {
 
 model Assessment {
   id          String         @id @default(cuid())
-  schoolId    String?
+  schoolId    String
   subjectId   String?
   moduleId    String?
   termId      String?
@@ -1405,7 +1405,7 @@ model Assessment {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  school      School?   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   subject     Subject?  @relation(fields: [subjectId], references: [id])
   module      Module?   @relation(fields: [moduleId], references: [id])
   term        Term?     @relation(fields: [termId], references: [id])

@@ -90,33 +90,57 @@ describe("multi-tenant isolation", () => {
     if (!result.ok) expect(result.status).toBe(401);
   });
 
-  it("keeps branding public and learner files private", () => {
+  it("keeps branding public and learner files private", async () => {
     expect(isPublicUploadPath("/uploads/school-a/branding/logo.png")).toBe(true);
     expect(isPublicUploadPath("/uploads/school-a/id-document.pdf")).toBe(false);
     expect(isPublicUploadPath("/uploads/school-a/../school-b/secret.pdf")).toBe(false);
     expect(parseUploadPath("/uploads/school-a/applications/file.pdf")?.schoolId).toBe("school-a");
-    expect(canAccessUploadPath(schoolA, "/uploads/school-b/id-document.pdf")).toBe(false);
-    expect(canAccessUploadPath(schoolA, "/uploads/school-a/id-document.pdf")).toBe(true);
+    expect(await canAccessUploadPath(schoolA, "/uploads/school-b/id-document.pdf")).toBe(false);
+    expect(
+      await canAccessUploadPath(schoolA, "/uploads/school-a/id-document.pdf", {
+        skipLibraryLookup: true,
+        libraryAllowed: true,
+      })
+    ).toBe(true);
   });
 
-  it("does not let visitor staff fetch student, HR or finance uploads", () => {
+  it("does not let visitor staff fetch student, HR or finance uploads", async () => {
     const staff = schoolUser("school-a", UserRole.STAFF);
     const student = schoolUser("school-a", UserRole.STUDENT);
     const parent = schoolUser("school-a", UserRole.PARENT);
-    expect(canAccessUploadPath(staff, "/uploads/school-a/students/s1/id.pdf")).toBe(false);
-    expect(canAccessUploadPath(staff, "/uploads/school-a/hr/emp1/contract.pdf")).toBe(false);
-    expect(canAccessUploadPath(staff, "/uploads/school-a/expenses/slip.pdf")).toBe(false);
-    expect(canAccessUploadPath(staff, "/uploads/school-a/notes.pdf")).toBe(false);
-    expect(canAccessUploadPath(staff, "/uploads/school-a/leave/sick-note.pdf")).toBe(true);
-    expect(canAccessUploadPath(teacherA, "/uploads/school-a/students/s1/id.pdf")).toBe(true);
-    expect(canAccessUploadPath(teacherA, "/uploads/school-a/hr/emp1/contract.pdf")).toBe(false);
-    expect(canAccessUploadPath(teacherA, "/uploads/school-a/expenses/slip.pdf")).toBe(false);
-    expect(canAccessUploadPath(financeA, "/uploads/school-a/expenses/slip.pdf")).toBe(true);
-    expect(canAccessUploadPath(financeA, "/uploads/school-a/hr/emp1/contract.pdf")).toBe(false);
-    expect(canAccessUploadPath(student, "/uploads/school-a/students/s1/photo.jpg")).toBe(true);
-    expect(canAccessUploadPath(student, "/uploads/school-a/hr/emp1/contract.pdf")).toBe(false);
-    expect(canAccessUploadPath(parent, "/uploads/school-a/expenses/slip.pdf")).toBe(false);
-    expect(canAccessUploadPath(parent, "/uploads/school-a/students/s1/photo.jpg")).toBe(true);
+    expect(await canAccessUploadPath(staff, "/uploads/school-a/students/s1/id.pdf")).toBe(false);
+    expect(await canAccessUploadPath(staff, "/uploads/school-a/hr/emp1/contract.pdf")).toBe(false);
+    expect(await canAccessUploadPath(staff, "/uploads/school-a/expenses/slip.pdf")).toBe(false);
+    expect(
+      await canAccessUploadPath(staff, "/uploads/school-a/notes.pdf", {
+        skipLibraryLookup: true,
+        libraryAllowed: false,
+      })
+    ).toBe(false);
+    expect(await canAccessUploadPath(staff, "/uploads/school-a/leave/sick-note.pdf")).toBe(true);
+    expect(await canAccessUploadPath(teacherA, "/uploads/school-a/students/s1/id.pdf")).toBe(true);
+    expect(await canAccessUploadPath(teacherA, "/uploads/school-a/hr/emp1/contract.pdf")).toBe(false);
+    expect(await canAccessUploadPath(teacherA, "/uploads/school-a/expenses/slip.pdf")).toBe(false);
+    expect(await canAccessUploadPath(financeA, "/uploads/school-a/expenses/slip.pdf")).toBe(true);
+    expect(await canAccessUploadPath(financeA, "/uploads/school-a/hr/emp1/contract.pdf")).toBe(false);
+    expect(
+      await canAccessUploadPath(student, "/uploads/school-a/students/s1/photo.jpg", { studentId: "s1" })
+    ).toBe(true);
+    expect(
+      await canAccessUploadPath(student, "/uploads/school-a/students/other/photo.jpg", { studentId: "s1" })
+    ).toBe(false);
+    expect(await canAccessUploadPath(student, "/uploads/school-a/hr/emp1/contract.pdf")).toBe(false);
+    expect(await canAccessUploadPath(parent, "/uploads/school-a/expenses/slip.pdf")).toBe(false);
+    expect(
+      await canAccessUploadPath(parent, "/uploads/school-a/students/s1/photo.jpg", {
+        childStudentIds: ["s1"],
+      })
+    ).toBe(true);
+    expect(
+      await canAccessUploadPath(parent, "/uploads/school-a/students/other/photo.jpg", {
+        childStudentIds: ["s1"],
+      })
+    ).toBe(false);
   });
 
   it("requires marks:read for staff academic PDF downloads", async () => {

@@ -114,6 +114,7 @@ export async function sendInternalMessage(opts: {
       folder: "messages",
       file: opts.attachment,
       ownerId: opts.senderId,
+      nestUnderId: opts.senderId,
     });
   }
 

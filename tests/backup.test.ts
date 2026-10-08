@@ -75,8 +75,9 @@ describe("backup packages", () => {
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
-  it("does not embed cloud credentials in the snapshot contract", async () => {
+  it("does not embed cloud credentials or password hashes in the snapshot contract", async () => {
     const { SECRET_BACKUP_FIELDS } = await import("@/lib/backup/types");
+    expect(SECRET_BACKUP_FIELDS).toContain("passwordHash");
     expect(SECRET_BACKUP_FIELDS).toContain("sendgridApiKey");
     expect(SECRET_BACKUP_FIELDS).toContain("twilioAuthToken");
     expect(SECRET_BACKUP_FIELDS).toContain("yocoSecretKey");

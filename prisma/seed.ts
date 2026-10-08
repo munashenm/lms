@@ -644,6 +644,7 @@ async function main() {
   for (const slot of timetableData) {
     await prisma.timetableSlot.create({
       data: {
+        schoolId: school.id,
         classId: classA.id,
         subjectId: subjects[slot.subjectIdx].id,
         teacherId: teacher.id,
@@ -733,6 +734,7 @@ async function main() {
   for (const student of students.slice(0, 5)) {
     await prisma.attendanceRecord.create({
       data: {
+        schoolId: school.id,
         studentId: student.id,
         classId: classA.id,
         termId: term2.id,
@@ -890,6 +892,7 @@ async function main() {
 
   const testAssessment = await prisma.assessment.create({
     data: {
+      schoolId: school.id,
       subjectId: programmingSubject.id,
       termId: term2.id,
       teacherId: teacher.id,
@@ -903,6 +906,7 @@ async function main() {
 
   const assignmentAssessment = await prisma.assessment.create({
     data: {
+      schoolId: school.id,
       subjectId: programmingSubject.id,
       termId: term2.id,
       teacherId: teacher.id,
@@ -924,6 +928,7 @@ async function main() {
 
   const examAssessment = await prisma.assessment.create({
     data: {
+      schoolId: school.id,
       subjectId: subjects.find((s) => s.code === "MATH")!.id,
       termId: term2.id,
       teacherId: teacher.id,

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { SYSTEM_MODULES } from "@/lib/modules";
 import { CreateInstitutionForm } from "@/components/admin/create-institution-form";
+import { InstitutionActiveToggle } from "@/components/admin/institution-active-toggle";
 import { DEFAULT_PRICE_PER_LEARNER } from "@/lib/licensing/commercial";
 
 export default async function InstitutionsPage() {
@@ -74,6 +75,11 @@ export default async function InstitutionsPage() {
                 <Link className="text-primary font-medium" href={`/admin/users`}>
                   Users
                 </Link>
+                <InstitutionActiveToggle
+                  schoolId={school.id}
+                  schoolName={school.name}
+                  isActive={school.isActive}
+                />
               </CardContent>
             </Card>
           );

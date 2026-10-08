@@ -6,6 +6,16 @@ import { resolveLicenseSchoolId } from "@/lib/licensing/enforce";
 import { evaluateStoredLicense } from "@/lib/licensing/service";
 import { countLicenseUsage } from "@/lib/licensing/usage";
 import { ensureDefaultSchedules } from "@/lib/backup/schedule";
+import {
+  backupConfigurationError,
+  backupStorageProviderName,
+  isDurableBackupStorageConfigured,
+} from "@/lib/backup/crypto";
+import {
+  isDurableUploadStorageConfigured,
+  uploadStorageConfigurationError,
+  uploadStorageProviderName,
+} from "@/lib/uploads/storage";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -37,6 +47,9 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
+  const backupConfigError = backupConfigurationError();
+  const backupProvider = backupStorageProviderName();
+
   return NextResponse.json({
     licence: {
       status: evaluation.effectiveStatus,
@@ -52,6 +65,18 @@ export async function GET(request: NextRequest) {
       lastSuccessful: lastBackup?.completedAt ?? null,
       next: nextSchedule?.nextRunAt ?? null,
       health: lastBackup ? "healthy" : "missing",
+      storageProvider: backupProvider,
+      durableStorageConfigured: isDurableBackupStorageConfigured(),
+      configurationError: backupConfigError,
+    },
+    uploads: {
+      storageProvider: uploadStorageProviderName(),
+      durableStorageConfigured: isDurableUploadStorageConfigured(),
+      configurationError: uploadStorageConfigurationError(),
+      note:
+        uploadStorageProviderName() === "s3"
+          ? "Uploads use S3-compatible object storage namespaced by schoolId."
+          : "Uploads use local public/uploads. Set UPLOAD_STORAGE_PROVIDER=s3 (or reuse BACKUP_S3_*) for durable Railway storage.",
     },
     integrations: {
       provider: "SA-SAMS",

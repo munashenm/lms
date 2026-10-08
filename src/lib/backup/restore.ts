@@ -1,9 +1,9 @@
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+import crypto from "crypto";
 import { RestoreJobStatus, BackupType, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { notifySchoolRoles } from "@/lib/notifications";
+import { hashPassword } from "@/lib/auth";
 import type { BackupSnapshot } from "./types";
 import { getBackupEncryptionKey } from "./crypto";
 import { unpackBackup, verifyBackupIntegrity } from "./package";
@@ -11,7 +11,25 @@ import { checkBackupCompatibility, describeSnapshot, assertBackupBelongsToSchool
 import { runBackupJob } from "./engine";
 import { getBackupStorage } from "./storage";
 import { asInputJson } from "@/lib/json";
-import { resolveSafeUploadRestoreDest } from "@/lib/upload-restore-path";
+import { restoreUploadSnapshotFile } from "@/lib/uploads/storage";
+
+/** Restored users never keep exported password hashes — force credential reset. */
+async function sanitizeRestoredUsers(
+  users: Record<string, unknown>[]
+): Promise<Record<string, unknown>[]> {
+  const out: Record<string, unknown>[] = [];
+  for (const row of users) {
+    const randomSecret = crypto.randomBytes(32).toString("hex");
+    out.push({
+      ...row,
+      passwordHash: await hashPassword(randomSecret),
+      passwordResetTokenHash: null,
+      passwordResetExpires: null,
+      mustResetPassword: true,
+    });
+  }
+  return out;
+}
 
 function asDate(value: unknown): Date | null {
   if (!value) return null;
@@ -217,10 +235,7 @@ export async function executeRestore(opts: {
 
 async function restoreFiles(snapshot: BackupSnapshot) {
   for (const file of snapshot.files) {
-    const dest = resolveSafeUploadRestoreDest(file.relativePath);
-    if (!dest) continue;
-    await mkdir(path.dirname(dest), { recursive: true });
-    await writeFile(dest, Buffer.from(file.contentBase64, "base64"));
+    await restoreUploadSnapshotFile(file.relativePath, file.contentBase64);
   }
 }
 
@@ -397,7 +412,9 @@ async function replaceSchoolData(
     };
 
     await createManyIgnore(tx.campus, snapshot.campuses);
-    const users = snapshot.users.filter((u) => u.id !== preserveUserId);
+    const users = await sanitizeRestoredUsers(
+      snapshot.users.filter((u) => u.id !== preserveUserId)
+    );
     if (users.length) await createManyIgnore(tx.user, users);
     await createManyIgnore(tx.academicYear, snapshot.academicYears);
     if (school.admissionYearId) {

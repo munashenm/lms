@@ -7,6 +7,7 @@ import { ClassFilter } from "@/components/academics/class-filter";
 import { Card, CardContent } from "@/components/ui/card";
 import { isCollegeLike, getTerminology } from "@/lib/terminology";
 import { buildAttendanceSessionKey } from "@/lib/attendance";
+import { resolveOwnedClassId, resolveOwnedEntityId } from "@/lib/tenant";
 
 interface PageProps {
   searchParams: Promise<{
@@ -81,10 +82,11 @@ export default async function TeacherAttendancePage({ searchParams }: PageProps)
     params.mode ??
     (collegeMode && moduleOptions.length > 0 ? "module" : "class");
 
-  const selectedClassId = params.classId ?? assignedClasses[0]?.id;
-  const selectedModuleId = params.moduleId ?? moduleOptions[0]?.id;
+  const selectedClassId = resolveOwnedClassId(params.classId, assignedClasses);
+  const selectedModuleId = resolveOwnedEntityId(params.moduleId, moduleOptions);
   const sessionStart = params.sessionStart ?? "";
   const sessionEnd = params.sessionEnd ?? "";
+  const schoolScope = teacher?.schoolId ? { schoolId: teacher.schoolId } : { schoolId: "__none__" };
 
   const useModule = mode === "module" && Boolean(selectedModuleId);
 
@@ -94,18 +96,20 @@ export default async function TeacherAttendancePage({ searchParams }: PageProps)
         sessionStart,
         sessionEnd,
       })
-    : buildAttendanceSessionKey({ classId: selectedClassId });
+    : selectedClassId
+      ? buildAttendanceSessionKey({ classId: selectedClassId })
+      : null;
 
   const [students, existingRecords] = await Promise.all([
-    useModule
+    useModule && selectedModuleId
       ? prisma.student.findMany({
           where: {
-            schoolId: teacher?.schoolId,
+            ...schoolScope,
             status: "ACTIVE",
             enrolments: {
               some: {
                 status: "ENROLLED",
-                course: { modules: { some: { id: selectedModuleId! } } },
+                course: { modules: { some: { id: selectedModuleId } } },
               },
             },
           },
@@ -113,15 +117,16 @@ export default async function TeacherAttendancePage({ searchParams }: PageProps)
         })
       : selectedClassId
         ? prisma.student.findMany({
-            where: { classId: selectedClassId, status: "ACTIVE" },
+            where: { classId: selectedClassId, status: "ACTIVE", ...schoolScope },
             orderBy: { lastName: "asc" },
           })
         : Promise.resolve([]),
-    useModule || selectedClassId
+    sessionKey
       ? prisma.attendanceRecord.findMany({
           where: {
             date: new Date(date),
             sessionKey,
+            ...schoolScope,
           },
         })
       : Promise.resolve([]),
@@ -161,12 +166,12 @@ export default async function TeacherAttendancePage({ searchParams }: PageProps)
             <Suspense fallback={<div className="h-10" />}>
               <ClassFilter
                 classes={assignedClasses}
-                selectedClassId={selectedClassId}
+                selectedClassId={selectedClassId ?? undefined}
                 preserveParams={["date", "mode"]}
               />
             </Suspense>
             <form method="GET" className="flex gap-2 items-end">
-              <input type="hidden" name="classId" value={selectedClassId} />
+              <input type="hidden" name="classId" value={selectedClassId ?? ""} />
               <input type="hidden" name="mode" value="class" />
               <div>
                 <label className="text-sm font-medium">Date</label>
@@ -214,7 +219,7 @@ export default async function TeacherAttendancePage({ searchParams }: PageProps)
               <label className="text-sm font-medium">Module</label>
               <select
                 name="moduleId"
-                defaultValue={selectedModuleId}
+                defaultValue={selectedModuleId ?? undefined}
                 className="mt-1 h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm"
               >
                 {moduleOptions.map((m) => (

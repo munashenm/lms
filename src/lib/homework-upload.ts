@@ -1,5 +1,5 @@
-import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { putSchoolUpload } from "@/lib/uploads/storage";
 
 export const HOMEWORK_MAX_BYTES = 10 * 1024 * 1024;
 export const PORTAL_UPLOAD_MAX_BYTES = HOMEWORK_MAX_BYTES;
@@ -54,6 +54,8 @@ export async function saveSchoolUpload(opts: {
   folder: PortalUploadFolder;
   file: File;
   ownerId: string;
+  /** When set, nests under folder/{nestUnderId}/ for ownership ACL. */
+  nestUnderId?: string;
 }): Promise<string> {
   if (opts.file.size > PORTAL_UPLOAD_MAX_BYTES) {
     throw new Error("File must be under 10 MB");
@@ -63,13 +65,17 @@ export async function saveSchoolUpload(opts: {
   }
 
   const bytes = await opts.file.arrayBuffer();
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", opts.schoolId, opts.folder);
-  await mkdir(uploadsDir, { recursive: true });
-
+  const relativeParts = opts.nestUnderId
+    ? [opts.folder, opts.nestUnderId]
+    : [opts.folder];
   const safeName = opts.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filename = `${Date.now()}-${opts.ownerId.slice(0, 8)}-${safeName}`;
-  await writeFile(path.join(uploadsDir, filename), Buffer.from(bytes));
-  return `/uploads/${opts.schoolId}/${opts.folder}/${filename}`;
+  const filename = `${Date.now()}-${safeName}`;
+  return putSchoolUpload({
+    schoolId: opts.schoolId,
+    relativePath: `${relativeParts.join("/")}/${filename}`,
+    body: Buffer.from(bytes),
+    contentType: opts.file.type || "application/octet-stream",
+  });
 }
 
 export async function saveHomeworkSubmissionFile(
@@ -77,10 +83,19 @@ export async function saveHomeworkSubmissionFile(
   studentId: string,
   file: File
 ): Promise<string> {
-  return saveSchoolUpload({
+  if (file.size > PORTAL_UPLOAD_MAX_BYTES) {
+    throw new Error("File must be under 10 MB");
+  }
+  if (!isAllowedHomeworkFile(file)) {
+    throw new Error("Upload a PDF, Office, ZIP, or image file");
+  }
+  const bytes = await file.arrayBuffer();
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const filename = `${Date.now()}-${safeName}`;
+  return putSchoolUpload({
     schoolId,
-    folder: "submissions",
-    file,
-    ownerId: studentId,
+    relativePath: `submissions/${studentId}/${filename}`,
+    body: Buffer.from(bytes),
+    contentType: file.type || "application/octet-stream",
   });
 }

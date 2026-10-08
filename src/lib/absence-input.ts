@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { saveSchoolUpload } from "@/lib/homework-upload";
+import { saveRegistrationFile } from "@/lib/registration-uploads";
 
 export async function parseAbsenceFields(request: NextRequest): Promise<{
   fields: Record<string, unknown>;
@@ -33,12 +33,12 @@ export async function attachAbsenceDocument(opts: {
   documentUrl?: string | null;
 }): Promise<string | null | undefined> {
   if (opts.file) {
-    return saveSchoolUpload({
+    const saved = await saveRegistrationFile({
       schoolId: opts.schoolId,
-      folder: "leave",
+      folder: `leave/${opts.ownerId}`,
       file: opts.file,
-      ownerId: opts.ownerId,
     });
+    return saved.url;
   }
   return opts.documentUrl;
 }

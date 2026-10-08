@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { getSession } from "@/lib/auth";
 import { requirePermission } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { resolveSettingsSchoolId } from "@/lib/school-integrations";
 import { logAudit } from "@/lib/audit";
 import { requireLicenseMutation } from "@/lib/licensing/enforce";
+import { putSchoolUpload } from "@/lib/uploads/storage";
 
 const ALLOWED = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"]);
 const KINDS = ["logo", "favicon", "hero", "gallery"] as const;
@@ -59,11 +58,13 @@ if (!requirePermission(session, "settings:write")) {
     return NextResponse.json({ message: "Image must be under 5MB" }, { status: 400 });
   }
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", schoolId, "branding");
-  await mkdir(uploadsDir, { recursive: true });
   const filename = `${kind}-${Date.now()}.${extFor(file.type)}`;
-  await writeFile(path.join(uploadsDir, filename), Buffer.from(await file.arrayBuffer()));
-  const url = `/uploads/${schoolId}/branding/${filename}`;
+  const url = await putSchoolUpload({
+    schoolId,
+    relativePath: `branding/${filename}`,
+    body: Buffer.from(await file.arrayBuffer()),
+    contentType: file.type || "image/jpeg",
+  });
 
   if (kind === "gallery") {
     const item = await prisma.websiteGalleryItem.create({
