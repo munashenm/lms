@@ -3,7 +3,7 @@ import { prisma } from "./db";
 import { hashPassword, verifyPassword } from "./auth";
 import { sendOutboundMessage } from "./notifications";
 import { credentialSignInPath } from "./institution-portal";
-import { publicAppUrl } from "./app-url";
+import { transactionalAppUrl } from "./app-url";
 
 const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -42,7 +42,7 @@ export async function issuePortalCredentials(params: {
     },
   });
 
-  const appUrl = publicAppUrl();
+  const appUrl = transactionalAppUrl();
   const school = params.schoolId
     ? await prisma.school.findUnique({
         where: { id: params.schoolId },
@@ -93,7 +93,7 @@ export async function issuePasswordSetup(params: {
     },
   });
 
-  const appUrl = publicAppUrl();
+  const appUrl = transactionalAppUrl();
   const setupUrl = `${appUrl}/reset-password?token=${token}`;
   const portal =
     params.kind === "welcome_parent" ? "parent" : params.kind === "welcome_staff" ? "staff" : "student";

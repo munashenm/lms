@@ -7,6 +7,13 @@ import {
   sendGridDeliveryReady,
   type SendGridCredentialSource,
 } from "./email/resolve-sendgrid";
+import {
+  platformResendEnv,
+  publicEmailProviderStatus,
+  resolveEmailProvider,
+  type PublicEmailProviderStatus,
+  type ResolvedEmailProvider,
+} from "./email/resolve-provider";
 
 export interface ResolvedIntegrations {
   sendgrid: {
@@ -56,6 +63,7 @@ export interface ResolvedIntegrations {
     restBodyTemplate: string | null;
     restAuthHeader: string | null;
   };
+  email: ResolvedEmailProvider;
 }
 
 export interface PublicIntegrationSettings {
@@ -107,6 +115,7 @@ export interface PublicIntegrationSettings {
     restAuthHeader: string;
     restApiKeySet: boolean;
   };
+  email: PublicEmailProviderStatus;
 }
 
 function sendGridFromEnv(school?: {
@@ -129,9 +138,28 @@ function sendGridFromEnv(school?: {
   });
 }
 
+function emailRoute(school?: {
+  enabled?: boolean;
+  apiKey?: string | null;
+  fromEmail?: string | null;
+  fromName?: string | null;
+  replyTo?: string | null;
+}) {
+  return resolveEmailProvider({
+    schoolEnabled: school?.enabled ?? false,
+    schoolApiKey: school?.apiKey ?? null,
+    schoolFromEmail: school?.fromEmail ?? null,
+    schoolFromName: school?.fromName ?? null,
+    schoolReplyTo: school?.replyTo ?? null,
+    sendGridReplyTo: process.env.SENDGRID_REPLY_TO ?? null,
+    ...platformResendEnv(),
+  });
+}
+
 function envFallback(schoolReplyTo?: string | null): ResolvedIntegrations {
   return {
     sendgrid: sendGridFromEnv({ replyTo: schoolReplyTo }),
+    email: emailRoute({ replyTo: schoolReplyTo }),
     twilio: {
       enabled: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
       accountSid: process.env.TWILIO_ACCOUNT_SID ?? null,
@@ -183,6 +211,13 @@ function rowToResolved(
 ): ResolvedIntegrations {
   return {
     sendgrid: sendGridFromEnv({
+      enabled: row.sendgridEnabled,
+      apiKey: decryptSecret(row.sendgridApiKey),
+      fromEmail: row.sendgridFromEmail,
+      fromName: row.sendgridFromName,
+      replyTo: schoolReplyTo,
+    }),
+    email: emailRoute({
       enabled: row.sendgridEnabled,
       apiKey: decryptSecret(row.sendgridApiKey),
       fromEmail: row.sendgridFromEmail,
@@ -313,6 +348,7 @@ export async function getPublicIntegrationSettings(
         restAuthHeader: env.sms.restAuthHeader ?? "",
         restApiKeySet: maskSecret(env.sms.restApiKey),
       },
+      email: publicEmailProviderStatus(env.email),
     };
   }
 
@@ -361,6 +397,7 @@ export async function getPublicIntegrationSettings(
       restAuthHeader: row.smsRestAuthHeader ?? "",
       restApiKeySet: maskSecret(row.smsRestApiKey),
     },
+    email: publicEmailProviderStatus(resolved.email),
   };
 }
 

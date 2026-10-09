@@ -22,3 +22,21 @@ export function canonicalAppUrlWarning(url: string = publicAppUrl()): string | n
   if (!appUrlUsesRailwayHostname(url)) return null;
   return "NEXT_PUBLIC_APP_URL uses the Railway hostname. Set it to the canonical custom domain so invitation, password-reset, payment, and email links match the public site.";
 }
+
+const PRODUCTION_RAILWAY_HOST = "lms-production-4e0d.up.railway.app";
+const CANONICAL_PRODUCTION_ORIGIN = "https://app.schoolhubsa.co.za";
+
+/**
+ * Origin for invitation and password-reset links.
+ * Leaves publicAppUrl() unchanged for licence registration. When production is
+ * still configured with the Railway hostname, links use the canonical domain.
+ */
+export function transactionalAppUrl(configured: string = publicAppUrl()): string {
+  const value = configured.replace(/\/$/, "");
+  try {
+    if (new URL(value).hostname === PRODUCTION_RAILWAY_HOST) return CANONICAL_PRODUCTION_ORIGIN;
+  } catch {
+    return value;
+  }
+  return value;
+}
