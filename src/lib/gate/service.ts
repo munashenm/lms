@@ -222,7 +222,7 @@ export async function performGateScan(store: GateStore, request: ScanRequest): P
       direction: request.direction,
     });
   }
-  if (!manual && request.method !== "QR" && request.method !== "BARCODE" && request.method !== "CAMERA" && request.method !== "RFID" && request.method !== "BIOMETRIC") {
+  if (!manual && request.method !== "QR" && request.method !== "BARCODE" && request.method !== "CAMERA" && request.method !== "RFID" && request.method !== "NFC" && request.method !== "BIOMETRIC") {
     return failure("INVALID", "ACCESS DENIED", "This scan method is not available.", "GATE_METHOD_REJECTED", {
       method: request.method,
     });

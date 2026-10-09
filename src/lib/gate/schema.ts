@@ -3,7 +3,7 @@ import { EARLY_DEPARTURE_REASONS, validHHMM } from "./engine";
 
 export const gateScanSchema = z.object({
   direction: z.enum(["IN", "OUT"]),
-  method: z.enum(["QR", "BARCODE", "CAMERA", "RFID", "BIOMETRIC", "MANUAL"]),
+  method: z.enum(["QR", "BARCODE", "CAMERA", "RFID", "NFC", "BIOMETRIC", "MANUAL"]),
   token: z.string().max(80).optional().nullable(),
   personType: z.enum(["STUDENT", "STAFF"]).optional().nullable(),
   personId: z.string().max(80).optional().nullable(),

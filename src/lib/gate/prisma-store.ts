@@ -44,6 +44,7 @@ function asMethod(value: string): GateScanMethod {
   if (value === "BARCODE") return GateScanMethod.BARCODE;
   if (value === "CAMERA") return GateScanMethod.CAMERA;
   if (value === "RFID") return GateScanMethod.RFID;
+  if (value === "NFC") return GateScanMethod.NFC;
   if (value === "BIOMETRIC") return GateScanMethod.BIOMETRIC;
   if (value === "MANUAL") return GateScanMethod.MANUAL;
   return GateScanMethod.QR;

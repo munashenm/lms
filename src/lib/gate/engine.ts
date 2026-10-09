@@ -43,7 +43,7 @@ const WEEKDAYS = {
 export type WeekdayName = (typeof WEEKDAYS)[keyof typeof WEEKDAYS];
 
 export type GateDirectionName = "IN" | "OUT";
-export type GateMethodName = "QR" | "BARCODE" | "CAMERA" | "RFID" | "BIOMETRIC" | "MANUAL";
+export type GateMethodName = "QR" | "BARCODE" | "CAMERA" | "RFID" | "NFC" | "BIOMETRIC" | "MANUAL";
 export type PersonKind = "STUDENT" | "STAFF";
 
 export type ZonedClock = {
