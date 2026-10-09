@@ -9,6 +9,8 @@ import { evaluateStoredLicense } from "@/lib/licensing/service";
 import { countLicenseUsage } from "@/lib/licensing/usage";
 import { ensureDefaultSchedules } from "@/lib/backup/schedule";
 import { SystemHealthCards } from "@/components/enterprise/system-health-cards";
+import { ScheduledJobsPanel } from "@/components/enterprise/scheduled-jobs-panel";
+import { listScheduledJobStatus } from "@/lib/scheduler/status";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface PageProps {
@@ -21,6 +23,14 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
     redirect("/admin/dashboard");
   }
   const { schoolId: requested } = await searchParams;
+  let scheduledJobs: Awaited<ReturnType<typeof listScheduledJobStatus>> | null = null;
+  if (session.role === UserRole.SUPER_ADMIN) {
+    try {
+      scheduledJobs = await listScheduledJobStatus();
+    } catch {
+      scheduledJobs = null;
+    }
+  }
 
   // Super Admin has no home school. Prefer an in-page picker (or auto-select the only
   // school) instead of redirect()/dashboard bounce — client navigations surface those
@@ -68,6 +78,7 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
               )}
             </CardContent>
           </Card>
+          {scheduledJobs ? <ScheduledJobsPanel jobs={scheduledJobs} /> : null}
         </div>
       );
     }
@@ -205,6 +216,7 @@ export default async function SystemHealthPage({ searchParams }: PageProps) {
         </p>
       </div>
       <SystemHealthCards health={health} schoolId={resolvedRequested ?? schoolId} />
+      {scheduledJobs ? <ScheduledJobsPanel jobs={scheduledJobs} /> : null}
     </div>
   );
 }
