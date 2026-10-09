@@ -138,10 +138,14 @@ export type GateStore = {
     scannedAt: Date;
     recordedById: string;
   }): Promise<void>;
-  getStaffAttendance(schoolId: string, userId: string, date: Date): Promise<{ status: string; checkIn: string | null; checkOut: string | null } | null>;
+  getStaffAttendance(
+    schoolId: string,
+    identity: { userId: string | null; employeeId: string | null },
+    date: Date
+  ): Promise<{ status: string; checkIn: string | null; checkOut: string | null } | null>;
   saveStaffAttendance(input: {
     schoolId: string;
-    userId: string;
+    userId: string | null;
     employeeId: string | null;
     date: Date;
     status: string;
@@ -149,6 +153,11 @@ export type GateStore = {
     checkOut: string | null;
     recordedById: string;
   }): Promise<void>;
+  /**
+   * Holds a per-person lock and a database transaction around the movement decision,
+   * the gate event, and the attendance write. A failed attendance write rolls the event back.
+   */
+  runLocked<T>(schoolId: string, personKey: string, fn: (store: GateStore) => Promise<T>): Promise<T>;
 };
 
 function emptyAudit(action: string, metadata: Record<string, string | number | boolean | null>): ScanAudit {
@@ -303,6 +312,27 @@ export async function performGateScan(store: GateStore, request: ScanRequest): P
     }
   }
 
+  if (!person) {
+    return failure("ACCESS_DENIED", "ACCESS DENIED", "This person is not on the school register.", "GATE_DENIED", {
+      denialCode: "UNKNOWN_PERSON",
+    });
+  }
+
+  return store.runLocked(request.schoolId, personKey(person), async (locked) =>
+    completeMovement(locked, request, person, now, clock, gateId, saved, manual)
+  );
+}
+
+async function completeMovement(
+  store: GateStore,
+  request: ScanRequest,
+  person: GatePerson,
+  now: Date,
+  clock: ReturnType<typeof zonedParts>,
+  gateId: string | null,
+  saved: SavedGatePolicy | null,
+  manual: boolean
+): Promise<ScanOutcome> {
   if (!person.accessAllowed) {
     const created = await store.createEvent({
       ...eventBase(request, person, now, gateId),
@@ -403,8 +433,9 @@ export async function performGateScan(store: GateStore, request: ScanRequest): P
       attendanceLabel = existing.status === "SICK" ? "Daily attendance: Sick" : "Daily attendance: Excused";
     }
   }
-  if (person.personType === "STAFF" && person.userId) {
-    const existing = await store.getStaffAttendance(request.schoolId, person.userId, clock.dateUtc);
+  if (person.personType === "STAFF" && (person.userId || person.employeeId)) {
+    const identity = { userId: person.userId, employeeId: person.employeeId };
+    const existing = await store.getStaffAttendance(request.schoolId, identity, clock.dateUtc);
     const next = nextStaffAttendance({
       existing,
       direction: request.direction,

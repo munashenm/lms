@@ -141,7 +141,7 @@ export async function ingestAttendanceForPeriod(params: {
     },
   });
 
-  const missingUserIds = [...new Set(records.filter((row) => !row.employeeId).map((row) => row.userId))];
+  const missingUserIds = [...new Set(records.filter((row) => !row.employeeId && row.userId).map((row) => row.userId as string))];
   const linked = missingUserIds.length
     ? await prisma.employee.findMany({
         where: { schoolId: params.schoolId, userId: { in: missingUserIds } },
@@ -151,7 +151,7 @@ export async function ingestAttendanceForPeriod(params: {
   const employeeByUser = new Map(linked.map((row) => [row.userId, row.id]));
 
   const punches: ClockPunch[] = records.map((row) => ({
-    employeeId: row.employeeId ?? employeeByUser.get(row.userId) ?? undefined,
+    employeeId: row.employeeId ?? (row.userId ? employeeByUser.get(row.userId) : undefined) ?? undefined,
     workDate: row.date.toISOString().slice(0, 10),
     checkIn: row.checkIn,
     checkOut: row.checkOut,

@@ -13,6 +13,7 @@ export function GateSettingsForm({
     lateAfterMinutes: number;
     normalDepartureTime: string;
     duplicateScanIntervalSeconds: number;
+    dayBoundaryTime: string;
     requireVisitorIdentity: boolean;
     allowVisitorPhoto: boolean;
   };
@@ -32,6 +33,7 @@ export function GateSettingsForm({
         lateAfterMinutes: Number(formData.get("lateAfterMinutes")),
         normalDepartureTime: formData.get("normalDepartureTime"),
         duplicateScanIntervalSeconds: Number(formData.get("duplicateScanIntervalSeconds")),
+        dayBoundaryTime: formData.get("dayBoundaryTime"),
         requireVisitorIdentity: formData.get("requireVisitorIdentity") === "on",
         allowVisitorPhoto: formData.get("allowVisitorPhoto") === "on",
       }),
@@ -47,6 +49,7 @@ export function GateSettingsForm({
       <label className="text-sm">Late after (minutes)<Input name="lateAfterMinutes" type="number" min={0} defaultValue={initial.lateAfterMinutes} /></label>
       <label className="text-sm">Normal departure<input name="normalDepartureTime" type="time" defaultValue={initial.normalDepartureTime} className="mt-1 h-10 w-full rounded-lg border border-border px-3" required /></label>
       <label className="text-sm">Duplicate scan interval (seconds)<Input name="duplicateScanIntervalSeconds" type="number" min={10} defaultValue={initial.duplicateScanIntervalSeconds} /></label>
+      <label className="text-sm">Day boundary<input name="dayBoundaryTime" type="time" defaultValue={initial.dayBoundaryTime} className="mt-1 h-10 w-full rounded-lg border border-border px-3" required /></label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="requireVisitorIdentity" defaultChecked={initial.requireVisitorIdentity} /> Require visitor ID number</label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="allowVisitorPhoto" defaultChecked={initial.allowVisitorPhoto} /> Allow visitor photos</label>
       <div className="sm:col-span-2">
@@ -96,6 +99,7 @@ type CardPerson = {
   personId: string;
   studentId: string | null;
   userId: string | null;
+  employeeId: string | null;
   displayName: string;
   number: string | null;
   detailLine: string | null;
@@ -107,6 +111,12 @@ export function CardAdmin() {
   const [query, setQuery] = useState("");
   const [people, setPeople] = useState<CardPerson[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [coverage, setCoverage] = useState<{ learners: number; staff: number } | null>(null);
+
+  async function refreshCoverage() {
+    const res = await fetch("/api/gate/cards/bulk");
+    if (res.ok) setCoverage(await res.json());
+  }
 
   async function search(value: string) {
     setQuery(value);
@@ -127,6 +137,7 @@ export function CardAdmin() {
         holderType: person.personType,
         studentId: person.studentId,
         userId: person.userId,
+        employeeId: person.employeeId,
       }),
     });
     const json = await res.json().catch(() => ({}));
@@ -169,8 +180,47 @@ export function CardAdmin() {
     await search(query);
   }
 
+  async function issueBatch(holderType: "STUDENT" | "STAFF") {
+    const res = await fetch("/api/gate/cards/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ holderType, limit: 100 }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setNotice(json.message ?? "Could not issue cards.");
+      return;
+    }
+    setNotice(`Issued ${json.issued} card${json.issued === 1 ? "" : "s"}. ${json.remaining} still need a card. Learner numbers are not used as credentials.`);
+    if (Array.isArray(json.cardIds) && json.cardIds.length > 0) {
+      const print = await fetch("/api/gate/cards/sheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardIds: json.cardIds.slice(0, 40) }),
+      });
+      if (print.ok) {
+        const blob = await print.blob();
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+      }
+    }
+    await refreshCoverage();
+  }
+
   return (
     <div className="space-y-4">
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <p className="text-sm">
+          {coverage
+            ? `${coverage.learners} active learners and ${coverage.staff} active employees do not have a card yet. Employees do not need a login.`
+            : "See who still needs a SchoolHub card."}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => void refreshCoverage()}>Count people without a card</Button>
+          <Button type="button" onClick={() => void issueBatch("STUDENT")}>Issue next 100 learner cards</Button>
+          <Button type="button" onClick={() => void issueBatch("STAFF")}>Issue next 100 staff cards</Button>
+        </div>
+      </div>
       <Input value={query} onChange={(event) => void search(event.target.value)} placeholder="Search learner or staff" className="h-12" />
       {notice ? <p className="text-sm">{notice}</p> : null}
       <div className="space-y-2">

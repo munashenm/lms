@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { requirePermission } from "@/lib/rbac";
 import { GateSettingsForm } from "@/components/security/gate-admin";
-import { DEFAULT_DEPARTURE, DEFAULT_DUPLICATE_SECONDS, DEFAULT_SCHOOL_START } from "@/lib/gate/engine";
+import { DEFAULT_DAY_BOUNDARY, DEFAULT_DEPARTURE, DEFAULT_DUPLICATE_SECONDS, DEFAULT_SCHOOL_START } from "@/lib/gate/engine";
 
 export default async function GateSettingsPage() {
   const session = await getSession();
@@ -22,6 +22,7 @@ export default async function GateSettingsPage() {
           lateAfterMinutes: policy?.lateAfterMinutes ?? 0,
           normalDepartureTime: policy?.normalDepartureTime ?? DEFAULT_DEPARTURE,
           duplicateScanIntervalSeconds: policy?.duplicateScanIntervalSeconds ?? DEFAULT_DUPLICATE_SECONDS,
+          dayBoundaryTime: policy?.dayBoundaryTime ?? DEFAULT_DAY_BOUNDARY,
           requireVisitorIdentity: policy?.requireVisitorIdentity ?? false,
           allowVisitorPhoto: policy?.allowVisitorPhoto ?? true,
         }}

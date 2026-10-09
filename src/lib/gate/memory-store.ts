@@ -15,7 +15,8 @@ export type MemoryAttendance = {
 };
 
 export type MemoryStaffAttendance = {
-  userId: string;
+  userId: string | null;
+  employeeId: string | null;
   dateKey: string;
   status: string;
   checkIn: string | null;
@@ -30,6 +31,7 @@ export type MemoryEvent = {
   personKey: string;
   studentId: string | null;
   userId: string | null;
+  employeeId: string | null;
   direction: GateDirectionName;
   method: GateMethodName;
   outcome: string;
@@ -56,7 +58,34 @@ function dateKey(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function createMemoryGateStore(seed?: Partial<MemoryState>): { store: GateStore; state: MemoryState } {
+function cloneState(state: MemoryState): MemoryState {
+  return {
+    policies: { ...state.policies },
+    timetables: { ...state.timetables },
+    cards: state.cards.map((card) => ({ ...card })),
+    people: state.people.map((person) => ({ ...person })),
+    gates: state.gates.map((gate) => ({ ...gate })),
+    events: state.events.map((event) => ({ ...event })),
+    attendance: state.attendance.map((row) => ({ ...row })),
+    staffAttendance: state.staffAttendance.map((row) => ({ ...row })),
+  };
+}
+
+function restoreState(target: MemoryState, snapshot: MemoryState) {
+  target.policies = snapshot.policies;
+  target.timetables = snapshot.timetables;
+  target.cards = snapshot.cards;
+  target.people = snapshot.people;
+  target.gates = snapshot.gates;
+  target.events = snapshot.events;
+  target.attendance = snapshot.attendance;
+  target.staffAttendance = snapshot.staffAttendance;
+}
+
+export function createMemoryGateStore(
+  seed?: Partial<MemoryState>,
+  options?: { failDailySave?: boolean; failStaffSave?: boolean }
+): { store: GateStore; state: MemoryState } {
   const state: MemoryState = {
     policies: seed?.policies ?? {},
     timetables: seed?.timetables ?? {},
@@ -68,6 +97,7 @@ export function createMemoryGateStore(seed?: Partial<MemoryState>): { store: Gat
     staffAttendance: seed?.staffAttendance ?? [],
   };
   let seq = 1;
+  const tails = new Map<string, Promise<void>>();
 
   const store: GateStore = {
     async getSavedPolicy(schoolId) {
@@ -82,10 +112,14 @@ export function createMemoryGateStore(seed?: Partial<MemoryState>): { store: Gat
     },
     async personFromCard(schoolId, card) {
       if (card.schoolId !== schoolId) return null;
-      return state.people.find((person) => {
-        if (person.personType === "STUDENT") return person.studentId === card.studentId;
-        return person.userId === card.userId;
-      }) ?? null;
+      return (
+        state.people.find((person) => {
+          if (person.schoolId !== schoolId) return false;
+          if (person.personType === "STUDENT") return person.studentId === card.studentId;
+          if (card.employeeId && person.employeeId === card.employeeId) return true;
+          return Boolean(card.userId) && person.userId === card.userId;
+        }) ?? null
+      );
     },
     async findPerson(schoolId, personType, personId) {
       return state.people.find((person) => person.schoolId === schoolId && person.personType === personType && person.personId === personId) ?? null;
@@ -109,6 +143,7 @@ export function createMemoryGateStore(seed?: Partial<MemoryState>): { store: Gat
         personKey: input.personKey,
         studentId: input.studentId,
         userId: input.userId,
+        employeeId: input.employeeId,
         direction: input.direction,
         method: input.method,
         outcome: input.outcome,
@@ -127,6 +162,7 @@ export function createMemoryGateStore(seed?: Partial<MemoryState>): { store: Gat
       return { status: row.status, gateArrivalAt: row.gateArrivalAt ? new Date(row.gateArrivalAt) : null };
     },
     async saveDailyAttendance(input) {
+      if (options?.failDailySave) throw new Error("attendance write failed");
       const key = dateKey(input.date);
       let row = state.attendance.find((record) => record.studentId === input.studentId && record.sessionKey === "daily" && record.dateKey === key);
       if (!row) {
@@ -146,17 +182,28 @@ export function createMemoryGateStore(seed?: Partial<MemoryState>): { store: Gat
       if (input.setArrival && !row.gateArrivalAt) row.gateArrivalAt = input.scannedAt.toISOString();
       if (input.setDeparture) row.gateDepartureAt = input.scannedAt.toISOString();
     },
-    async getStaffAttendance(_schoolId, userId, date) {
-      const row = state.staffAttendance.find((record) => record.userId === userId && record.dateKey === dateKey(date));
+    async getStaffAttendance(_schoolId, identity, date) {
+      const key = dateKey(date);
+      const row = state.staffAttendance.find((record) => {
+        if (record.dateKey !== key) return false;
+        if (identity.employeeId && record.employeeId === identity.employeeId) return true;
+        return Boolean(identity.userId) && record.userId === identity.userId;
+      });
       if (!row) return null;
       return { status: row.status, checkIn: row.checkIn, checkOut: row.checkOut };
     },
     async saveStaffAttendance(input) {
+      if (options?.failStaffSave) throw new Error("staff attendance write failed");
       const key = dateKey(input.date);
-      let row = state.staffAttendance.find((record) => record.userId === input.userId && record.dateKey === key);
+      let row = state.staffAttendance.find((record) => {
+        if (record.dateKey !== key) return false;
+        if (input.employeeId && record.employeeId === input.employeeId) return true;
+        return Boolean(input.userId) && record.userId === input.userId;
+      });
       if (!row) {
         row = {
           userId: input.userId,
+          employeeId: input.employeeId,
           dateKey: key,
           status: input.status,
           checkIn: input.checkIn,
@@ -172,6 +219,30 @@ export function createMemoryGateStore(seed?: Partial<MemoryState>): { store: Gat
       row.checkOut = input.checkOut;
       row.source = "GATE";
       row.payrollTouched = false;
+      if (input.employeeId) row.employeeId = input.employeeId;
+      if (input.userId) row.userId = input.userId;
+    },
+    async runLocked(schoolId, personKey, fn) {
+      const key = `${schoolId}:${personKey}`;
+      const previous = tails.get(key) ?? Promise.resolve();
+      let release: () => void = () => undefined;
+      const current = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      tails.set(
+        key,
+        previous.then(() => current)
+      );
+      await previous;
+      const snapshot = cloneState(state);
+      try {
+        return await fn(store);
+      } catch (error) {
+        restoreState(state, snapshot);
+        throw error;
+      } finally {
+        release();
+      }
     },
   };
 

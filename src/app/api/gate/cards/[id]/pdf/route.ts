@@ -17,6 +17,7 @@ export async function GET(_request: Request, { params }: Params) {
     include: {
       school: true,
       student: { select: { firstName: true, lastName: true, studentNumber: true, photoUrl: true, grade: { select: { name: true } }, class: { select: { name: true } } } },
+      employee: { select: { firstName: true, lastName: true, employeeNumber: true, position: true, department: true } },
       user: {
         select: {
           firstName: true,
@@ -39,15 +40,22 @@ export async function GET(_request: Request, { params }: Params) {
   }
 
   const student = card.student;
+  const employee = card.employee;
   const user = card.user;
   const pdf = await generateStudentCardPdf({
     brand: toSchoolBrand(card.school),
-    studentName: student ? `${student.firstName} ${student.lastName}` : user ? `${user.firstName} ${user.lastName}` : "Card holder",
-    studentNumber: student?.studentNumber ?? user?.employee?.employeeNumber ?? user?.teacher?.employeeNumber ?? "—",
+    studentName: student
+      ? `${student.firstName} ${student.lastName}`
+      : employee
+        ? `${employee.firstName} ${employee.lastName}`
+        : user
+          ? `${user.firstName} ${user.lastName}`
+          : "Card holder",
+    studentNumber: student?.studentNumber ?? employee?.employeeNumber ?? user?.employee?.employeeNumber ?? user?.teacher?.employeeNumber ?? "—",
     studentNumberLabel: student ? "Learner No" : "Staff No",
     cardTitle: student ? "LEARNER IDENTITY CARD" : "STAFF IDENTITY CARD",
-    gradeOrProgramme: student?.grade?.name ?? user?.employee?.department ?? user?.teacher?.department ?? null,
-    className: student?.class?.name ?? user?.employee?.position ?? null,
+    gradeOrProgramme: student?.grade?.name ?? employee?.department ?? user?.employee?.department ?? user?.teacher?.department ?? null,
+    className: student?.class?.name ?? employee?.position ?? user?.employee?.position ?? null,
     status: "ACTIVE",
     photoUrl: student?.photoUrl ?? user?.avatarUrl ?? null,
     scanToken: card.token,

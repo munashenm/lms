@@ -3,8 +3,11 @@ import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { formatVisitorReference, visitorPersonKey, zonedParts } from "./engine";
 
-export async function allocateVisitorReference(schoolId: string, now = new Date()): Promise<string> {
-  const year = zonedParts(now).year;
+/**
+ * One row per school and year. INSERT ... ON CONFLICT DO UPDATE ... RETURNING
+ * increments under Postgres' row lock, so two desks cannot take the same number.
+ */
+export async function nextVisitorSequence(schoolId: string, year: number): Promise<number> {
   const rows = await prisma.$queryRaw<Array<{ lastNumber: number }>>`
     INSERT INTO visitor_reference_counters ("schoolId", "year", "lastNumber")
     VALUES (${schoolId}, ${year}, 1)
@@ -12,7 +15,16 @@ export async function allocateVisitorReference(schoolId: string, now = new Date(
     DO UPDATE SET "lastNumber" = visitor_reference_counters."lastNumber" + 1
     RETURNING "lastNumber"
   `;
-  const sequence = Number(rows[0]?.lastNumber ?? 1);
+  return Number(rows[0]?.lastNumber ?? 1);
+}
+
+export async function allocateVisitorReference(
+  schoolId: string,
+  now = new Date(),
+  claim: (schoolId: string, year: number) => Promise<number> = nextVisitorSequence
+): Promise<string> {
+  const year = zonedParts(now).year;
+  const sequence = await claim(schoolId, year);
   return formatVisitorReference(year, sequence);
 }
 
