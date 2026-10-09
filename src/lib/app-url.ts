@@ -32,9 +32,10 @@ const CANONICAL_PRODUCTION_ORIGIN = "https://app.schoolhubsa.co.za";
  * still configured with the Railway hostname, links use the canonical domain.
  */
 export function transactionalAppUrl(configured: string = publicAppUrl()): string {
-  const value = configured.replace(/\/$/, "");
+  const value = configured.trim().replace(/\/$/, "");
+  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(value) ? value : `https://${value}`;
   try {
-    if (new URL(value).hostname === PRODUCTION_RAILWAY_HOST) return CANONICAL_PRODUCTION_ORIGIN;
+    if (new URL(candidate).hostname === PRODUCTION_RAILWAY_HOST) return CANONICAL_PRODUCTION_ORIGIN;
   } catch {
     return value;
   }

@@ -189,6 +189,9 @@ describe("invitation links", () => {
     expect(transactionalAppUrl("https://lms-production-4e0d.up.railway.app")).toBe(
       "https://app.schoolhubsa.co.za"
     );
+    expect(transactionalAppUrl("lms-production-4e0d.up.railway.app")).toBe(
+      "https://app.schoolhubsa.co.za"
+    );
     expect(transactionalAppUrl("https://app.schoolhubsa.co.za")).toBe("https://app.schoolhubsa.co.za");
     expect(transactionalAppUrl("http://localhost:3000")).toBe("http://localhost:3000");
   });
