@@ -4,7 +4,8 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { denyUnless } from "@/lib/access";
 import { userPatchSchema } from "@/lib/validators";
-import { issuePasswordSetup, issuePortalCredentials } from "@/lib/password-reset";
+import { canSetUserPassword } from "@/lib/admin-password";
+import { issuePasswordSetup, issuePortalCredentials, setPasswordAsAdmin } from "@/lib/password-reset";
 import { canAssignDirectoryRole, setLinkedUserActive } from "@/lib/portal-provision";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
@@ -106,6 +107,23 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
   }
 
+  if (parsed.data.password && (parsed.data.resendInvite || parsed.data.resetPassword)) {
+    return NextResponse.json(
+      { message: "Set a password or send an invitation email, not both." },
+      { status: 400 }
+    );
+  }
+
+  if (parsed.data.password) {
+    const authority = canSetUserPassword(
+      { role: session!.role, schoolId: session!.schoolId },
+      { role: existing.role, schoolId: existing.schoolId }
+    );
+    if (!authority.ok) {
+      return NextResponse.json({ message: authority.message }, { status: 403 });
+    }
+  }
+
   const schoolId = existing.schoolId ?? parsed.data.schoolId ?? session!.schoolId;
   if (typeof parsed.data.isActive === "boolean" && schoolId) {
     await setLinkedUserActive({
@@ -194,6 +212,26 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     invitesSent = 1;
   }
 
+  let passwordUpdated = false;
+  if (parsed.data.password) {
+    const requirePasswordChange = parsed.data.requirePasswordChange === true;
+    await setPasswordAsAdmin({
+      userId: existing.id,
+      password: parsed.data.password,
+      requirePasswordChange,
+    });
+    passwordUpdated = true;
+    await logAudit({
+      schoolId: existing.schoolId,
+      userId: session!.userId,
+      action: "SET_PASSWORD",
+      entity: "User",
+      entityId: existing.id,
+      metadata: { requirePasswordChange },
+      ...requestMeta(request),
+    });
+  }
+
   const user = await prisma.user.findUnique({
     where: { id },
     select: {
@@ -212,5 +250,5 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     },
   });
 
-  return NextResponse.json({ user, invitesSent });
+  return NextResponse.json({ user, invitesSent, passwordUpdated });
 }

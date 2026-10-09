@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
@@ -48,6 +48,7 @@ const SEARCH_PLACEHOLDERS: Record<DirectoryGroup, string> = {
 export function UsersDirectory({
   users,
   currentUserId,
+  actorRole,
   canWrite,
   inviteRoles,
   schools,
@@ -55,6 +56,7 @@ export function UsersDirectory({
 }: {
   users: DirectoryUserRecord[];
   currentUserId: string;
+  actorRole: string;
   canWrite: boolean;
   inviteRoles: string[];
   schools: SchoolOption[];
@@ -67,6 +69,12 @@ export function UsersDirectory({
     staff: "",
     students: "",
     parents: "",
+  });
+  const [passwordFor, setPasswordFor] = useState<string | null>(null);
+  const [passwordForm, setPasswordForm] = useState({
+    password: "",
+    confirm: "",
+    requirePasswordChange: false,
   });
   const [form, setForm] = useState({
     firstName: "",
@@ -106,6 +114,52 @@ export function UsersDirectory({
         role: inviteRoles[0] ?? "STAFF",
         schoolId: form.schoolId,
       });
+      router.refresh();
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  const actorCanSetPasswords = actorRole === "SUPER_ADMIN" || actorRole === "SCHOOL_ADMIN";
+
+  function canSetPasswordFor(user: DirectoryUserRecord) {
+    if (!actorCanSetPasswords) return false;
+    if (actorRole === "SCHOOL_ADMIN" && user.role === "SUPER_ADMIN") return false;
+    return true;
+  }
+
+  async function setPassword(e: React.FormEvent, id: string) {
+    e.preventDefault();
+    if (passwordForm.password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (passwordForm.password !== passwordForm.confirm) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setLoading(`${id}-password`);
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          password: passwordForm.password,
+          requirePasswordChange: passwordForm.requirePasswordChange,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(json.message ?? "Could not set password");
+        return;
+      }
+      toast.success(
+        passwordForm.requirePasswordChange
+          ? "Password updated. They must choose a new password the next time they sign in."
+          : "Password updated. Existing sessions for that user are signed out."
+      );
+      setPasswordFor(null);
+      setPasswordForm({ password: "", confirm: "", requirePasswordChange: false });
       router.refresh();
     } finally {
       setLoading(null);
@@ -276,7 +330,8 @@ export function UsersDirectory({
                 const isSelf = user.id === currentUserId;
                 const locked = user.role === "SUPER_ADMIN" || isSelf;
                 return (
-                  <tr key={user.id} className="border-b border-border last:border-0">
+                  <Fragment key={user.id}>
+                  <tr className="border-b border-border last:border-0">
                     <td className="px-4 py-3">
                       <p className="font-medium">{user.firstName} {user.lastName}</p>
                       <p className="text-xs text-muted">{user.email}</p>
@@ -300,6 +355,20 @@ export function UsersDirectory({
                           <Button type="button" size="sm" variant="outline" asChild>
                             <a href={`/admin/users/${user.id}/permissions`}>Permissions</a>
                           </Button>
+                          {canSetPasswordFor(user) ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={loading === `${user.id}-password` || !user.isActive}
+                              onClick={() => {
+                                setPasswordFor(passwordFor === user.id ? null : user.id);
+                                setPasswordForm({ password: "", confirm: "", requirePasswordChange: false });
+                              }}
+                            >
+                              Set password
+                            </Button>
+                          ) : null}
                           <Button
                             type="button"
                             size="sm"
@@ -322,6 +391,55 @@ export function UsersDirectory({
                       </td>
                     ) : null}
                   </tr>
+                  {passwordFor === user.id ? (
+                    <tr className="border-b border-border bg-background/40">
+                      <td colSpan={showSchoolColumn ? 7 : 6} className="px-4 py-3">
+                        <form
+                          onSubmit={(e) => setPassword(e, user.id)}
+                          className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end max-w-4xl"
+                        >
+                          <div>
+                            <Label htmlFor={`password-${user.id}`}>New password</Label>
+                            <Input
+                              id={`password-${user.id}`}
+                              type="password"
+                              autoComplete="new-password"
+                              required
+                              minLength={8}
+                              value={passwordForm.password}
+                              onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`confirm-${user.id}`}>Confirm password</Label>
+                            <Input
+                              id={`confirm-${user.id}`}
+                              type="password"
+                              autoComplete="new-password"
+                              required
+                              minLength={8}
+                              value={passwordForm.confirm}
+                              onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                            />
+                          </div>
+                          <label className="flex items-center gap-2 text-sm md:pb-2">
+                            <input
+                              type="checkbox"
+                              checked={passwordForm.requirePasswordChange}
+                              onChange={(e) =>
+                                setPasswordForm({ ...passwordForm, requirePasswordChange: e.target.checked })
+                              }
+                            />
+                            Require a new password at next login
+                          </label>
+                          <Button type="submit" size="sm" disabled={loading === `${user.id}-password`}>
+                            Save password
+                          </Button>
+                        </form>
+                      </td>
+                    </tr>
+                  ) : null}
+                  </Fragment>
                 );
               })}
             </tbody>

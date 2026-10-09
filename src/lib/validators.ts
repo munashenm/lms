@@ -170,6 +170,8 @@ export const userPatchSchema = z.object({
   resendInvite: z.boolean().optional(),
   mustResetPassword: z.boolean().optional(),
   resetPassword: z.boolean().optional(),
+  password: z.string().min(8, "Password must be at least 8 characters").max(128).optional(),
+  requirePasswordChange: z.boolean().optional(),
 });
 
 export const userPermissionsSchema = z.object({
