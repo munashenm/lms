@@ -76,9 +76,15 @@ export function VisitorEntryList({
         return (
           <div key={row.id} className="px-4 py-3 text-sm space-y-1">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
+              <div className="flex items-start gap-3">
+                {row.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- visitor photos are school-scoped uploads
+                  <img src={row.photoUrl} alt="" className="h-12 w-10 rounded object-cover" />
+                ) : null}
+                <div>
                 <p className="font-medium">
                   {row.firstName} {row.lastName}
+                  {row.referenceNumber ? ` · ${row.referenceNumber}` : ""}
                   {row.organisation ? ` · ${row.organisation}` : ""}
                 </p>
                 <p className="text-xs text-muted">
@@ -87,6 +93,7 @@ export function VisitorEntryList({
                   {row.campusName ? ` · ${row.campusName}` : ""}
                   {row.department ? ` · ${row.department}` : ""}
                 </p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={status === "OVERDUE" ? "danger" : onSite ? "warning" : status === "EXPECTED" ? "secondary" : "success"}>

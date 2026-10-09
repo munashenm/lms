@@ -18,6 +18,9 @@ export interface StudentCardData {
   status?: string | null;
   photoUrl?: string | null;
   validYear?: string | null;
+  /** Opaque SchoolHub credential. Never a name, ID number, or learner number. */
+  scanToken?: string | null;
+  qrPng?: Uint8Array | null;
 }
 
 async function embedPhoto(doc: PDFDocument, photoUrl?: string | null) {
@@ -195,13 +198,28 @@ export async function generateStudentCardPdf(
 
   const barcodeHeight = 28;
   const barcodeY = footerTop + 10;
-  drawCode39Barcode(page, {
-    value: data.studentNumber,
-    x: 28,
-    y: barcodeY,
-    width: width - 56,
-    height: barcodeHeight,
-  });
+  if (data.scanToken) {
+    drawCode39Barcode(page, {
+      value: data.scanToken,
+      x: 28,
+      y: barcodeY,
+      width: data.qrPng ? width - 150 : width - 56,
+      height: barcodeHeight,
+    });
+    if (data.qrPng) {
+      const qr = await doc.embedPng(data.qrPng);
+      const size = 72;
+      page.drawImage(qr, { x: width - size - 28, y: barcodeY - 8, width: size, height: size });
+    }
+  } else {
+    page.drawText("Card not issued", {
+      x: 28,
+      y: barcodeY + 8,
+      size: 9,
+      font,
+      color: rgb(0.4, 0.42, 0.48),
+    });
+  }
 
   return doc.save();
 }

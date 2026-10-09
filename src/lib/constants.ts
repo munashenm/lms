@@ -20,6 +20,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   ADMISSIONS_OFFICER: "Admissions Officer",
   HR_OFFICER: "HR Officer",
   STAFF: "Staff",
+  SECURITY: "Security",
 };
 
 export const ROLE_DASHBOARD: Record<UserRole, string> = {
@@ -33,6 +34,7 @@ export const ROLE_DASHBOARD: Record<UserRole, string> = {
   ADMISSIONS_OFFICER: "/admin/applications",
   HR_OFFICER: "/hr/dashboard",
   STAFF: "/staff/leave",
+  SECURITY: "/security",
 };
 
 export const ROLE_MESSAGES: Record<UserRole, string> = {
@@ -46,6 +48,7 @@ export const ROLE_MESSAGES: Record<UserRole, string> = {
   ADMISSIONS_OFFICER: "/admin/messages",
   HR_OFFICER: "/hr/messages",
   STAFF: "/staff/messages",
+  SECURITY: "/security",
 };
 
 export const ADMIN_ROLES: UserRole[] = [

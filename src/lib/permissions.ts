@@ -38,6 +38,13 @@ export const ACTION_PERMISSIONS = [
   "backup.restore",
   "visitors.create",
   "visitors.checkout",
+  "gate.view",
+  "gate.scan",
+  "gate.manual",
+  "gate.manage",
+  "gate.reports",
+  "cards.issue",
+  "cards.deactivate",
   "homework.create",
   "homework.grade",
   "academics.view",
@@ -113,6 +120,12 @@ export type LegacyPermission =
   | "visitors:write"
   | "visitors.create"
   | "visitors.checkout"
+  | "gate:read"
+  | "gate:scan"
+  | "gate:manual"
+  | "gate:manage"
+  | "gate:reports"
+  | "cards:manage"
   | "messaging.view"
   | "messaging.send"
   | "messaging.bulk_send"
@@ -162,6 +175,13 @@ export const ACTION_TO_LEGACY: Record<ActionPermission, LegacyPermission[]> = {
   "backup.restore": ["backup.restore"],
   "visitors.create": ["visitors:write"],
   "visitors.checkout": ["visitors:write"],
+  "gate.view": ["gate:read"],
+  "gate.scan": ["gate:scan"],
+  "gate.manual": ["gate:manual"],
+  "gate.manage": ["gate:manage"],
+  "gate.reports": ["gate:reports"],
+  "cards.issue": ["cards:manage"],
+  "cards.deactivate": ["cards:manage"],
   "homework.create": ["classes:write"],
   "homework.grade": ["marks:write"],
   "academics.view": ["classes:read"],
@@ -243,7 +263,17 @@ export const PERMISSION_GROUPS: Array<{
   {
     id: "security",
     label: "Security",
-    permissions: ["visitors.create", "visitors.checkout"],
+    permissions: [
+      "visitors.create",
+      "visitors.checkout",
+      "gate.view",
+      "gate.scan",
+      "gate.manual",
+      "gate.manage",
+      "gate.reports",
+      "cards.issue",
+      "cards.deactivate",
+    ],
   },
   {
     id: "system",
@@ -310,6 +340,13 @@ export const PERMISSION_LABELS: Record<ActionPermission, string> = {
   "backup.restore": "Restore Database",
   "visitors.create": "Register Visitors",
   "visitors.checkout": "Check Out Visitors",
+  "gate.view": "View gate activity",
+  "gate.scan": "Scan cards at the gate",
+  "gate.manual": "Record manual gate entry",
+  "gate.manage": "Manage gates and gate settings",
+  "gate.reports": "View gate reports",
+  "cards.issue": "Issue SchoolHub cards",
+  "cards.deactivate": "Deactivate SchoolHub cards",
   "homework.create": "Create Homework",
   "homework.grade": "Grade Homework",
   "academics.view": "View Classes",

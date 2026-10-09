@@ -41,6 +41,7 @@ export async function resolveMessageUserIds(opts: {
           in: [
             UserRole.TEACHER,
             UserRole.STAFF,
+            UserRole.SECURITY,
             UserRole.FINANCE_OFFICER,
             UserRole.HR_OFFICER,
             UserRole.ADMISSIONS_OFFICER,

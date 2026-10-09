@@ -9,6 +9,7 @@ import { logAudit } from "@/lib/audit";
 import { asInputJson } from "@/lib/json";
 import { emptyToNull } from "@/lib/class-teachers";
 import { canViewVisitorBook, canWriteVisitorBook, toPublicVisitorEntry } from "@/lib/visitors";
+import { allocateVisitorReference, recordVisitorGate } from "@/lib/gate/visitors";
 import { csvDownloadHeaders, excelDownloadHeaders, toCsv, toExcelCsv } from "@/lib/csv";
 
 export async function GET(request: NextRequest) {
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim();
   const status = request.nextUrl.searchParams.get("status");
   const format = request.nextUrl.searchParams.get("format");
-  const allowedStatus = ["EXPECTED", "CHECKED_IN", "CHECKED_OUT", "DENIED", "OVERDUE"] as const;
+  const allowedStatus = ["EXPECTED", "CHECKED_IN", "CHECKED_OUT", "DENIED", "CANCELLED", "OVERDUE"] as const;
   const statusFilter = allowedStatus.includes(status as (typeof allowedStatus)[number])
     ? (status as (typeof allowedStatus)[number])
     : undefined;
@@ -59,6 +60,7 @@ export async function GET(request: NextRequest) {
                 { lastName: { contains: q, mode: "insensitive" } },
                 { phone: { contains: q } },
                 { badgeNumber: { contains: q, mode: "insensitive" } },
+                { referenceNumber: { contains: q, mode: "insensitive" } },
                 { hostName: { contains: q, mode: "insensitive" } },
               ],
             },
@@ -125,9 +127,19 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const policy = await prisma.gatePolicy.findUnique({
+    where: { schoolId: session.schoolId },
+    select: { requireVisitorIdentity: true },
+  });
+  if (policy?.requireVisitorIdentity && !parsed.data.identityNumber?.trim()) {
+    return NextResponse.json({ message: "An ID or passport number is required" }, { status: 400 });
+  }
+
+  const referenceNumber = await allocateVisitorReference(session.schoolId);
   const entry = await prisma.visitorEntry.create({
     data: {
       schoolId: session.schoolId,
+      referenceNumber,
       campusId,
       firstName: parsed.data.firstName.trim(),
       lastName: parsed.data.lastName.trim(),
@@ -157,6 +169,14 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  if (!parsed.data.preregister) {
+    await recordVisitorGate({
+      schoolId: session.schoolId,
+      visitorId: entry.id,
+      recordedById: session.userId,
+      direction: "IN",
+    });
+  }
   await logAudit({
     schoolId: session.schoolId,
     userId: session.userId,
@@ -166,6 +186,7 @@ export async function POST(request: NextRequest) {
     metadata: asInputJson({
       hostKind: entry.hostKind,
       purpose: entry.purpose,
+      referenceNumber,
     }),
   });
 

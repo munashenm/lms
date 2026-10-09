@@ -131,6 +131,7 @@ export function EmployeeManager(props: {
               <Label htmlFor="portalRole">Portal role</Label>
               <select id="portalRole" name="portalRole" className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm">
                 <option value="STAFF">Staff (self-service)</option>
+                <option value="SECURITY">Security</option>
                 <option value="TEACHER">Teacher / lecturer</option>
                 <option value="FINANCE_OFFICER">Finance officer</option>
                 <option value="HR_OFFICER">HR officer</option>

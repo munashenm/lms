@@ -92,6 +92,8 @@ export function permissionModule(permission: AnyPermission): SystemModuleKey | n
   if (key.startsWith("payroll") || key.startsWith("hr")) return key.startsWith("payroll") ? "payroll" : "hr";
   if (key.startsWith("reports")) return "reports";
   if (key.startsWith("visitors")) return "visitor_management";
+  if (key.startsWith("gate")) return "gate_security";
+  if (key.startsWith("cards")) return "student_cards";
   if (key.startsWith("messaging")) return "messaging";
   if (key.startsWith("sms")) return "sms";
   if (key.startsWith("backup")) return "backup";
@@ -123,6 +125,7 @@ export function navHrefModule(href: string): SystemModuleKey | null {
   if (href.includes("/sms")) return "sms";
   if (href.includes("/website")) return "website";
   if (href.includes("/visitor")) return "visitor_management";
+  if (href === "/security" || href.startsWith("/security/") || href.startsWith("/admin/security")) return "gate_security";
   if (href.includes("/backup")) return "backup";
   if (href.includes("/compliance") || href.includes("/sa-sams")) return "reports";
   if (href === "/admin/reports" || href.startsWith("/admin/reports/")) return "reports";

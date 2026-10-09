@@ -22,6 +22,7 @@ import {
 
 const ROLE_LABELS: Record<string, string> = {
   STAFF: "Staff",
+  SECURITY: "Security",
   FINANCE_OFFICER: "Finance officer",
   HR_OFFICER: "HR officer",
   ADMISSIONS_OFFICER: "Admissions officer",

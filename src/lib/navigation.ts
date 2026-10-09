@@ -232,6 +232,11 @@ export function getAdminNav(
       { label: "Documents", href: "/admin/documents", icon: "FolderOpen" },
     ]),
     ...grouped("Security", "Shield", [
+      { label: "Gate desk", href: "/admin/security", icon: "Shield" },
+      { label: "Gates", href: "/admin/security/gates", icon: "ClipboardCheck" },
+      { label: "Cards", href: "/admin/security/cards", icon: "CreditCard" },
+      { label: "Gate settings", href: "/admin/security/settings", icon: "Settings" },
+      { label: "Gate reports", href: "/admin/security/reports", icon: "BarChart3" },
       { label: "Visitors Book", href: "/admin/visitors", icon: "NotebookPen" },
     ]),
     ...grouped("Insights", "BarChart3", [
@@ -265,6 +270,18 @@ export function getAdminNav(
 
 /** @deprecated Use getAdminNav(terms) for institution-aware labels */
 export const adminNav: NavItem[] = getAdminNav();
+
+export function getSecurityNav(): NavItem[] {
+  return [
+    { label: "Dashboard", href: "/security", icon: "LayoutDashboard" },
+    { label: "Scan / Gate Check", href: "/security/scan", icon: "ClipboardCheck" },
+    { label: "Visitors Book", href: "/security/visitors", icon: "NotebookPen" },
+    { label: "Currently On Site", href: "/security/on-site", icon: "Users" },
+    { label: "Expected Visitors", href: "/security/expected", icon: "Calendar" },
+    { label: "Incidents", href: "/security/incidents", icon: "Shield" },
+    { label: "Gate Activity", href: "/security/activity", icon: "BarChart3" },
+  ];
+}
 
 export function getTeacherNav(terms?: Terminology): NavItem[] {
   const t = terms ?? getTerminology();

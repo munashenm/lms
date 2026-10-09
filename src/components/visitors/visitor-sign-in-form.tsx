@@ -29,7 +29,10 @@ export function VisitorSignInForm({
     e.preventDefault();
     setLoading(true);
     const form = e.currentTarget;
-    const data = Object.fromEntries(new FormData(form).entries());
+    const formData = new FormData(form);
+    const photo = formData.get("photo");
+    formData.delete("photo");
+    const data = Object.fromEntries(formData.entries());
     try {
       const res = await fetch("/api/visitors", {
         method: "POST",
@@ -38,7 +41,20 @@ export function VisitorSignInForm({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.message ?? "Could not sign in visitor");
-      toast.success("Visitor signed in");
+      const visitorId = typeof json.entry?.id === "string" ? json.entry.id : null;
+      if (photo instanceof File && photo.size > 0 && visitorId) {
+        const upload = new FormData();
+        upload.set("photo", photo);
+        const photoRes = await fetch(`/api/visitors/${visitorId}/photo`, {
+          method: "POST",
+          body: upload,
+        });
+        if (!photoRes.ok) {
+          const photoJson = await photoRes.json().catch(() => ({}));
+          toast.error(photoJson.message ?? "Visitor saved, but the photo was not stored");
+        }
+      }
+      toast.success(json.entry?.referenceNumber ? `Visitor ${json.entry.referenceNumber}` : "Visitor signed in");
       form.reset();
       router.refresh();
     } catch (err) {
@@ -191,6 +207,10 @@ export function VisitorSignInForm({
               <Label>Badge / pass no. (optional)</Label>
               <Input name="badgeNumber" maxLength={40} />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Photo (optional)</Label>
+            <Input name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
           </div>
           <p className="text-xs text-muted">
             Personal information is collected for school safety and visitor control in terms of POPIA.

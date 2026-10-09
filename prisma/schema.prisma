@@ -23,6 +23,7 @@ enum UserRole {
   ADMISSIONS_OFFICER
   HR_OFFICER
   STAFF
+  SECURITY
 }
 
 enum InstitutionType {
@@ -516,7 +517,63 @@ enum VisitorStatus {
   CHECKED_IN
   CHECKED_OUT
   DENIED
+  CANCELLED
   OVERDUE
+}
+
+enum GatePersonType {
+  STUDENT
+  STAFF
+  VISITOR
+}
+
+enum GateDirection {
+  IN
+  OUT
+}
+
+enum GateScanMethod {
+  QR
+  BARCODE
+  CAMERA
+  RFID
+  BIOMETRIC
+  MANUAL
+}
+
+enum GateEventOutcome {
+  RECORDED
+  DUPLICATE
+  DENIED
+  EARLY_DEPARTURE
+}
+
+enum GatePunctuality {
+  ON_TIME
+  LATE
+  EARLY
+  NORMAL
+  UNKNOWN
+}
+
+enum AccessCardStatus {
+  ACTIVE
+  DEACTIVATED
+  REPLACED
+}
+
+enum AccessCardHolder {
+  STUDENT
+  STAFF
+}
+
+enum EarlyDepartureReason {
+  PARENT_COLLECTION
+  MEDICAL
+  SCHOOL_ACTIVITY
+  AUTHORIZED_LEAVE
+  EMERGENCY
+  OTHER
 }
 
 enum AssignmentSubmissionStatus {
@@ -662,6 +719,11 @@ model School {
   luritsImportJobs       LuritsImportJob[]
   budgets                Budget[]
   financeProjects        FinanceProject[]
+  gateCheckpoints        GateCheckpoint[]
+  gateEvents             GateEvent[]
+  accessCards            AccessCard[]
+  gatePolicy             GatePolicy?
+  visitorReferenceCounters VisitorReferenceCounter[]
   admissionYear          AcademicYear? @relation("SchoolAdmissionYear", fields: [admissionYearId], references: [id], onDelete: SetNull)
 
   @@index([slug])
@@ -753,6 +815,11 @@ model User {
   messageReceipts    MessageRecipient[]
   studentChangeLogs  StudentChangeLog[]
   promotionDecisions PromotionDecision[] @relation("PromotionDecidedBy")
+  accessCardsHeld    AccessCard[] @relation("AccessCardHolder")
+  accessCardsIssued  AccessCard[] @relation("AccessCardIssuer")
+  accessCardsDeactivated AccessCard[] @relation("AccessCardDeactivator")
+  gateEventsRecorded GateEvent[] @relation("GateEventRecorder")
+  gateEventsAsStaff  GateEvent[] @relation("GateEventStaff")
 
   @@index([schoolId])
   @@index([role])
@@ -1066,6 +1133,8 @@ model Student {
   examAttempts    ExamAttempt[]
   changeLogs      StudentChangeLog[]
   promotionDecisions PromotionDecision[]
+  accessCards     AccessCard[]
+  gateEvents      GateEvent[]
 
   @@unique([schoolId, studentNumber])
   @@index([schoolId])
@@ -1336,6 +1405,8 @@ model AttendanceRecord {
   status       AttendanceStatus
   notes        String?
   markedBy     String?
+  gateArrivalAt DateTime?
+  gateDepartureAt DateTime?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
@@ -3188,6 +3259,8 @@ model Employee {
   attendance         StaffAttendanceRecord[]
   payrollItems       PayrollItem[]
   timesheets         Timesheet[]
+  accessCards        AccessCard[]
+  gateEvents         GateEvent[]
 
   @@unique([schoolId, employeeNumber])
   @@index([schoolId, status])
@@ -3538,6 +3611,7 @@ model VisitorEntry {
   photoUrl            String?
   idScanUrl           String?
   signatureUrl        String?
+  referenceNumber     String?
   signedInAt          DateTime             @default(now())
   signedOutAt         DateTime?
   signedInById        String
@@ -3549,7 +3623,9 @@ model VisitorEntry {
   campus              Campus?              @relation(fields: [campusId], references: [id], onDelete: SetNull)
   signedInBy          User                 @relation("VisitorSignedInBy", fields: [signedInById], references: [id])
   signedOutBy         User?                @relation("VisitorSignedOutBy", fields: [signedOutById], references: [id], onDelete: SetNull)
+  gateEvents          GateEvent[]
 
+  @@unique([schoolId, referenceNumber])
   @@index([schoolId, signedOutAt])
   @@index([schoolId, signedInAt])
   @@index([schoolId, status])
@@ -3674,4 +3750,130 @@ model FinanceProjectContribution {
   @@index([projectId])
   @@index([studentId])
   @@map("finance_project_contributions")
+}
+
+// ─── Gate, cards & access control ────────────────────────────────────────────
+// Biometric templates and biometric images are intentionally not stored.
+// RFID/NFC and biometric terminals should submit an opaque credential later.
+
+model GateCheckpoint {
+  id        String   @id @default(cuid())
+  schoolId  String
+  name      String
+  code      String
+  location  String?
+  deviceId  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school    School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  events    GateEvent[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId, isActive])
+  @@map("gate_checkpoints")
+}
+
+model GatePolicy {
+  id                            String   @id @default(cuid())
+  schoolId                      String   @unique
+  schoolStartTime               String   @default("07:30")
+  lateAfterMinutes              Int      @default(0)
+  normalDepartureTime           String   @default("14:00")
+  duplicateScanIntervalSeconds  Int      @default(90)
+  requireVisitorIdentity        Boolean  @default(false)
+  allowVisitorPhoto             Boolean  @default(true)
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+
+  school                        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("gate_policies")
+}
+
+model AccessCard {
+  id                 String           @id @default(cuid())
+  schoolId           String
+  holderType         AccessCardHolder
+  studentId          String?
+  userId             String?
+  employeeId         String?
+  token              String           @unique
+  status             AccessCardStatus @default(ACTIVE)
+  issuedAt           DateTime         @default(now())
+  issuedById         String
+  deactivatedAt      DateTime?
+  deactivatedById    String?
+  deactivationReason String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  school             School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student            Student?         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  user               User?            @relation("AccessCardHolder", fields: [userId], references: [id], onDelete: Cascade)
+  employee           Employee?        @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  issuedBy           User             @relation("AccessCardIssuer", fields: [issuedById], references: [id])
+  deactivatedBy      User?            @relation("AccessCardDeactivator", fields: [deactivatedById], references: [id])
+
+  @@index([schoolId, status])
+  @@index([schoolId, studentId])
+  @@index([schoolId, userId])
+  @@index([token])
+  @@map("access_cards")
+}
+
+model GateEvent {
+  id                     String                @id @default(cuid())
+  schoolId               String
+  personType             GatePersonType
+  personKey              String
+  studentId              String?
+  userId                 String?
+  employeeId             String?
+  visitorEntryId         String?
+  direction              GateDirection
+  method                 GateScanMethod
+  gateId                 String?
+  deviceId               String?
+  scannedAt              DateTime
+  recordedById           String
+  outcome                GateEventOutcome
+  punctuality            GatePunctuality?
+  denialCode             String?
+  earlyDepartureReason   EarlyDepartureReason?
+  earlyDepartureNote     String?
+  releaseAuthorizationId String?
+  notes                  String?
+  manualReason           String?
+  duplicateOfId          String?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+
+  school                 School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student                Student?              @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  staffUser              User?                 @relation("GateEventStaff", fields: [userId], references: [id], onDelete: SetNull)
+  employee               Employee?             @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  visitorEntry           VisitorEntry?         @relation(fields: [visitorEntryId], references: [id], onDelete: SetNull)
+  gate                   GateCheckpoint?       @relation(fields: [gateId], references: [id], onDelete: SetNull)
+  recordedBy             User                  @relation("GateEventRecorder", fields: [recordedById], references: [id])
+
+  @@index([schoolId, scannedAt])
+  @@index([schoolId, personKey, scannedAt])
+  @@index([schoolId, outcome, scannedAt])
+  @@index([studentId, scannedAt])
+  @@index([userId, scannedAt])
+  @@index([visitorEntryId])
+  @@map("gate_events")
+}
+
+model VisitorReferenceCounter {
+  schoolId   String
+  year       Int
+  lastNumber Int    @default(0)
+
+  school     School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@id([schoolId, year])
+  @@map("visitor_reference_counters")
 }
