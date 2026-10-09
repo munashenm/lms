@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { publicAppUrl } from "@/lib/app-url";
 import { LICENSE_FEATURE_KEYS, normalizeFeatures } from "./features";
 import type { LicenseClaims, LicenseUsage } from "./types";
 
@@ -44,7 +45,7 @@ export async function ensureInstallationId(schoolId: string): Promise<string> {
       schoolId,
       installationId: crypto.randomUUID(),
       hostname: process.env.HOSTNAME ?? null,
-      registeredDomain: process.env.NEXT_PUBLIC_APP_URL ?? null,
+      registeredDomain: publicAppUrl(),
       serverInstanceId: process.env.LICENSE_SERVER_INSTANCE_ID ?? null,
     },
   });

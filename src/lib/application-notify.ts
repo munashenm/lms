@@ -19,7 +19,7 @@ export async function sendApplicationConfirmation(params: ApplicantConfirmationP
     `Hi ${firstName}, your application to ${schoolName} was received. ` +
     `Reference: ${referenceNo}. Track status: ${statusUrl}`;
 
-  const tasks: Promise<void>[] = [];
+  const tasks: Promise<unknown>[] = [];
 
   if (params.email) {
     tasks.push(
@@ -53,7 +53,7 @@ export async function sendApplicationStatusUpdate(params: {
     `Hi ${params.firstName}, your application ${params.referenceNo} at ${params.schoolName} ` +
     `is now: ${params.status}.`;
 
-  const tasks: Promise<void>[] = [];
+  const tasks: Promise<unknown>[] = [];
 
   if (params.email) {
     tasks.push(

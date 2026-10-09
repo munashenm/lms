@@ -217,6 +217,13 @@ export function IntegrationSettingsForm({
           <CardTitle className="text-base">Email (SendGrid)</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm text-muted">
+            {settings.sendgrid.deliveryReady
+              ? settings.sendgrid.credentialSource === "platform"
+                ? "Outbound email uses the server SendGrid configuration."
+                : "Outbound email uses this school's SendGrid key."
+              : "Outbound email is not ready. Add a SendGrid API key and a verified sender address, or set SENDGRID_API_KEY and SENDGRID_FROM_EMAIL on the server. noreply@schoolhub.local is not a real sender."}
+          </p>
           <Toggle id="sendgridEnabled" label="Enable SendGrid" defaultChecked={settings.sendgrid.enabled} />
           <SecretField id="sendgridApiKey" label="API Key" isSet={settings.sendgrid.apiKeySet} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

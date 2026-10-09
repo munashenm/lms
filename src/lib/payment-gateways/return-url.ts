@@ -1,4 +1,5 @@
 import { UserRole } from "@prisma/client";
+import { publicAppUrl } from "../app-url";
 import { toCents } from "../money";
 
 export function paymentReturnBasePath(role: UserRole, invoiceId: string) {
@@ -7,7 +8,7 @@ export function paymentReturnBasePath(role: UserRole, invoiceId: string) {
 }
 
 export function paymentReturnUrls(role: UserRole, invoiceId: string) {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const appUrl = publicAppUrl();
   const path = paymentReturnBasePath(role, invoiceId);
   return {
     successUrl: `${appUrl}${path}?paid=1`,

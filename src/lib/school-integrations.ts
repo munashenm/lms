@@ -2,6 +2,11 @@ import { UserRole } from "@prisma/client";
 import { prisma } from "./db";
 import type { SessionPayload } from "./auth";
 import { decryptSecret, encryptSecret, maskSecret } from "./secret-crypto";
+import {
+  resolveSendGrid,
+  sendGridDeliveryReady,
+  type SendGridCredentialSource,
+} from "./email/resolve-sendgrid";
 
 export interface ResolvedIntegrations {
   sendgrid: {
@@ -9,6 +14,9 @@ export interface ResolvedIntegrations {
     apiKey: string | null;
     fromEmail: string;
     fromName: string;
+    replyTo: string | null;
+    source: SendGridCredentialSource;
+    senderValid: boolean;
   };
   twilio: {
     enabled: boolean;
@@ -56,6 +64,10 @@ export interface PublicIntegrationSettings {
     fromEmail: string;
     fromName: string;
     apiKeySet: boolean;
+    /** True when a send can be attempted. Does not reveal the key. */
+    deliveryReady: boolean;
+    credentialSource: SendGridCredentialSource;
+    senderValid: boolean;
   };
   twilio: {
     enabled: boolean;
@@ -97,14 +109,29 @@ export interface PublicIntegrationSettings {
   };
 }
 
-function envFallback(): ResolvedIntegrations {
+function sendGridFromEnv(school?: {
+  enabled?: boolean;
+  apiKey?: string | null;
+  fromEmail?: string | null;
+  fromName?: string | null;
+  replyTo?: string | null;
+}) {
+  return resolveSendGrid({
+    schoolEnabled: school?.enabled ?? false,
+    schoolApiKey: school?.apiKey ?? null,
+    schoolFromEmail: school?.fromEmail ?? null,
+    schoolFromName: school?.fromName ?? null,
+    schoolReplyTo: school?.replyTo ?? null,
+    envApiKey: process.env.SENDGRID_API_KEY ?? null,
+    envFromEmail: process.env.SENDGRID_FROM_EMAIL ?? null,
+    envFromName: process.env.SENDGRID_FROM_NAME ?? null,
+    envReplyTo: process.env.SENDGRID_REPLY_TO ?? null,
+  });
+}
+
+function envFallback(schoolReplyTo?: string | null): ResolvedIntegrations {
   return {
-    sendgrid: {
-      enabled: Boolean(process.env.SENDGRID_API_KEY),
-      apiKey: process.env.SENDGRID_API_KEY ?? null,
-      fromEmail: process.env.SENDGRID_FROM_EMAIL ?? "noreply@schoolhub.local",
-      fromName: process.env.SENDGRID_FROM_NAME ?? "SchoolHub SA",
-    },
+    sendgrid: sendGridFromEnv({ replyTo: schoolReplyTo }),
     twilio: {
       enabled: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
       accountSid: process.env.TWILIO_ACCOUNT_SID ?? null,
@@ -150,14 +177,18 @@ function envFallback(): ResolvedIntegrations {
   };
 }
 
-function rowToResolved(row: NonNullable<Awaited<ReturnType<typeof loadRow>>>): ResolvedIntegrations {
+function rowToResolved(
+  row: NonNullable<Awaited<ReturnType<typeof loadRow>>>,
+  schoolReplyTo?: string | null
+): ResolvedIntegrations {
   return {
-    sendgrid: {
+    sendgrid: sendGridFromEnv({
       enabled: row.sendgridEnabled,
       apiKey: decryptSecret(row.sendgridApiKey),
-      fromEmail: row.sendgridFromEmail ?? "noreply@schoolhub.local",
-      fromName: row.sendgridFromName ?? "SchoolHub SA",
-    },
+      fromEmail: row.sendgridFromEmail,
+      fromName: row.sendgridFromName,
+      replyTo: schoolReplyTo,
+    }),
     twilio: {
       enabled: row.twilioEnabled,
       accountSid: decryptSecret(row.twilioAccountSid),
@@ -207,24 +238,43 @@ export async function getResolvedIntegrations(
   schoolId: string | null | undefined
 ): Promise<ResolvedIntegrations> {
   if (!schoolId) return envFallback();
-  const row = await loadRow(schoolId);
-  if (!row) return envFallback();
-  return rowToResolved(row);
+  const [row, school] = await Promise.all([
+    loadRow(schoolId),
+    prisma.school.findUnique({ where: { id: schoolId }, select: { email: true } }),
+  ]);
+  if (!row) return envFallback(school?.email ?? null);
+  return rowToResolved(row, school?.email ?? null);
+}
+
+function publicSendGrid(
+  resolved: ResolvedIntegrations["sendgrid"],
+  stored: { enabled: boolean; fromEmail: string; fromName: string; apiKeySet: boolean }
+) {
+  return {
+    enabled: stored.enabled,
+    fromEmail: stored.fromEmail || resolved.fromEmail,
+    fromName: stored.fromName || resolved.fromName,
+    apiKeySet: stored.apiKeySet,
+    deliveryReady: sendGridDeliveryReady(resolved),
+    credentialSource: resolved.source,
+    senderValid: resolved.senderValid,
+  };
 }
 
 export async function getPublicIntegrationSettings(
   schoolId: string
 ): Promise<PublicIntegrationSettings> {
   const row = await loadRow(schoolId);
+  const resolved = await getResolvedIntegrations(schoolId);
   if (!row) {
-    const env = envFallback();
+    const env = resolved;
     return {
-      sendgrid: {
+      sendgrid: publicSendGrid(env.sendgrid, {
         enabled: false,
         fromEmail: env.sendgrid.fromEmail,
         fromName: env.sendgrid.fromName,
-        apiKeySet: maskSecret(env.sendgrid.apiKey),
-      },
+        apiKeySet: false,
+      }),
       twilio: {
         enabled: false,
         fromNumber: env.twilio.fromNumber ?? "",
@@ -267,12 +317,12 @@ export async function getPublicIntegrationSettings(
   }
 
   return {
-    sendgrid: {
+    sendgrid: publicSendGrid(resolved.sendgrid, {
       enabled: row.sendgridEnabled,
       fromEmail: row.sendgridFromEmail ?? "",
       fromName: row.sendgridFromName ?? "",
       apiKeySet: maskSecret(row.sendgridApiKey),
-    },
+    }),
     twilio: {
       enabled: row.twilioEnabled,
       fromNumber: row.twilioFromNumber ?? "",
@@ -499,7 +549,7 @@ export function isSmsGatewayReady(config: ResolvedIntegrations) {
 }
 
 export function isSendGridReady(config: ResolvedIntegrations) {
-  return Boolean(config.sendgrid.enabled && config.sendgrid.apiKey);
+  return sendGridDeliveryReady(config.sendgrid);
 }
 
 export function isTwilioReady(config: ResolvedIntegrations) {

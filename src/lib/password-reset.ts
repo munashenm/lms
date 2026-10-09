@@ -3,6 +3,7 @@ import { prisma } from "./db";
 import { hashPassword, verifyPassword } from "./auth";
 import { sendOutboundMessage } from "./notifications";
 import { credentialSignInPath } from "./institution-portal";
+import { publicAppUrl } from "./app-url";
 
 const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -41,7 +42,7 @@ export async function issuePortalCredentials(params: {
     },
   });
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const appUrl = publicAppUrl();
   const school = params.schoolId
     ? await prisma.school.findUnique({
         where: { id: params.schoolId },
@@ -66,7 +67,7 @@ export async function issuePortalCredentials(params: {
   body += `Please change your password after your first login.\n\n`;
   body += `If you were not expecting this email, contact ${schoolName}.`;
 
-  await sendOutboundMessage(params.schoolId, "email", params.email, subject, body);
+  await sendOutboundMessage(params.schoolId, "email", params.email, subject, body, { sensitive: true });
 }
 
 export function hashResetToken(token: string): string {
@@ -92,7 +93,7 @@ export async function issuePasswordSetup(params: {
     },
   });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = publicAppUrl();
   const setupUrl = `${appUrl}/reset-password?token=${token}`;
   const portal =
     params.kind === "welcome_parent" ? "parent" : params.kind === "welcome_staff" ? "staff" : "student";
@@ -105,7 +106,7 @@ export async function issuePasswordSetup(params: {
       ? `Hi ${params.firstName},\n\nUse this link to reset your password (valid for 1 hour):\n${setupUrl}\n\nIf you did not request this, you can ignore this email.`
       : `Hi ${params.firstName},\n\nA ${portal} portal account was created for you. Set your password using this link (valid for 1 hour):\n${setupUrl}\n\nIf you were not expecting this, contact your school.`;
 
-  await sendOutboundMessage(params.schoolId, "email", params.email, subject, body);
+  await sendOutboundMessage(params.schoolId, "email", params.email, subject, body, { sensitive: true });
 }
 
 export async function createPasswordResetRequest(email: string) {

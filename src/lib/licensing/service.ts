@@ -8,6 +8,21 @@ import { evaluateLicense } from "./evaluate";
 import { claimsFromLicense, ensureInstallationId, syncLicenseFeatures } from "./usage";
 import type { EvaluatedLicense, LicenseClaims } from "./types";
 import { DEFAULT_LICENSE_FEATURES, normalizeFeatures } from "./features";
+import { publicAppUrl } from "@/lib/app-url";
+import {
+  LICENSE_CHECK_MAX_ATTEMPTS,
+  LICENSE_WARNING_AFTER_DAYS,
+  classifyHttpStatus,
+  classifyTransportError,
+  contactFailureFor,
+  licenseErrorCode,
+  licenseRetryDelayMs,
+  parseRetryAfterSeconds,
+  repeatedVerificationWarning,
+  sanitizeLicenseMessage,
+  shouldRetryLicenseCheck,
+  type LicenseFailureClass,
+} from "./check-outcome";
 
 const PRODUCT = "lms";
 
@@ -47,7 +62,7 @@ export function licenseServerUrl(): string | null {
 
 export async function evaluateStoredLicense(
   schoolId: string,
-  opts?: { serverUnavailable?: boolean }
+  opts?: { serverUnavailable?: boolean; contactFailure?: "transport" | "http" }
 ): Promise<EvaluatedLicense> {
   const row = await prisma.schoolLicense.findUnique({ where: { schoolId } });
   const publicKey = getLicensePublicKey();
@@ -74,6 +89,7 @@ export async function evaluateStoredLicense(
     storedStatus: row?.status ?? null,
     offlineGraceDays: offlineGraceDays(),
     serverUnavailable: opts?.serverUnavailable ?? false,
+    contactFailure: opts?.contactFailure,
     trustUnsignedLocal: shouldTrustUnsignedLicense(hasSignedPayload),
   });
 }
@@ -82,7 +98,14 @@ async function persistEvaluation(
   schoolId: string,
   evaluation: EvaluatedLicense,
   source: string,
-  extra?: Partial<{ lastCheckError: string | null; offlineSince: Date | null }>
+  extra?: Partial<{
+    lastCheckError: string | null;
+    offlineSince: Date | null;
+    classification: string | null;
+    httpStatus: number | null;
+    attempts: number | null;
+    detail: string | null;
+  }>
 ) {
   const row = await prisma.schoolLicense.findUnique({ where: { schoolId } });
   if (!row) return;
@@ -101,18 +124,25 @@ async function persistEvaluation(
     data: {
       schoolId,
       licenseId: row.id,
-      result: evaluation.restricted
-        ? LicenseCheckResult.RESTRICTED
-        : evaluation.serverUnavailable
-          ? LicenseCheckResult.OFFLINE_CACHE
-          : evaluation.effectiveStatus === "GRACE"
-            ? LicenseCheckResult.GRACE
-            : LicenseCheckResult.VALID,
+      result:
+        extra?.classification === "INVALID_SIGNATURE"
+          ? LicenseCheckResult.INVALID_SIGNATURE
+          : evaluation.restricted
+            ? LicenseCheckResult.RESTRICTED
+            : evaluation.serverUnavailable
+              ? LicenseCheckResult.OFFLINE_CACHE
+              : evaluation.effectiveStatus === "GRACE"
+                ? LicenseCheckResult.GRACE
+                : LicenseCheckResult.VALID,
       source,
       message: evaluation.warnings[0] ?? null,
       metadata: {
         effectiveStatus: evaluation.effectiveStatus,
         signatureValid: evaluation.signatureValid,
+        classification: extra?.classification ?? null,
+        httpStatus: extra?.httpStatus ?? null,
+        attempts: extra?.attempts ?? null,
+        detail: extra?.detail || null,
       },
     },
   });
@@ -206,6 +236,83 @@ export async function applySignedClaims(
   return row;
 }
 
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+interface LicenseAttemptFailure {
+  classification: LicenseFailureClass;
+  httpStatus: number | null;
+  detail: string;
+  retryAfterSeconds: number | null;
+}
+
+async function requestLicenseCheck(url: string, payload: string): Promise<
+  | { ok: true; token: string }
+  | ({ ok: false } & LicenseAttemptFailure)
+> {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!res.ok) {
+      const classified = classifyHttpStatus(res.status);
+      const text = await res.text().catch(() => "");
+      let detail = "";
+      if (!classified.transient) {
+        try {
+          const parsed = JSON.parse(text) as { message?: string };
+          detail = sanitizeLicenseMessage(parsed.message ?? "");
+        } catch {
+          detail = sanitizeLicenseMessage(text);
+        }
+      }
+      const rejected = /revoked|expired|deactivated|not valid|maximum activations/i.test(detail);
+      return {
+        ok: false,
+        classification:
+          classified.classification === "HTTP_403" && rejected ? "LICENSE_REJECTED" : classified.classification,
+        httpStatus: res.status,
+        detail,
+        retryAfterSeconds: parseRetryAfterSeconds(res.headers.get("retry-after")),
+      };
+    }
+    let body: { token?: unknown };
+    try {
+      body = (await res.json()) as { token?: unknown };
+    } catch {
+      return {
+        ok: false,
+        classification: "MALFORMED_RESPONSE",
+        httpStatus: res.status,
+        detail: "",
+        retryAfterSeconds: null,
+      };
+    }
+    if (typeof body.token !== "string" || body.token.length === 0) {
+      return {
+        ok: false,
+        classification: "MALFORMED_RESPONSE",
+        httpStatus: res.status,
+        detail: "",
+        retryAfterSeconds: null,
+      };
+    }
+    return { ok: true, token: body.token };
+  } catch (error) {
+    return {
+      ok: false,
+      classification: classifyTransportError(error),
+      httpStatus: null,
+      detail: "",
+      retryAfterSeconds: null,
+    };
+  }
+}
+
 export async function checkLicenseWithServer(
   schoolId: string,
   source: string
@@ -216,71 +323,120 @@ export async function checkLicenseWithServer(
   const installationId = await ensureInstallationId(schoolId);
 
   if (url && row?.licenseKey) {
-    let httpStatus: number | null = null;
-    try {
-      const res = await fetch(`${url}/v1/licenses/check`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          licenseKey: row.licenseKey,
-          product: PRODUCT,
-          institutionId: schoolId,
-          installationId,
-          domain: process.env.NEXT_PUBLIC_APP_URL ?? null,
-        }),
-        signal: AbortSignal.timeout(12_000),
-      });
-      httpStatus = res.status;
-      if (res.ok) {
-        const body = (await res.json()) as { token?: string };
-        if (body.token && publicKey) {
-          const verified = await verifyLicenseToken(body.token, publicKey);
-          if (!verified.ok) {
-            const evaluation = await evaluateStoredLicense(schoolId);
-            await persistEvaluation(schoolId, { ...evaluation, signatureValid: false, restricted: true, effectiveStatus: "REVOKED" }, source);
-            await logAudit({
-              schoolId,
-              action: "LICENSE_CHECKED",
-              entity: "License",
-              entityId: row.id,
-              metadata: { result: "INVALID_SIGNATURE", source },
-            });
-            return {
-              ...evaluation,
-              signatureValid: false,
-              restricted: true,
-              effectiveStatus: "REVOKED",
-              warnings: ["The licence server returned a token that failed signature verification."],
-            };
-          }
-          await applySignedClaims(schoolId, verified.claims, verified.token);
+    const payload = JSON.stringify({
+      licenseKey: row.licenseKey,
+      product: PRODUCT,
+      institutionId: schoolId,
+      installationId,
+      domain: publicAppUrl(),
+    });
+    let failure: LicenseAttemptFailure | null = null;
+    let attempts = 0;
+    for (let attempt = 0; attempt < LICENSE_CHECK_MAX_ATTEMPTS; attempt += 1) {
+      if (attempt > 0) {
+        await delay(licenseRetryDelayMs(attempt, failure?.retryAfterSeconds));
+      }
+      attempts = attempt + 1;
+      const result = await requestLicenseCheck(`${url}/v1/licenses/check`, payload);
+      if (result.ok) {
+        if (!publicKey) {
+          failure = {
+            classification: "MALFORMED_RESPONSE",
+            httpStatus: 200,
+            detail: "",
+            retryAfterSeconds: null,
+          };
+          break;
+        }
+        const verified = await verifyLicenseToken(result.token, publicKey);
+        if (!verified.ok) {
           const evaluation = await evaluateStoredLicense(schoolId);
-          await persistEvaluation(schoolId, evaluation, source);
+          const revoked = {
+            ...evaluation,
+            signatureValid: false,
+            restricted: true,
+            effectiveStatus: "REVOKED" as const,
+          };
+          await persistEvaluation(schoolId, revoked, source, {
+            lastCheckError: licenseErrorCode("INVALID_SIGNATURE"),
+            classification: "INVALID_SIGNATURE",
+            httpStatus: 200,
+            attempts,
+          });
           await logAudit({
             schoolId,
             action: "LICENSE_CHECKED",
             entity: "License",
             entityId: row.id,
-            metadata: { result: evaluation.effectiveStatus, source },
+            metadata: { result: "INVALID_SIGNATURE", source, httpStatus: 200, attempts },
           });
-          return evaluation;
+          console.warn(
+            "[license-check]",
+            JSON.stringify({ schoolId, source, classification: "INVALID_SIGNATURE", httpStatus: 200, attempts })
+          );
+          return {
+            ...revoked,
+            warnings: ["The licence server returned a token that failed signature verification."],
+          };
         }
+        await applySignedClaims(schoolId, verified.claims, verified.token);
+        const evaluation = await evaluateStoredLicense(schoolId);
+        await persistEvaluation(schoolId, evaluation, source, {
+          lastCheckError: null,
+          classification: "SUCCESS",
+          httpStatus: 200,
+          attempts,
+        });
+        await logAudit({
+          schoolId,
+          action: "LICENSE_CHECKED",
+          entity: "License",
+          entityId: row.id,
+          metadata: { result: evaluation.effectiveStatus, source, httpStatus: 200, attempts },
+        });
+        return evaluation;
       }
-    } catch {
-      // Fall through to cached licence — a single failed request must not disable the LMS.
+      failure = result;
+      if (!shouldRetryLicenseCheck(result.classification, attempts)) break;
     }
-    const cached = await evaluateStoredLicense(schoolId, { serverUnavailable: true });
+
+    const classification = failure?.classification ?? "NETWORK";
+    const contactFailure = contactFailureFor(classification);
+    const cached = await evaluateStoredLicense(schoolId, { serverUnavailable: true, contactFailure });
     await persistEvaluation(schoolId, cached, source, {
-      lastCheckError: "LICENSE_SERVER_UNAVAILABLE",
+      lastCheckError: licenseErrorCode(classification),
       offlineSince: row.offlineSince ?? new Date(),
+      classification,
+      httpStatus: failure?.httpStatus ?? null,
+      attempts,
+      detail: failure?.detail || null,
     });
     await logAudit({
       schoolId,
       action: "LICENSE_CHECKED",
       entity: "License",
       entityId: row.id,
-      metadata: { result: "SERVER_UNAVAILABLE", source, httpStatus },
+      metadata: {
+        result: licenseErrorCode(classification),
+        source,
+        httpStatus: failure?.httpStatus ?? null,
+        attempts,
+      },
     });
+    console.warn(
+      "[license-check]",
+      JSON.stringify({
+        schoolId,
+        source,
+        classification,
+        httpStatus: failure?.httpStatus ?? null,
+        attempts,
+        daysOffline: cached.daysOffline,
+      })
+    );
+    if ((cached.daysOffline ?? 0) >= LICENSE_WARNING_AFTER_DAYS) {
+      await notifyRepeatedVerificationFailure(schoolId, cached.daysOffline ?? 0);
+    }
     return cached;
   }
 
@@ -333,6 +489,51 @@ export async function createLocalTrialLicense(schoolId: string) {
     metadata: { plan: "trial", local: true },
   });
   return row;
+}
+
+async function notifyRepeatedVerificationFailure(schoolId: string, daysOffline: number) {
+  try {
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { name: true },
+    });
+    const title = "Licence verification warning";
+    const message = repeatedVerificationWarning(school?.name ?? "A school", daysOffline);
+    const since = new Date(Date.now() - 20 * 60 * 60 * 1000);
+    const admins = await prisma.user.findMany({
+      where: { role: UserRole.SUPER_ADMIN, isActive: true },
+      select: { id: true },
+    });
+    if (admins.length === 0) {
+      console.warn("[license-check]", JSON.stringify({ schoolId, warning: "no-super-admin", daysOffline }));
+      return;
+    }
+    for (const admin of admins) {
+      const recent = await prisma.notification.findFirst({
+        where: { userId: admin.id, schoolId, title, createdAt: { gte: since } },
+      });
+      if (recent) continue;
+      await prisma.notification.create({
+        data: {
+          userId: admin.id,
+          schoolId,
+          title,
+          message,
+          type: "WARNING",
+          link: "/admin/licensing",
+        },
+      });
+    }
+  } catch (error) {
+    console.error(
+      "[license-check]",
+      JSON.stringify({
+        schoolId,
+        warning: "notify-failed",
+        reason: error instanceof Error ? error.message.slice(0, 120) : "failed",
+      })
+    );
+  }
 }
 
 export async function notifyLicenseWarnings(schoolId: string, evaluation: EvaluatedLicense) {

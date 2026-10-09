@@ -15,6 +15,7 @@ import {
 } from "@/lib/licensing/service";
 import { getLicensePublicKey, verifyLicenseToken } from "@/lib/licensing/crypto";
 import { LICENSE_FEATURE_LABELS, LICENSE_FEATURE_NOTES, isFutureLicenseFeature } from "@/lib/licensing/features";
+import { publicAppUrl } from "@/lib/app-url";
 import { UserRole } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
             lastVerifiedAt: license.lastVerifiedAt,
             nextVerificationAt: license.nextVerificationAt,
             installationId,
-            registeredDomain: license.registeredDomain ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
+            registeredDomain: license.registeredDomain ?? publicAppUrl(),
             customerName: license.customerName,
             pricePerLearner: license.pricePerLearner?.toString() ?? null,
             priceCurrency: license.priceCurrency ?? "ZAR",

@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { invoiceIdFromPaystackReference } from "@/lib/payment-gateways/paystack";
 import { settlePaystackReference } from "@/lib/payment-gateways/settle-paystack";
 import { paymentReturnUrls } from "@/lib/payment-gateways/return-url";
+import { publicAppUrl } from "@/lib/app-url";
 
 export async function GET(request: NextRequest) {
   const reference =
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   const invoiceId = invoiceIdFromPaystackReference(reference);
   const session = await getSession();
   const role = session?.role ?? UserRole.STUDENT;
-  const fallback = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const fallback = publicAppUrl();
 
   if (!reference || !invoiceId) {
     return NextResponse.redirect(`${fallback}/student/fees?error=1`);
