@@ -278,6 +278,7 @@ export function getSecurityNav(): NavItem[] {
     { label: "Visitors Book", href: "/security/visitors", icon: "NotebookPen" },
     { label: "Currently On Site", href: "/security/on-site", icon: "Users" },
     { label: "Expected Visitors", href: "/security/expected", icon: "Calendar" },
+    { label: "Missing checkouts", href: "/security/missing", icon: "ClipboardCheck" },
     { label: "Incidents", href: "/security/incidents", icon: "Shield" },
     { label: "Gate Activity", href: "/security/activity", icon: "BarChart3" },
   ];

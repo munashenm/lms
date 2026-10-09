@@ -725,6 +725,8 @@ model School {
   accessCards            AccessCard[]
   gatePolicy             GatePolicy?
   visitorReferenceCounters VisitorReferenceCounter[]
+  gateCheckoutReconciliations GateCheckoutReconciliation[]
+  earlyReleaseAuthorizations EarlyReleaseAuthorization[]
   admissionYear          AcademicYear? @relation("SchoolAdmissionYear", fields: [admissionYearId], references: [id], onDelete: SetNull)
 
   @@index([slug])
@@ -821,6 +823,7 @@ model User {
   accessCardsDeactivated AccessCard[] @relation("AccessCardDeactivator")
   gateEventsRecorded GateEvent[] @relation("GateEventRecorder")
   gateEventsAsStaff  GateEvent[] @relation("GateEventStaff")
+  gateCheckoutReconciliations GateCheckoutReconciliation[]
 
   @@index([schoolId])
   @@index([role])
@@ -1136,6 +1139,7 @@ model Student {
   promotionDecisions PromotionDecision[]
   accessCards     AccessCard[]
   gateEvents      GateEvent[]
+  earlyReleaseAuthorizations EarlyReleaseAuthorization[]
 
   @@unique([schoolId, studentNumber])
   @@index([schoolId])
@@ -2005,7 +2009,7 @@ model LeaveRequest {
 model StaffAttendanceRecord {
   id         String                @id @default(cuid())
   schoolId   String
-  userId     String
+  userId     String?
   date       DateTime              @db.Date
   status     StaffAttendanceStatus @default(PRESENT)
   checkIn    String?
@@ -2019,11 +2023,12 @@ model StaffAttendanceRecord {
   overtimeMinutes Int              @default(0)
 
   school     School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  user       User   @relation("StaffAttendanceUser", fields: [userId], references: [id], onDelete: Cascade)
+  user       User?  @relation("StaffAttendanceUser", fields: [userId], references: [id], onDelete: Cascade)
   markedBy   User?  @relation("StaffAttendanceMarker", fields: [markedById], references: [id])
   employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 
   @@unique([userId, date])
+  @@unique([employeeId, date])
   @@index([schoolId, date])
   @@map("staff_attendance_records")
 }
@@ -3625,6 +3630,7 @@ model VisitorEntry {
   signedInBy          User                 @relation("VisitorSignedInBy", fields: [signedInById], references: [id])
   signedOutBy         User?                @relation("VisitorSignedOutBy", fields: [signedOutById], references: [id], onDelete: SetNull)
   gateEvents          GateEvent[]
+  checkoutReconciliation GateCheckoutReconciliation?
 
   @@unique([schoolId, referenceNumber])
   @@index([schoolId, signedOutAt])
@@ -3783,6 +3789,7 @@ model GatePolicy {
   lateAfterMinutes              Int      @default(0)
   normalDepartureTime           String   @default("14:00")
   duplicateScanIntervalSeconds  Int      @default(90)
+  dayBoundaryTime               String   @default("18:00")
   requireVisitorIdentity        Boolean  @default(false)
   allowVisitorPhoto             Boolean  @default(true)
   createdAt                     DateTime @default(now())
@@ -3845,6 +3852,7 @@ model GateEvent {
   earlyDepartureReason   EarlyDepartureReason?
   earlyDepartureNote     String?
   releaseAuthorizationId String?
+  releaseAuthorization   EarlyReleaseAuthorization? @relation(fields: [releaseAuthorizationId], references: [id], onDelete: SetNull)
   notes                  String?
   manualReason           String?
   duplicateOfId          String?
@@ -3858,6 +3866,7 @@ model GateEvent {
   visitorEntry           VisitorEntry?         @relation(fields: [visitorEntryId], references: [id], onDelete: SetNull)
   gate                   GateCheckpoint?       @relation(fields: [gateId], references: [id], onDelete: SetNull)
   recordedBy             User                  @relation("GateEventRecorder", fields: [recordedById], references: [id])
+  checkoutReconciliation GateCheckoutReconciliation?
 
   @@index([schoolId, scannedAt])
   @@index([schoolId, personKey, scannedAt])
@@ -3866,6 +3875,56 @@ model GateEvent {
   @@index([userId, scannedAt])
   @@index([visitorEntryId])
   @@map("gate_events")
+}
+
+model GateCheckoutReconciliation {
+  id             String   @id @default(cuid())
+  schoolId       String
+  gateEventId    String?  @unique
+  visitorEntryId String?  @unique
+  personKey      String
+  reason         String
+  reconciledById String
+  createdAt      DateTime @default(now())
+
+  school         School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  gateEvent      GateEvent?    @relation(fields: [gateEventId], references: [id], onDelete: Cascade)
+  visitorEntry   VisitorEntry? @relation(fields: [visitorEntryId], references: [id], onDelete: Cascade)
+  reconciledBy   User          @relation(fields: [reconciledById], references: [id])
+
+  @@index([schoolId, createdAt])
+  @@map("gate_checkout_reconciliations")
+}
+
+enum EarlyReleaseStatus {
+  PENDING
+  APPROVED
+  USED
+  CANCELLED
+  EXPIRED
+}
+
+/// Reserved for a later parent/admin early-release approval. Security still records a reason today.
+model EarlyReleaseAuthorization {
+  id            String             @id @default(cuid())
+  schoolId      String
+  studentId     String
+  status        EarlyReleaseStatus @default(PENDING)
+  reason        EarlyDepartureReason
+  note          String?
+  validOn       DateTime           @db.Date
+  requestedById String?
+  approvedById  String?
+  approvedAt    DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  school        School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student       Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  gateEvents    GateEvent[]
+
+  @@index([schoolId, studentId, validOn])
+  @@map("early_release_authorizations")
 }
 
 model VisitorReferenceCounter {

@@ -5,6 +5,7 @@ const TOKEN_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export const DEFAULT_SCHOOL_START = "07:30";
 export const DEFAULT_DEPARTURE = "14:00";
+export const DEFAULT_DAY_BOUNDARY = "18:00";
 export const DEFAULT_DUPLICATE_SECONDS = 90;
 export const DEFAULT_TIMEZONE = "Africa/Johannesburg";
 
@@ -122,6 +123,7 @@ export type SavedGatePolicy = {
   lateAfterMinutes: number;
   normalDepartureTime: string;
   duplicateScanIntervalSeconds: number;
+  dayBoundaryTime?: string;
 };
 
 export type SchoolDayWindow = {
@@ -323,6 +325,24 @@ export type OccupancyEvent = {
   scannedAt: string;
 };
 
+/**
+ * An unresolved IN stays in the ledger. After the school day boundary, or on a later
+ * school date, it is a missing checkout and is no longer current occupancy.
+ * An arrival after the boundary stays on site until the next school date.
+ */
+export function openPresenceState(input: {
+  scannedAt: Date;
+  now: Date;
+  dayBoundary?: string | null;
+}): "on_site" | "missing_out" {
+  const boundary = validHHMM(input.dayBoundary) ?? DEFAULT_DAY_BOUNDARY;
+  const scan = zonedParts(input.scannedAt);
+  const current = zonedParts(input.now);
+  if (scan.dateKey < current.dateKey) return "missing_out";
+  if (scan.dateKey === current.dateKey && current.hhmm >= boundary && scan.hhmm < boundary) return "missing_out";
+  return "on_site";
+}
+
 /** Latest counting IN without a later OUT. Denied and duplicate scans do not change occupancy. */
 export function deriveOnSite<T extends OccupancyEvent>(events: T[]): T[] {
   const latest = new Map<string, T>();
@@ -438,10 +458,10 @@ export function toStudentGatePerson(row: {
 }
 
 export function toStaffGatePerson(row: {
-  userId: string;
+  userId?: string | null;
   firstName: string;
   lastName: string;
-  isActive: boolean;
+  isActive?: boolean;
   employeeNumber?: string | null;
   department?: string | null;
   position?: string | null;
@@ -452,13 +472,16 @@ export function toStaffGatePerson(row: {
   saIdNumber?: string | null;
   salary?: string | number | null;
 }): GatePerson {
-  const allowed = row.isActive && row.employeeStatus !== "TERMINATED";
+  const personId = row.employeeId || row.userId || "";
+  const employed = row.employeeStatus ? row.employeeStatus !== "TERMINATED" : true;
+  const loginActive = row.userId ? row.isActive !== false : true;
+  const allowed = employed && loginActive && Boolean(personId);
   const detail = [row.position, row.department].filter(Boolean).join(" · ");
   return {
     personType: "STAFF",
-    personId: row.userId,
+    personId,
     studentId: null,
-    userId: row.userId,
+    userId: row.userId ?? null,
     employeeId: row.employeeId ?? null,
     classId: null,
     accessAllowed: allowed,
@@ -467,6 +490,29 @@ export function toStaffGatePerson(row: {
     detailLine: detail || null,
     photoUrl: row.photoUrl ?? null,
   };
+}
+
+export type ReleaseAuthorizationView = {
+  id: string;
+  schoolId: string;
+  studentId: string;
+  status: string;
+  reason: EarlyDepartureReasonCode;
+  validOn: string;
+};
+
+/** A later parent/admin approval can satisfy an early exit. The row must belong to this learner and school day. */
+export function earlyReleaseCovers(
+  authorization: ReleaseAuthorizationView | null,
+  input: { schoolId: string; studentId: string; dateKey: string }
+): boolean {
+  if (!authorization) return false;
+  return (
+    authorization.status === "APPROVED" &&
+    authorization.schoolId === input.schoolId &&
+    authorization.studentId === input.studentId &&
+    authorization.validOn === input.dateKey
+  );
 }
 
 export function formatVisitorReference(year: number, sequence: number): string {

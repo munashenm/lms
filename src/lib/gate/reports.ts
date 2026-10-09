@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { formatDurationMinutes, minutesBetweenHHMM, zonedParts } from "./engine";
-import { gateDayRange, gateEventsForDay, listOnSitePeople, presentEvent, todayKey } from "./queries";
+import { gateDayRange, dayBoundaryForSchool, gateEventsForDay, listMissingCheckouts, listOnSitePeople, presentEvent, todayKey } from "./queries";
 
 export const GATE_REPORT_TYPES = [
   "register",
@@ -13,6 +13,7 @@ export const GATE_REPORT_TYPES = [
   "activity",
   "manual",
   "denied",
+  "missing",
 ] as const;
 
 export type GateReportType = (typeof GATE_REPORT_TYPES)[number];
@@ -32,6 +33,7 @@ export const GATE_REPORT_LABELS: Record<GateReportType, string> = {
   activity: "Gate activity by date",
   manual: "Manual overrides",
   denied: "Denied and failed scans",
+  missing: "Missing checkouts",
 };
 
 export async function getGateReport(schoolId: string, type: GateReportType, dateKey = todayKey()) {
@@ -90,8 +92,20 @@ export async function getGateReport(schoolId: string, type: GateReportType, date
     };
   }
 
+  if (type === "missing") {
+    const missing = await listMissingCheckouts(schoolId);
+    return {
+      title: GATE_REPORT_LABELS.missing,
+      columns: ["Name", "Detail", "Since", "Status"],
+      rows: missing.rows.map((row) => [row.name, row.detail, zonedParts(new Date(row.since)).hhmm, row.label]),
+    };
+  }
+
   if (type === "staff") {
     const date = new Date(`${dateKey}T00:00:00.000Z`);
+    const boundary = await dayBoundaryForSchool(schoolId);
+    const nowClock = zonedParts(new Date());
+    const dayClosed = dateKey < nowClock.dateKey || (dateKey === nowClock.dateKey && nowClock.hhmm >= boundary);
     const records = await prisma.staffAttendanceRecord.findMany({
       where: { schoolId, date, checkIn: { not: null } },
       orderBy: { checkIn: "asc" },
@@ -102,7 +116,7 @@ export async function getGateReport(schoolId: string, type: GateReportType, date
         status: true,
         source: true,
         user: { select: { firstName: true, lastName: true } },
-        employee: { select: { employeeNumber: true, position: true, department: true } },
+        employee: { select: { firstName: true, lastName: true, employeeNumber: true, position: true, department: true } },
       },
     });
     return {
@@ -110,13 +124,18 @@ export async function getGateReport(schoolId: string, type: GateReportType, date
       columns: ["Name", "Number", "Role", "In", "Out", "Time on site", "Status", "Source"],
       rows: records.map((row) => {
         const mins = row.checkIn && row.checkOut ? minutesBetweenHHMM(row.checkIn, row.checkOut) : null;
+        const name = row.user
+          ? `${row.user.firstName} ${row.user.lastName}`
+          : row.employee
+            ? `${row.employee.firstName} ${row.employee.lastName}`
+            : "Staff member";
         return [
-          `${row.user.firstName} ${row.user.lastName}`,
+          name,
           row.employee?.employeeNumber ?? "",
           row.employee?.position ?? row.employee?.department ?? "",
           row.checkIn ?? "",
           row.checkOut ?? "",
-          mins == null ? "" : formatDurationMinutes(mins),
+          mins == null ? (dayClosed && !row.checkOut ? "Missing checkout" : "") : formatDurationMinutes(mins),
           row.status,
           row.source,
         ];

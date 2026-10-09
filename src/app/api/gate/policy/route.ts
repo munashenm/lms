@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { requireSchoolPermission } from "@/lib/gate/access";
 import { gatePolicySchema } from "@/lib/gate/schema";
-import { DEFAULT_DEPARTURE, DEFAULT_DUPLICATE_SECONDS, DEFAULT_SCHOOL_START } from "@/lib/gate/engine";
+import { DEFAULT_DAY_BOUNDARY, DEFAULT_DEPARTURE, DEFAULT_DUPLICATE_SECONDS, DEFAULT_SCHOOL_START } from "@/lib/gate/engine";
 
 export async function GET() {
   const auth = await requireSchoolPermission("gate:manage");
@@ -15,6 +15,7 @@ export async function GET() {
       lateAfterMinutes: 0,
       normalDepartureTime: DEFAULT_DEPARTURE,
       duplicateScanIntervalSeconds: DEFAULT_DUPLICATE_SECONDS,
+      dayBoundaryTime: DEFAULT_DAY_BOUNDARY,
       requireVisitorIdentity: false,
       allowVisitorPhoto: true,
       saved: false,

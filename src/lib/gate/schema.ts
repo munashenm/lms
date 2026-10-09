@@ -23,6 +23,7 @@ export const gatePolicySchema = z.object({
   lateAfterMinutes: z.coerce.number().int().min(0).max(180),
   normalDepartureTime: hhmm,
   duplicateScanIntervalSeconds: z.coerce.number().int().min(10).max(3600),
+  dayBoundaryTime: hhmm,
   requireVisitorIdentity: z.boolean().optional(),
   allowVisitorPhoto: z.boolean().optional(),
 });
@@ -39,6 +40,22 @@ export const issueCardSchema = z.object({
   holderType: z.enum(["STUDENT", "STAFF"]),
   studentId: z.string().min(1).optional().nullable(),
   userId: z.string().min(1).optional().nullable(),
+  employeeId: z.string().min(1).optional().nullable(),
+});
+
+export const bulkCardSchema = z.object({
+  holderType: z.enum(["STUDENT", "STAFF"]),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+});
+
+export const cardSheetSchema = z.object({
+  cardIds: z.array(z.string().min(1)).min(1).max(40),
+});
+
+export const reconcileSchema = z.object({
+  gateEventId: z.string().min(1).optional().nullable(),
+  visitorEntryId: z.string().min(1).optional().nullable(),
+  reason: z.string().min(3).max(300),
 });
 
 export const cardActionSchema = z.object({

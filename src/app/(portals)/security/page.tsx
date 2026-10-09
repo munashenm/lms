@@ -15,6 +15,7 @@ export default async function SecurityHomePage() {
     { label: "Late arrivals today", value: dash.lateArrivals },
     { label: "Early departures today", value: dash.earlyDepartures },
     { label: "Visitors awaiting checkout", value: dash.visitorsAwaitingCheckout },
+    { label: "Missing checkouts", value: dash.missingCheckouts },
   ];
 
   return (
@@ -34,6 +35,9 @@ export default async function SecurityHomePage() {
           <div key={tile.label} className="rounded-xl border border-border bg-surface p-4">
             <p className="text-sm text-muted">{tile.label}</p>
             <p className="mt-1 text-3xl font-bold tabular-nums">{tile.value}</p>
+            {tile.label === "Missing checkouts" ? (
+              <Link href="/security/missing" className="mt-2 inline-block text-sm text-primary">Review</Link>
+            ) : null}
           </div>
         ))}
       </div>

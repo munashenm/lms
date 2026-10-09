@@ -76,8 +76,8 @@ function weekdayEnum(weekday: string): DayOfWeek | null {
   return null;
 }
 
-async function loadStudent(schoolId: string, studentId: string) {
-  const student = await prisma.student.findFirst({
+async function loadStudent(schoolId: string, studentId: string, client: Prisma.TransactionClient = prisma as unknown as Prisma.TransactionClient) {
+  const student = await client.student.findFirst({
     where: { id: studentId, schoolId },
     select: STUDENT_SELECT,
   });
@@ -89,8 +89,38 @@ async function loadStudent(schoolId: string, studentId: string) {
   });
 }
 
-async function loadStaff(schoolId: string, userId: string) {
-  const user = await prisma.user.findFirst({
+async function loadEmployee(schoolId: string, employeeId: string, client: Prisma.TransactionClient = prisma as unknown as Prisma.TransactionClient) {
+  const employee = await client.employee.findFirst({
+    where: { id: employeeId, schoolId },
+    select: {
+      id: true,
+      userId: true,
+      firstName: true,
+      lastName: true,
+      employeeNumber: true,
+      department: true,
+      position: true,
+      status: true,
+      user: { select: { isActive: true, avatarUrl: true } },
+    },
+  });
+  if (!employee) return null;
+  return toStaffGatePerson({
+    userId: employee.userId,
+    firstName: employee.firstName,
+    lastName: employee.lastName,
+    isActive: employee.user?.isActive ?? true,
+    employeeNumber: employee.employeeNumber,
+    department: employee.department,
+    position: employee.position,
+    employeeStatus: employee.status,
+    employeeId: employee.id,
+    photoUrl: employee.user?.avatarUrl ?? null,
+  });
+}
+
+async function loadStaff(schoolId: string, userId: string, client: Prisma.TransactionClient = prisma as unknown as Prisma.TransactionClient) {
+  const user = await client.user.findFirst({
     where: { id: userId, schoolId },
     select: STAFF_SELECT,
   });
@@ -109,30 +139,32 @@ async function loadStaff(schoolId: string, userId: string) {
   });
 }
 
-export function createPrismaGateStore(): GateStore {
+export function createPrismaGateStore(client: Prisma.TransactionClient = prisma as unknown as Prisma.TransactionClient, nested = false): GateStore {
+  const db = client;
   return {
     async getSavedPolicy(schoolId) {
-      const policy = await prisma.gatePolicy.findUnique({ where: { schoolId } });
+      const policy = await db.gatePolicy.findUnique({ where: { schoolId } });
       if (!policy) return null;
       const saved: SavedGatePolicy = {
         schoolStartTime: policy.schoolStartTime,
         lateAfterMinutes: policy.lateAfterMinutes,
         normalDepartureTime: policy.normalDepartureTime,
         duplicateScanIntervalSeconds: policy.duplicateScanIntervalSeconds,
+        dayBoundaryTime: policy.dayBoundaryTime,
       };
       return saved;
     },
     async timetableWindow(schoolId, classId, weekday) {
       const day = classId ? weekdayEnum(weekday) : null;
       if (!classId || !day) return { starts: [], ends: [] };
-      const slots = await prisma.timetableSlot.findMany({
+      const slots = await db.timetableSlot.findMany({
         where: { schoolId, classId, dayOfWeek: day },
         select: { startTime: true, endTime: true },
       });
       return { starts: slots.map((slot) => slot.startTime), ends: slots.map((slot) => slot.endTime) };
     },
     async findCardByToken(token) {
-      const card = await prisma.accessCard.findUnique({ where: { token } });
+      const card = await db.accessCard.findUnique({ where: { token } });
       if (!card) return null;
       const row: CardRow = {
         id: card.id,
@@ -146,23 +178,29 @@ export function createPrismaGateStore(): GateStore {
     },
     async personFromCard(schoolId, card) {
       if (card.schoolId !== schoolId) return null;
-      if (card.studentId) return loadStudent(schoolId, card.studentId);
-      if (card.userId) return loadStaff(schoolId, card.userId);
+      if (card.studentId) return loadStudent(schoolId, card.studentId, db);
+      if (card.employeeId) {
+        const employee = await loadEmployee(schoolId, card.employeeId, db);
+        if (employee) return employee;
+      }
+      if (card.userId) return loadStaff(schoolId, card.userId, db);
       return null;
     },
     async findPerson(schoolId, personType, personId) {
-      if (personType === "STUDENT") return loadStudent(schoolId, personId);
-      return loadStaff(schoolId, personId);
+      if (personType === "STUDENT") return loadStudent(schoolId, personId, db);
+      const employee = await loadEmployee(schoolId, personId, db);
+      if (employee) return employee;
+      return loadStaff(schoolId, personId, db);
     },
     async gateBelongsToSchool(schoolId, gateId) {
-      const gate = await prisma.gateCheckpoint.findFirst({
+      const gate = await db.gateCheckpoint.findFirst({
         where: { id: gateId, schoolId },
         select: { id: true },
       });
       return Boolean(gate);
     },
     async lastCountingEvent(schoolId, key) {
-      const event = await prisma.gateEvent.findFirst({
+      const event = await db.gateEvent.findFirst({
         where: {
           schoolId,
           personKey: key,
@@ -175,10 +213,10 @@ export function createPrismaGateStore(): GateStore {
       return { id: event.id, direction: event.direction, scannedAt: event.scannedAt };
     },
     async createEvent(input) {
-      const created = await prisma.gateEvent.create({
+      const created = await db.gateEvent.create({
         data: {
           schoolId: input.schoolId,
-          personType: input.studentId ? GatePersonType.STUDENT : input.userId ? GatePersonType.STAFF : GatePersonType.STUDENT,
+          personType: input.personType === "STAFF" ? GatePersonType.STAFF : input.personType === "VISITOR" ? GatePersonType.VISITOR : GatePersonType.STUDENT,
           personKey: input.personKey,
           studentId: input.studentId,
           userId: input.userId,
@@ -203,7 +241,7 @@ export function createPrismaGateStore(): GateStore {
       return created;
     },
     async getDailyAttendance(schoolId, studentId, date) {
-      const row = await prisma.attendanceRecord.findFirst({
+      const row = await db.attendanceRecord.findFirst({
         where: { schoolId, studentId, date, sessionKey: "daily" },
         select: { status: true, gateArrivalAt: true },
       });
@@ -211,13 +249,13 @@ export function createPrismaGateStore(): GateStore {
       return { status: row.status, gateArrivalAt: row.gateArrivalAt };
     },
     async saveDailyAttendance(input) {
-      const existing = await prisma.attendanceRecord.findFirst({
+      const existing = await db.attendanceRecord.findFirst({
         where: { schoolId: input.schoolId, studentId: input.studentId, date: input.date, sessionKey: "daily" },
         select: { id: true, gateArrivalAt: true },
       });
       const status = input.status === "LATE" ? AttendanceStatus.LATE : input.status === "PRESENT" ? AttendanceStatus.PRESENT : undefined;
       if (!existing) {
-        await prisma.attendanceRecord.create({
+        await db.attendanceRecord.create({
           data: {
             schoolId: input.schoolId,
             studentId: input.studentId,
@@ -233,7 +271,7 @@ export function createPrismaGateStore(): GateStore {
         });
         return;
       }
-      await prisma.attendanceRecord.update({
+      await db.attendanceRecord.update({
         where: { id: existing.id },
         data: {
           ...(status ? { status } : {}),
@@ -242,17 +280,31 @@ export function createPrismaGateStore(): GateStore {
         },
       });
     },
-    async getStaffAttendance(schoolId, userId, date) {
-      const row = await prisma.staffAttendanceRecord.findFirst({
-        where: { schoolId, userId, date },
+    async getStaffAttendance(schoolId, identity, date) {
+      const row = await db.staffAttendanceRecord.findFirst({
+        where: {
+          schoolId,
+          date,
+          OR: [
+            ...(identity.employeeId ? [{ employeeId: identity.employeeId }] : []),
+            ...(identity.userId ? [{ userId: identity.userId }] : []),
+          ],
+        },
         select: { status: true, checkIn: true, checkOut: true },
       });
       if (!row) return null;
       return { status: row.status, checkIn: row.checkIn, checkOut: row.checkOut };
     },
     async saveStaffAttendance(input) {
-      const existing = await prisma.staffAttendanceRecord.findFirst({
-        where: { schoolId: input.schoolId, userId: input.userId, date: input.date },
+      const existing = await db.staffAttendanceRecord.findFirst({
+        where: {
+          schoolId: input.schoolId,
+          date: input.date,
+          OR: [
+            ...(input.employeeId ? [{ employeeId: input.employeeId }] : []),
+            ...(input.userId ? [{ userId: input.userId }] : []),
+          ],
+        },
         select: { id: true },
       });
       const data = {
@@ -264,7 +316,7 @@ export function createPrismaGateStore(): GateStore {
         employeeId: input.employeeId,
       };
       if (!existing) {
-        await prisma.staffAttendanceRecord.create({
+        await db.staffAttendanceRecord.create({
           data: {
             schoolId: input.schoolId,
             userId: input.userId,
@@ -280,9 +332,16 @@ export function createPrismaGateStore(): GateStore {
         });
         return;
       }
-      await prisma.staffAttendanceRecord.update({
+      await db.staffAttendanceRecord.update({
         where: { id: existing.id },
         data,
+      });
+    },
+    async runLocked(schoolId, personKey, fn) {
+      if (nested) return fn(createPrismaGateStore(db, true));
+      return prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${schoolId}), hashtext(${personKey}))`;
+        return fn(createPrismaGateStore(tx as unknown as Prisma.TransactionClient, true));
       });
     },
   };

@@ -84,6 +84,7 @@ export default async function StaffAttendancePage({ searchParams }: PageProps) {
         where: { schoolId },
         include: {
           user: { select: { firstName: true, lastName: true, role: true } },
+          employee: { select: { firstName: true, lastName: true, employeeNumber: true } },
         },
         orderBy: { date: "desc" },
         take: 10,
@@ -134,11 +135,15 @@ export default async function StaffAttendancePage({ searchParams }: PageProps) {
           date={date}
           schoolId={session.schoolId ? undefined : schoolId}
           staff={staff}
-          existingRecords={existingRecords.map((r) => ({
-            userId: r.userId,
-            status: r.status,
-            checkIn: r.checkIn,
-          }))}
+          existingRecords={existingRecords.flatMap((r) =>
+            r.userId
+              ? [{
+                  userId: r.userId,
+                  status: r.status,
+                  checkIn: r.checkIn,
+                }]
+              : []
+          )}
         />
       ) : (
         <Card>
@@ -165,7 +170,7 @@ export default async function StaffAttendancePage({ searchParams }: PageProps) {
                 >
                   <div>
                     <p className="font-medium">
-                      {r.user.firstName} {r.user.lastName}
+                      {r.user ? `${r.user.firstName} ${r.user.lastName}` : r.employee ? `${r.employee.firstName} ${r.employee.lastName}` : "Staff member"}
                     </p>
                     <p className="text-xs text-muted">
                       {formatDate(r.date)}
