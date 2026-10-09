@@ -1,13 +1,5 @@
 import type { ResolvedIntegrations } from "./school-integrations";
-
-function safeProviderDetail(detail: string): string {
-  return detail
-    .replace(/SG\.[A-Za-z0-9._-]{8,}/g, "[redacted]")
-    .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 180);
-}
+import { sanitizeEmailDetail } from "./email/sanitize";
 
 export async function sendEmailViaSendGrid(
   config: ResolvedIntegrations,
@@ -58,7 +50,7 @@ export async function sendEmailViaSendGrid(
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    const error = new Error(`SendGrid ${res.status}: ${safeProviderDetail(detail)}`);
+    const error = new Error(`SendGrid ${res.status}: ${sanitizeEmailDetail(detail, [apiKey])}`);
     (error as Error & { status?: number }).status = res.status;
     throw error;
   }

@@ -16,7 +16,7 @@ import {
 import { saveRegistrationFile } from "@/lib/registration-uploads";
 import { validateRegistrationDocument } from "@/lib/registration-docs";
 import { clientIp, rateLimit, rateLimitedJson } from "@/lib/rate-limit";
-import { publicAppUrl } from "@/lib/app-url";
+import { publicAppUrl, transactionalAppUrl } from "@/lib/app-url";
 
 async function readApplicationPayload(request: NextRequest) {
   const contentType = request.headers.get("content-type") ?? "";
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     link: "/admin/applications",
   });
 
-  const appUrl = publicAppUrl(request.nextUrl.origin);
+  const appUrl = transactionalAppUrl(publicAppUrl(request.nextUrl.origin));
   await sendApplicationConfirmation({
     schoolId: school.id,
     referenceNo,

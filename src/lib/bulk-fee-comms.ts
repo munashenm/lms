@@ -16,10 +16,10 @@ import { getTerminology } from "./terminology";
 import { createSmsProvider } from "./sms/create-provider";
 import {
   getResolvedIntegrations,
-  isSendGridReady,
   isSmsGatewayReady,
 } from "./school-integrations";
-import { sendEmailViaSendGrid } from "./outbound-messaging";
+import { deliverEmail, toEmailLogFields } from "./email/deliver";
+import { sanitizeEmailDetail } from "./email/sanitize";
 
 export type BulkChannel = "EMAIL" | "SMS" | "BOTH";
 export type BulkAction = "FEE_REMINDER" | "FEE_STATEMENT";
@@ -367,17 +367,6 @@ export async function processCommunicationBatch(batchId: string, limit = 15) {
         else failed += 1;
       } else {
         const config = await getResolvedIntegrations(item.schoolId);
-        if (!isSendGridReady(config)) {
-          await prisma.communicationLog.update({
-            where: { id: item.id },
-            data: {
-              status: CommunicationStatus.FAILED,
-              error: "Email provider not configured",
-            },
-          });
-          failed += 1;
-          continue;
-        }
 
         let attachments:
           | { filename: string; type: string; contentBase64: string }[]
@@ -403,19 +392,22 @@ ${school.name} Accounts Department`;
           }
         }
 
-        const result = await sendEmailViaSendGrid(
-          config,
-          item.recipientContact,
-          item.subject ?? "School fee notice",
-          message,
-          attachments
-        );
+        const result = await deliverEmail(config.email, {
+          to: item.recipientContact,
+          subject: item.subject ?? "School fee notice",
+          text: message,
+          attachments,
+        });
+        const logged = toEmailLogFields(result);
         await prisma.communicationLog.update({
           where: { id: item.id },
           data: {
-            status: result.sent ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
-            error: result.sent ? null : result.reason,
+            status: logged.status,
+            error: logged.error,
             message,
+            provider: logged.provider,
+            providerMessageId: logged.providerMessageId,
+            metadata: logged.metadata,
           },
         });
         if (result.sent) sent += 1;
@@ -426,7 +418,7 @@ ${school.name} Accounts Department`;
         where: { id: item.id },
         data: {
           status: CommunicationStatus.FAILED,
-          error: err instanceof Error ? err.message : "Send failed",
+          error: sanitizeEmailDetail(err instanceof Error ? err.message : "Send failed"),
         },
       });
       failed += 1;

@@ -4,11 +4,12 @@ import { getSession } from "@/lib/auth";
 import { requirePermission } from "@/lib/rbac";
 import {
   getResolvedIntegrations,
-  isSendGridReady,
   isTwilioReady,
   resolveSettingsSchoolId,
 } from "@/lib/school-integrations";
-import { sendEmailViaSendGrid, sendSmsViaTwilio } from "@/lib/outbound-messaging";
+import { deliverEmail } from "@/lib/email/deliver";
+import { EMAIL_PROVIDER_NOT_CONFIGURED } from "@/lib/email/resolve-provider";
+import { sendSmsViaTwilio } from "@/lib/outbound-messaging";
 import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
 const testSchema = z.object({
@@ -52,18 +53,33 @@ if (!requirePermission(session, "settings:write")) {
 
   try {
     if (parsed.data.channel === "email") {
-      if (!isSendGridReady(config)) {
+      const result = await deliverEmail(config.email, {
+        to: parsed.data.to,
+        subject: "SchoolHub SA — test email",
+        text: "This is a test email from your SchoolHub SA integration settings.",
+      });
+      if (!result.sent) {
+        const notConfigured = result.reason === EMAIL_PROVIDER_NOT_CONFIGURED;
         return NextResponse.json(
-          { message: "SendGrid is not enabled or missing credentials" },
-          { status: 400 }
+          {
+            message: notConfigured
+              ? "EMAIL_PROVIDER_NOT_CONFIGURED"
+              : result.reason ?? "Test delivery failed",
+            provider: result.provider,
+            configured: config.email.configured,
+            senderValid: config.email.senderValid,
+          },
+          { status: notConfigured || result.reason === "invalid_sender" ? 400 : 502 }
         );
       }
-      await sendEmailViaSendGrid(
-        config,
-        parsed.data.to,
-        "SchoolHub SA — test email",
-        "This is a test email from your SchoolHub SA integration settings."
-      );
+      return NextResponse.json({
+        ok: true,
+        provider: result.provider,
+        acceptance: result.acceptance,
+        messageId: result.messageId,
+        fromEmail: result.fromEmail,
+        replyTo: result.replyTo,
+      });
     } else {
       if (!isTwilioReady(config)) {
         return NextResponse.json(
@@ -80,10 +96,11 @@ if (!requirePermission(session, "settings:write")) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[integrations:test]", err);
-    return NextResponse.json(
-      { message: err instanceof Error ? err.message : "Test delivery failed" },
-      { status: 502 }
-    );
+    const { sanitizeEmailDetail } = await import("@/lib/email/sanitize");
+    const message = sanitizeEmailDetail(err instanceof Error ? err.message : "Test delivery failed", [
+      config.email.apiKey,
+    ]);
+    console.error("[integrations:test]", message);
+    return NextResponse.json({ message }, { status: 502 });
   }
 }

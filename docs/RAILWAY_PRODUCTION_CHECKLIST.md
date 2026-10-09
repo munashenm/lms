@@ -78,12 +78,19 @@ CRON_SECRET=<64-char-hex — openssl rand -hex 32>
 # SchoolHub production: https://app.schoolhubsa.co.za
 NEXT_PUBLIC_APP_URL=https://app.schoolhubsa.co.za
 
-# Transactional email (SendGrid). Required for invitations and password resets.
-# Authenticate the sender domain in SendGrid before expecting inbox delivery.
-SENDGRID_API_KEY=<sendgrid-key>
-SENDGRID_FROM_EMAIL=noreply@<authenticated-domain>
-SENDGRID_FROM_NAME=SchoolHub SA
-SENDGRID_REPLY_TO=info@<school-domain>
+# Platform transactional email (Resend). Required for invitations and password resets.
+# Authenticate the From domain in Resend before expecting inbox delivery.
+# Do not use noreply@schoolhub.local.
+RESEND_API_KEY=<resend-key>
+RESEND_FROM_EMAIL=noreply@<authenticated-domain>
+RESEND_FROM_NAME=SchoolHub SA
+RESEND_REPLY_TO=info@schoolhubsa.co.za
+# Optional. Schools can store their own SendGrid key in integration settings.
+# Platform mail does not use these variables.
+# SENDGRID_API_KEY=
+# SENDGRID_FROM_EMAIL=
+# SENDGRID_FROM_NAME=
+# SENDGRID_REPLY_TO=
 ```
 
 Also confirm `DATABASE_URL`, `JWT_SECRET`, and licensing keys are set.

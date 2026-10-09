@@ -1,12 +1,10 @@
 import { CommunicationChannel, CommunicationStatus, NotificationType, UserRole } from "@prisma/client";
 import { prisma } from "./db";
 import { logCommunication } from "./communications";
-import { sendEmailViaSendGrid, sendSmsViaTwilio } from "./outbound-messaging";
-import {
-  getResolvedIntegrations,
-  isSendGridReady,
-  isTwilioReady,
-} from "./school-integrations";
+import { deliverEmail, toEmailLogFields } from "./email/deliver";
+import { sanitizeEmailDetail } from "./email/sanitize";
+import { sendSmsViaTwilio } from "./outbound-messaging";
+import { getResolvedIntegrations, isTwilioReady } from "./school-integrations";
 
 interface NotifyUserParams {
   userId: string;
@@ -100,9 +98,9 @@ export interface OutboundResult {
 }
 
 /**
- * Sends email/SMS when credentials are configured.
+ * Sends email/SMS when a provider is configured.
  * Logs outcome only. Message bodies that contain passwords are not stored.
- * SendGrid acceptance is not the same as a mailbox delivery event.
+ * Provider acceptance is SENT_TO_PROVIDER, not an inbox delivery event.
  */
 export async function sendOutboundMessage(
   schoolId: string | null | undefined,
@@ -118,43 +116,35 @@ export async function sendOutboundMessage(
 
   try {
     if (channel === "email") {
-      if (!isSendGridReady(config)) {
-        const reason = config.sendgrid.apiKey
-          ? config.sendgrid.senderValid
-            ? "not_configured"
-            : "invalid_sender"
-          : "not_configured";
-        console.info(`[outbound:email]`, JSON.stringify({ ...baseLog, outcome: reason }));
-        await recordEmailLog(schoolId, to, subject, body, sensitive, {
-          status: CommunicationStatus.LOGGED,
-          error: reason === "invalid_sender" ? "Sender address is not a verified mailbox" : "Email provider not configured",
-        });
-        return { sent: false, reason };
-      }
       const { htmlForSchoolEmail } = await import("./email-brand");
-      const html = await htmlForSchoolEmail({
-        schoolId,
-        title: subject,
-        bodyText: body,
-      });
-      const result = await sendEmailViaSendGrid(config, to, subject, body, undefined, html);
-      if (!result.sent) {
-        console.info(`[outbound:email]`, JSON.stringify({ ...baseLog, outcome: result.reason }));
-        await recordEmailLog(schoolId, to, subject, body, sensitive, {
-          status: CommunicationStatus.FAILED,
-          error: result.reason,
-        });
-        return { sent: false, reason: result.reason };
-      }
+      const html = config.email.deliveryReady
+        ? await htmlForSchoolEmail({
+            schoolId,
+            title: subject,
+            bodyText: body,
+          })
+        : undefined;
+      const result = await deliverEmail(config.email, { to, subject, text: body, html });
+      const logged = toEmailLogFields(result);
       console.info(
         `[outbound:email]`,
-        JSON.stringify({ ...baseLog, outcome: "accepted", messageId: result.messageId ?? null })
+        JSON.stringify({
+          ...baseLog,
+          outcome: result.sent ? logged.metadata.providerAcceptance : result.reason,
+          provider: logged.provider,
+          messageId: result.messageId,
+        })
       );
       await recordEmailLog(schoolId, to, subject, body, sensitive, {
-        status: CommunicationStatus.SENT,
-        providerMessageId: result.messageId ?? null,
+        status: logged.status,
+        error: logged.error ?? undefined,
+        providerMessageId: logged.providerMessageId,
+        provider: logged.provider,
+        metadata: logged.metadata,
       });
-      return { sent: true, messageId: result.messageId ?? null };
+      return result.sent
+        ? { sent: true, messageId: result.messageId }
+        : { sent: false, reason: result.reason, httpStatus: result.httpStatus };
     }
     if (channel === "sms" && isTwilioReady(config)) {
       const result = await sendSmsViaTwilio(config, to, body);
@@ -166,7 +156,10 @@ export async function sendOutboundMessage(
       err && typeof err === "object" && "status" in err && typeof (err as { status: unknown }).status === "number"
         ? (err as { status: number }).status
         : null;
-    const reason = err instanceof Error ? err.message.slice(0, 180) : "delivery_failed";
+    const reason = sanitizeEmailDetail(err instanceof Error ? err.message : "delivery_failed", [
+      config.email.apiKey,
+      config.sendgrid.apiKey,
+    ]);
     console.error(`[outbound:${channel}]`, JSON.stringify({ ...baseLog, outcome: "failed", httpStatus, reason }));
     if (channel === "email") {
       await recordEmailLog(schoolId, to, subject, body, sensitive, {
@@ -191,6 +184,8 @@ async function recordEmailLog(
     status: CommunicationStatus;
     error?: string;
     providerMessageId?: string | null;
+    provider?: string | null;
+    metadata?: { providerAcceptance: "SENT_TO_PROVIDER" | null; inboxDelivered: false };
   }
 ) {
   if (!schoolId) return;
@@ -206,9 +201,13 @@ async function recordEmailLog(
     subject,
     message,
     error: result.error ?? null,
-    provider: "sendgrid",
+    provider: result.provider ?? null,
     providerMessageId: result.providerMessageId ?? null,
-    metadata: { sensitive, acceptedByProvider: result.status === CommunicationStatus.SENT },
+    metadata: {
+      sensitive,
+      providerAcceptance: result.metadata?.providerAcceptance ?? null,
+      inboxDelivered: false,
+    },
   });
 }
 

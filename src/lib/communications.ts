@@ -7,8 +7,8 @@ import {
 import { prisma } from "./db";
 import { getResolvedIntegrations, isSmsGatewayReady } from "./school-integrations";
 import { createSmsProvider } from "./sms/create-provider";
-import { sendEmailViaSendGrid } from "./outbound-messaging";
-import { isSendGridReady } from "./school-integrations";
+import { deliverEmail, toEmailLogFields } from "./email/deliver";
+import { sanitizeEmailDetail } from "./email/sanitize";
 import { formatDate } from "./utils";
 
 export async function logCommunication(entry: {
@@ -114,42 +114,42 @@ export async function sendLoggedEmail(params: {
   attachments?: { filename: string; type: string; contentBase64: string }[];
 }) {
   const config = await getResolvedIntegrations(params.schoolId);
-  if (!isSendGridReady(config)) {
-    return logCommunication({
-      ...params,
-      channel: CommunicationChannel.EMAIL,
-      status: CommunicationStatus.LOGGED,
-      error: "Email provider not configured",
-    });
-  }
 
   try {
     const { htmlForSchoolEmail } = await import("./email-brand");
-    const html = await htmlForSchoolEmail({
-      schoolId: params.schoolId,
-      title: params.subject,
-      bodyText: params.message,
+    const html = config.email.deliveryReady
+      ? await htmlForSchoolEmail({
+          schoolId: params.schoolId,
+          title: params.subject,
+          bodyText: params.message,
+        })
+      : undefined;
+    const result = await deliverEmail(config.email, {
+      to: params.recipientContact,
+      subject: params.subject,
+      text: params.message,
+      html,
+      attachments: params.attachments,
     });
-    const result = await sendEmailViaSendGrid(
-      config,
-      params.recipientContact,
-      params.subject,
-      params.message,
-      params.attachments,
-      html
-    );
+    const logged = toEmailLogFields(result);
     return logCommunication({
       ...params,
       channel: CommunicationChannel.EMAIL,
-      status: result.sent ? CommunicationStatus.SENT : CommunicationStatus.FAILED,
-      error: result.sent ? null : result.reason,
+      status: logged.status,
+      error: logged.error,
+      provider: logged.provider,
+      providerMessageId: logged.providerMessageId,
+      metadata: {
+        ...(typeof params.metadata === "object" && params.metadata ? params.metadata : {}),
+        ...logged.metadata,
+      } as Prisma.InputJsonValue,
     });
   } catch (err) {
     return logCommunication({
       ...params,
       channel: CommunicationChannel.EMAIL,
       status: CommunicationStatus.FAILED,
-      error: err instanceof Error ? err.message : "Email send failed",
+      error: sanitizeEmailDetail(err instanceof Error ? err.message : "Email send failed", [config.email.apiKey]),
     });
   }
 }

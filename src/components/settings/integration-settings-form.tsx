@@ -102,7 +102,9 @@ export function IntegrationSettingsForm({
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? "Test failed");
-      toast.success(channel === "email" ? "Test email sent" : "Test SMS sent");
+      toast.success(
+        channel === "email" ? "Email provider accepted the test message" : "Test SMS sent"
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Test delivery failed");
     } finally {
@@ -214,15 +216,19 @@ export function IntegrationSettingsForm({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Email (SendGrid)</CardTitle>
+          <CardTitle className="text-base">Email</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted">
-            {settings.sendgrid.deliveryReady
-              ? settings.sendgrid.credentialSource === "platform"
-                ? "Outbound email uses the server SendGrid configuration."
-                : "Outbound email uses this school's SendGrid key."
-              : "Outbound email is not ready. Add a SendGrid API key and a verified sender address, or set SENDGRID_API_KEY and SENDGRID_FROM_EMAIL on the server. noreply@schoolhub.local is not a real sender."}
+            {settings.email.deliveryReady && settings.email.provider === "RESEND"
+              ? `Platform email uses Resend. From ${settings.email.fromEmail}. Reply-To ${settings.email.replyTo ?? "not set"}. Provider acceptance is recorded separately from inbox delivery.`
+              : settings.email.deliveryReady && settings.email.provider === "SENDGRID"
+                ? "This school’s SendGrid integration is enabled and is the provider for outbound email."
+                : "Outbound email is not ready. Enable a school SendGrid key with a verified sender, or set RESEND_API_KEY and RESEND_FROM_EMAIL on the server. noreply@schoolhub.local is not a real sender."}
+          </p>
+          <p className="text-xs text-muted">
+            Provider {settings.email.provider}. Configured {settings.email.configured ? "yes" : "no"}. Sender valid{" "}
+            {settings.email.senderValid ? "yes" : "no"}.
           </p>
           <Toggle id="sendgridEnabled" label="Enable SendGrid" defaultChecked={settings.sendgrid.enabled} />
           <SecretField id="sendgridApiKey" label="API Key" isSet={settings.sendgrid.apiKeySet} />
