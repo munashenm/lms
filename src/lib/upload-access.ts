@@ -153,9 +153,21 @@ export async function canAccessUploadPath(
 
   if (folder === "branding") return true;
 
+  if (folder === "visitors") {
+    if (isLearnerRole(session.role)) return false;
+    return sessionHasPermission(session, "visitors:read") || sessionHasPermission(session, "gate:read");
+  }
+
   if (folder === "students") {
     const targetStudentId = segments[1];
     if (!looksLikeEntityId(targetStudentId)) return false;
+    const filename = segments[segments.length - 1] ?? "";
+    if (
+      /\.(jpe?g|png)$/i.test(filename) &&
+      (sessionHasPermission(session, "gate:scan") || sessionHasPermission(session, "gate:read"))
+    ) {
+      return true;
+    }
     if (sessionHasPermission(session, "students:read") && !isLearnerRole(session.role)) {
       return true;
     }

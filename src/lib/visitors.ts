@@ -43,6 +43,7 @@ export const VISITOR_STATUS_LABELS: Record<string, string> = {
   CHECKED_IN: "Checked in",
   CHECKED_OUT: "Checked out",
   DENIED: "Denied",
+  CANCELLED: "Cancelled",
   OVERDUE: "Overdue",
 };
 
@@ -52,7 +53,7 @@ export function effectiveVisitorStatus(row: {
   expectedDepartureAt?: Date | string | null;
 }) {
   if (row.signedOutAt) return "CHECKED_OUT";
-  if (row.status === "DENIED" || row.status === "EXPECTED") return row.status;
+  if (row.status === "DENIED" || row.status === "EXPECTED" || row.status === "CANCELLED") return row.status;
   if (row.expectedDepartureAt && new Date(row.expectedDepartureAt) < new Date()) return "OVERDUE";
   return row.status || "CHECKED_IN";
 }
@@ -62,7 +63,7 @@ export function visitorIsOnSite(
   status?: string | null
 ): boolean {
   if (signedOutAt) return false;
-  if (status === "EXPECTED" || status === "DENIED" || status === "CHECKED_OUT") return false;
+  if (status === "EXPECTED" || status === "DENIED" || status === "CHECKED_OUT" || status === "CANCELLED") return false;
   return true;
 }
 
@@ -109,6 +110,8 @@ export type PublicVisitorEntry = {
   campusName: string | null;
   signedInByName: string | null;
   signedOutByName: string | null;
+  referenceNumber?: string | null;
+  photoUrl?: string | null;
   status?: string;
   email?: string | null;
   department?: string | null;
@@ -143,6 +146,8 @@ export function toPublicVisitorEntry(row: {
   itemsBrought?: string | null;
   expectedAt?: Date | null;
   expectedDepartureAt?: Date | null;
+  referenceNumber?: string | null;
+  photoUrl?: string | null;
 }): PublicVisitorEntry {
   return {
     id: row.id,
@@ -174,6 +179,8 @@ export function toPublicVisitorEntry(row: {
     itemsBrought: row.itemsBrought ?? null,
     expectedAt: row.expectedAt ?? null,
     expectedDepartureAt: row.expectedDepartureAt ?? null,
+    referenceNumber: row.referenceNumber ?? null,
+    photoUrl: row.photoUrl ?? null,
   };
 }
 

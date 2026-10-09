@@ -68,6 +68,7 @@ export const STAFF_PORTAL_ROLES = [
   UserRole.FINANCE_OFFICER,
   UserRole.HR_OFFICER,
   UserRole.ADMISSIONS_OFFICER,
+  UserRole.SECURITY,
 ] as const;
 
 export type StaffPortalRole = (typeof STAFF_PORTAL_ROLES)[number];
@@ -92,6 +93,7 @@ export function canAssignStaffPortalRole(actorRole: UserRole, portalRole: StaffP
 /** Roles that may be invited from Admin → Users. Never STUDENT, PARENT, TEACHER, or SUPER_ADMIN. */
 export const DIRECTORY_INVITE_ROLES = [
   UserRole.STAFF,
+  UserRole.SECURITY,
   UserRole.FINANCE_OFFICER,
   UserRole.HR_OFFICER,
   UserRole.ADMISSIONS_OFFICER,
@@ -130,6 +132,7 @@ export function defaultStaffPortalRole(input: {
   teacherId?: string | null;
 }): StaffPortalRole {
   if (input.teacherId) return UserRole.TEACHER;
+  if (input.category === "SECURITY") return UserRole.SECURITY;
   return UserRole.STAFF;
 }
 

@@ -8,6 +8,15 @@ import { getChildStudentIds, getStudentForSession } from "@/lib/portal-data";
 import { getSchoolFilter, requirePermission } from "@/lib/rbac";
 import { resolveLinkedStudentId } from "@/lib/parent-scope";
 
+async function qrPngForToken(token: string): Promise<Uint8Array | null> {
+  try {
+    const QRCode = await import("qrcode");
+    return await QRCode.toBuffer(token, { type: "png", margin: 1, width: 256, errorCorrectionLevel: "M" });
+  } catch {
+    return null;
+  }
+}
+
 export async function sessionCanAccessStudentCard(
   session: SessionPayload,
   studentId: string
@@ -78,6 +87,11 @@ export async function buildStudentCardResponse(opts: {
   });
 
   const terms = getTerminology(student.school.institutionType);
+  const card = await prisma.accessCard.findFirst({
+    where: { schoolId: student.schoolId, studentId: student.id, status: "ACTIVE" },
+    select: { token: true },
+  });
+  const qrPng = card ? await qrPngForToken(card.token) : null;
   const pdf = await generateStudentCardPdf({
     brand: toSchoolBrand(student.school),
     studentName: `${student.firstName} ${student.lastName}`,
@@ -89,6 +103,8 @@ export async function buildStudentCardResponse(opts: {
     status: student.status,
     photoUrl: student.photoUrl,
     validYear: currentYear?.name ?? String(new Date().getFullYear()),
+    scanToken: card?.token ?? null,
+    qrPng,
   });
 
   return { pdf, student };

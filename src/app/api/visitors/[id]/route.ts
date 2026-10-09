@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { VisitorStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { visitorSignOutSchema } from "@/lib/validators";
 import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
-import { asInputJson } from "@/lib/json";
 import { scopedId } from "@/lib/tenant";
 import {
   canCheckoutVisitor,
-  canSignOutVisitor,
   canWriteVisitorBook,
   toPublicVisitorEntry,
 } from "@/lib/visitors";
+import { visitorTransition } from "@/lib/gate/engine";
+import { recordVisitorGate } from "@/lib/gate/visitors";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -37,62 +38,53 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Invalid data" }, { status: 400 });
   }
 
-  if (parsed.data.action === "sign_out") {
-    if (!canCheckoutVisitor(session)) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
-    }
-    if (!canSignOutVisitor(existing.signedOutAt)) {
-      return NextResponse.json({ message: "This visitor has already signed out" }, { status: 409 });
-    }
+  if (parsed.data.action === "sign_out" && !canCheckoutVisitor(session)) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+  }
 
-    const entry = await prisma.visitorEntry.update({
-      where: { id },
-      data: {
-        signedOutAt: new Date(),
-        signedOutById: session.userId,
-        status: "CHECKED_OUT",
-      },
-      include: {
-        campus: { select: { name: true } },
-        signedInBy: { select: { firstName: true, lastName: true } },
-        signedOutBy: { select: { firstName: true, lastName: true } },
-      },
+  const transition = visitorTransition({
+    status: existing.status,
+    signedOutAt: existing.signedOutAt,
+    action: parsed.data.action,
+  });
+  if (!transition.ok) {
+    return NextResponse.json({ message: transition.message }, { status: 409 });
+  }
+
+  const now = new Date();
+  const entry = await prisma.visitorEntry.update({
+    where: { id: existing.id },
+    data: {
+      status: transition.status as VisitorStatus,
+      ...(transition.touchSignedIn ? { signedInAt: now } : {}),
+      ...(transition.touchSignedOut ? { signedOutAt: now, signedOutById: session.userId } : {}),
+    },
+    include: {
+      campus: { select: { name: true } },
+      signedInBy: { select: { firstName: true, lastName: true } },
+      signedOutBy: { select: { firstName: true, lastName: true } },
+    },
+  });
+
+  if (transition.gate) {
+    await recordVisitorGate({
+      schoolId: existing.schoolId,
+      visitorId: existing.id,
+      recordedById: session.userId,
+      direction: transition.gate,
+      now,
     });
-
+  } else {
     await logAudit({
       schoolId: existing.schoolId,
       userId: session.userId,
-      action: "VISITOR_CHECKED_OUT",
-      entity: "VisitorEntry",
-      entityId: entry.id,
-      metadata: asInputJson({ action: "sign_out" }),
-    });
-
-    return NextResponse.json({ entry: toPublicVisitorEntry(entry) });
-  }
-
-  if (parsed.data.action === "check_in" || parsed.data.action === "deny") {
-    const entry = await prisma.visitorEntry.update({
-      where: { id },
-      data:
-        parsed.data.action === "deny"
-          ? { status: "DENIED" }
-          : { status: "CHECKED_IN", signedInAt: new Date() },
-      include: {
-        campus: { select: { name: true } },
-        signedInBy: { select: { firstName: true, lastName: true } },
-        signedOutBy: { select: { firstName: true, lastName: true } },
-      },
-    });
-    await logAudit({
-      schoolId: existing.schoolId,
-      userId: session.userId,
-      action: parsed.data.action === "deny" ? "VISITOR_DENIED" : "VISITOR_CHECKED_IN",
+      action: "VISITOR_CANCELLED",
       entity: "VisitorEntry",
       entityId: entry.id,
     });
-    return NextResponse.json({ entry: toPublicVisitorEntry(entry) });
   }
+
+  return NextResponse.json({ entry: toPublicVisitorEntry(entry) });
 
   return NextResponse.json({ message: "Invalid action" }, { status: 400 });
 }

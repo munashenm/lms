@@ -14,6 +14,7 @@ const STAFF_ROLES: UserRole[] = [
   UserRole.ADMISSIONS_OFFICER,
   UserRole.HR_OFFICER,
   UserRole.STAFF,
+  UserRole.SECURITY,
 ];
 
 export const LOGIN_PORTAL_ROLES: Record<LoginPortal, UserRole[]> = {

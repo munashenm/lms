@@ -44,6 +44,7 @@ function contactKey(channel: CommunicationChannel, contact: string) {
 const STAFF_ROLES = [
   UserRole.TEACHER,
   UserRole.STAFF,
+  UserRole.SECURITY,
   UserRole.FINANCE_OFFICER,
   UserRole.HR_OFFICER,
   UserRole.ADMISSIONS_OFFICER,

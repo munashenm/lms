@@ -154,7 +154,7 @@ export const userInviteSchema = z.object({
   lastName: z.string().min(1, "Last name is required").max(100),
   email: z.string().email("Enter a valid email address"),
   phone: z.string().optional().or(z.literal("")),
-  role: z.enum(["STAFF", "FINANCE_OFFICER", "HR_OFFICER", "ADMISSIONS_OFFICER", "PRINCIPAL", "SCHOOL_ADMIN"]),
+  role: z.enum(["STAFF", "SECURITY", "FINANCE_OFFICER", "HR_OFFICER", "ADMISSIONS_OFFICER", "PRINCIPAL", "SCHOOL_ADMIN"]),
   schoolId: z.string().optional(),
 });
 
@@ -1027,7 +1027,7 @@ export const visitorSignInSchema = z
   });
 
 export const visitorSignOutSchema = z.object({
-  action: z.enum(["sign_out", "check_in", "deny"]),
+  action: z.enum(["sign_out", "check_in", "deny", "cancel"]),
 });
 
 export const licenseCustomerSchema = z.object({

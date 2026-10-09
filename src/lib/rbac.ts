@@ -42,6 +42,14 @@ const COMMS_ALL: Permission[] = [
 
 const HOMEWORK_ALL: Permission[] = ["homework.create", "homework.grade"];
 
+const GATE_OPS: Permission[] = [
+  "gate:read", "gate:scan", "gate:manual", "gate:manage", "gate:reports", "cards:manage",
+];
+
+const GATE_DESK: Permission[] = [
+  "gate:read", "gate:scan", "gate:manual", "gate:reports",
+];
+
 const HR_ALL: Permission[] = [
   "hr.view", "hr.employees.manage", "hr.documents.manage",
   "hr.leave.manage", "hr.leave.approve",
@@ -60,6 +68,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "reports:read", "settings:read", "settings:write", "audit:read",
     "announcements:write",
     "visitors:read", "visitors:write", "visitors.create", "visitors.checkout",
+    ...GATE_OPS,
     ...FINANCE_ALL, ...HR_ALL, ...PAYROLL_ALL, ...COMMS_ALL, ...HOMEWORK_ALL,
     ...ENTERPRISE_VENDOR,
   ],
@@ -71,6 +80,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "reports:read", "settings:read", "settings:write", "audit:read",
     "announcements:write",
     "visitors:read", "visitors:write", "visitors.create", "visitors.checkout",
+    ...GATE_OPS,
     ...FINANCE_ALL, ...HR_ALL, ...PAYROLL_ALL, ...COMMS_ALL, ...HOMEWORK_ALL,
     ...ENTERPRISE_SCHOOL,
   ],
@@ -82,6 +92,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "reports:read", "settings:read",
     "audit:read", "announcements:write",
     "visitors:read", "visitors:write",
+    "gate:read", "gate:reports",
     ...ENTERPRISE_VIEW,
   ],
   TEACHER: [
@@ -106,6 +117,10 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "visitors:read", "visitors:write",
   ],
   STAFF: ["visitors:read", "visitors:write", "visitors.create", "visitors.checkout", "messaging.view"],
+  SECURITY: [
+    ...GATE_DESK,
+    "visitors:read", "visitors:write", "visitors.create", "visitors.checkout",
+  ],
 };
 
 export function rolePermissionSet(role: UserRole): Set<string> {
@@ -153,6 +168,15 @@ const HR_ROLES: UserRole[] = [
 
 export function canAccessHr(role: UserRole): boolean {
   return HR_ROLES.includes(role) || role === UserRole.PRINCIPAL;
+}
+
+export function canAccessSecurityPortal(role: UserRole): boolean {
+  return (
+    role === UserRole.SECURITY ||
+    role === UserRole.SCHOOL_ADMIN ||
+    role === UserRole.SUPER_ADMIN ||
+    role === UserRole.PRINCIPAL
+  );
 }
 
 export function isLearnerRole(role: UserRole): boolean {
