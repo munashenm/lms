@@ -160,6 +160,25 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
   return { ok: true as const };
 }
 
+/** Sets a password chosen by an administrator. Does not return the password or its hash. */
+export async function setPasswordAsAdmin(params: {
+  userId: string;
+  password: string;
+  requirePasswordChange: boolean;
+}) {
+  const passwordHash = await hashPassword(params.password);
+  await prisma.user.update({
+    where: { id: params.userId },
+    data: {
+      passwordHash,
+      passwordResetTokenHash: null,
+      passwordResetExpires: null,
+      mustResetPassword: params.requirePasswordChange,
+      sessionVersion: { increment: 1 },
+    },
+  });
+}
+
 export async function changePassword(
   userId: string,
   currentPassword: string,

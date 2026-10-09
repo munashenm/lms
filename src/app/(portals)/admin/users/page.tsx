@@ -55,7 +55,7 @@ export default async function AdminUsersPage() {
         <h1 className="text-2xl font-bold">Users</h1>
         <p className="text-muted text-sm mt-1">
           Staff, students and parents are listed separately. Search students by name or student ID,
-          and staff by name or employee ID.
+          and staff by name or employee ID. Super Admin and School Admin can set a user&apos;s password.
         </p>
       </div>
       <UsersDirectory
@@ -76,6 +76,7 @@ export default async function AdminUsersPage() {
           })),
         }))}
         currentUserId={session.userId}
+        actorRole={session.role}
         canWrite={canWrite}
         inviteRoles={directoryRolesForActor(session.role)}
         schools={schools}
