@@ -10,6 +10,7 @@ import { isInstitutionPublicPath } from "@/lib/institution-portal";
 import { isForcedPasswordPathAllowed } from "@/lib/force-password-reset";
 import { readOrCreateRequestId, requestIdHeaderName } from "@/lib/request-id";
 import { restrictedPathnameHeaderName } from "@/lib/licensing/restricted-ui";
+import { isPublicLicenseCheck } from "@/lib/licensing/public-check";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -95,6 +96,9 @@ export async function middleware(request: NextRequest) {
 
   if (!session) {
     if (pathname === "/api/applications" && request.method === "POST") {
+      return withRequestId(request, NextResponse.next());
+    }
+    if (isPublicLicenseCheck(pathname, request.method)) {
       return withRequestId(request, NextResponse.next());
     }
     if (pathname.startsWith("/api/")) {

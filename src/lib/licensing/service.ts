@@ -216,6 +216,7 @@ export async function checkLicenseWithServer(
   const installationId = await ensureInstallationId(schoolId);
 
   if (url && row?.licenseKey) {
+    let httpStatus: number | null = null;
     try {
       const res = await fetch(`${url}/v1/licenses/check`, {
         method: "POST",
@@ -229,6 +230,7 @@ export async function checkLicenseWithServer(
         }),
         signal: AbortSignal.timeout(12_000),
       });
+      httpStatus = res.status;
       if (res.ok) {
         const body = (await res.json()) as { token?: string };
         if (body.token && publicKey) {
@@ -277,7 +279,7 @@ export async function checkLicenseWithServer(
       action: "LICENSE_CHECKED",
       entity: "License",
       entityId: row.id,
-      metadata: { result: "SERVER_UNAVAILABLE", source },
+      metadata: { result: "SERVER_UNAVAILABLE", source, httpStatus },
     });
     return cached;
   }
