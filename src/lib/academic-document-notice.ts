@@ -1,3 +1,4 @@
+import { publicAppUrl } from "./app-url";
 import { notifyStudentGuardians, notifyUser, sendOutboundMessage } from "./notifications";
 import { getDocumentRelease, type DocumentRelease } from "./fee-clearance";
 import { prisma } from "./db";
@@ -35,7 +36,7 @@ type FamilyEmailSource = {
 };
 
 export function appBaseUrl(appUrl?: string) {
-  return (appUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return (appUrl ?? publicAppUrl()).replace(/\/$/, "");
 }
 
 export function absolutePortalUrl(path: string, appUrl?: string) {

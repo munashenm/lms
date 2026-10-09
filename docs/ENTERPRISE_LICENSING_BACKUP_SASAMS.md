@@ -16,7 +16,7 @@ Never commit secrets. Set these on the server (Railway/Docker/.env).
 | `LICENSE_OFFLINE_GRACE_DAYS` | Continue on cached licence if the server is unreachable (default `14`) |
 | `LICENSE_TRUST_LOCAL` | `true`/`false`. Defaults to true outside production so unsigned local trials work in development |
 | `LICENSE_SERVER_INSTANCE_ID` | Optional server instance binding |
-| `NEXT_PUBLIC_APP_URL` | Used as the registered domain during activation |
+| `NEXT_PUBLIC_APP_URL` | Canonical public origin for invitation links, password resets, payment callbacks, email assets, and the licence domain sent at verification. Production for this app is `https://app.schoolhubsa.co.za`, not the `*.up.railway.app` hostname. |
 
 ### Licensing (vendor licence server only)
 

@@ -74,7 +74,16 @@ UPLOAD_STORAGE_PROVIDER=s3
 # UPLOAD_S3_* optional — falls back to BACKUP_S3_* above
 
 CRON_SECRET=<64-char-hex — openssl rand -hex 32>
-NEXT_PUBLIC_APP_URL=https://<your-production-hostname>
+# Canonical public site. Do not leave this on the Railway hostname.
+# SchoolHub production: https://app.schoolhubsa.co.za
+NEXT_PUBLIC_APP_URL=https://app.schoolhubsa.co.za
+
+# Transactional email (SendGrid). Required for invitations and password resets.
+# Authenticate the sender domain in SendGrid before expecting inbox delivery.
+SENDGRID_API_KEY=<sendgrid-key>
+SENDGRID_FROM_EMAIL=noreply@<authenticated-domain>
+SENDGRID_FROM_NAME=SchoolHub SA
+SENDGRID_REPLY_TO=info@<school-domain>
 ```
 
 Also confirm `DATABASE_URL`, `JWT_SECRET`, and licensing keys are set.
@@ -93,7 +102,7 @@ School schedules (daily/weekly/monthly) only run when something hits the cron en
 2. Image: `curlimages/curl:latest`
 3. Variables on this cron service:
    - `CRON_SECRET` = same value as the web app (or `${{ web.CRON_SECRET }}` if using Railway references)
-   - `APP_URL` = `https://<your-app-hostname>` (public URL is fine)
+   - `APP_URL` = the canonical public origin (`https://app.schoolhubsa.co.za` for this production)
 4. **Settings → Custom Start Command**:
 
 ```bash
@@ -118,7 +127,25 @@ curl -fsS -X GET "https://<your-app>/api/cron/backups" \
 
 Expect JSON like `{ "ok": true, "results": [...] }`.
 
-Also keep these crons if you use them: `/api/cron/license-heartbeat`, `/api/cron/fee-reminders`, `/api/cron/import-cleanup`.
+Also schedule these crons the same way:
+
+- `/api/cron/license-heartbeat` — **daily**. This is the verification schedule. Do not rely on a licensed write to discover a broken heartbeat. The route only contacts the licence server for schools whose `nextVerificationAt` is due.
+- `/api/cron/fee-reminders`
+- `/api/cron/import-cleanup`
+
+Example licence heartbeat start command:
+
+```bash
+/bin/sh -c 'exec curl -fsS -X GET "$APP_URL/api/cron/license-heartbeat" -H "Authorization: Bearer $CRON_SECRET"'
+```
+
+Cron schedule (UTC), once a day:
+
+```text
+15 2 * * *
+```
+
+Logs use `[license-heartbeat]` and include school id, error classification, and HTTP status. They do not include licence keys. Repeated failures raise an in-app Super Admin warning after 3 days, before the 14-day offline restriction.
 
 ---
 

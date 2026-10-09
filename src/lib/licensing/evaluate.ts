@@ -6,6 +6,24 @@ function daysBetween(from: Date, to: Date): number {
   return Math.floor((to.getTime() - from.getTime()) / MS_PER_DAY);
 }
 
+function offlineVerificationWarning(
+  daysOffline: number,
+  offlineGraceDays: number,
+  contactFailure: "transport" | "http",
+  exceeded: boolean
+): string {
+  if (contactFailure === "http") {
+    if (exceeded) {
+      return `Licence verification has been failing for ${daysOffline} day(s), which exceeds the offline grace period of ${offlineGraceDays} day(s). Restricted mode is active until the next successful verification.`;
+    }
+    return "Licence verification failed. The licence server responded with an error. The LMS will continue using the last valid cached licence.";
+  }
+  if (exceeded) {
+    return `The licence server has been unreachable for ${daysOffline} day(s), which exceeds the offline grace period of ${offlineGraceDays} day(s). Restricted mode is active until the next successful verification.`;
+  }
+  return "The licence server could not be contacted. The LMS will continue using the last valid cached licence.";
+}
+
 export interface EvaluateLicenseInput {
   now: Date;
   claims: LicenseClaims | null;
@@ -14,6 +32,8 @@ export interface EvaluateLicenseInput {
   storedStatus: LicenseStatusCode | null;
   offlineGraceDays: number;
   serverUnavailable?: boolean;
+  /** transport = DNS/network/timeout. http = the server answered, but verification did not succeed. */
+  contactFailure?: "transport" | "http";
   trustUnsignedLocal?: boolean;
 }
 
@@ -32,6 +52,7 @@ export function evaluateLicense(input: EvaluateLicenseInput): EvaluatedLicense {
     storedStatus,
     offlineGraceDays,
     serverUnavailable = false,
+    contactFailure = "transport",
     trustUnsignedLocal = false,
   } = input;
 
@@ -152,10 +173,9 @@ export function evaluateLicense(input: EvaluateLicenseInput): EvaluatedLicense {
 
   const daysOffline = lastVerifiedAt ? Math.max(0, daysBetween(lastVerifiedAt, now)) : 0;
   if (serverUnavailable) {
-    if (lastVerifiedAt && daysOffline > offlineGraceDays) {
-      warnings.push(
-        `The licence server has been unreachable for ${daysOffline} day(s), which exceeds the offline grace period of ${offlineGraceDays} day(s). Restricted mode is active until the next successful verification.`
-      );
+    const exceeded = Boolean(lastVerifiedAt && daysOffline > offlineGraceDays);
+    warnings.push(offlineVerificationWarning(daysOffline, offlineGraceDays, contactFailure, exceeded));
+    if (exceeded) {
       return {
         effectiveStatus: status,
         restricted: true,
@@ -169,9 +189,6 @@ export function evaluateLicense(input: EvaluateLicenseInput): EvaluatedLicense {
         daysOffline,
       };
     }
-    warnings.push(
-      "The licence server could not be contacted. The LMS will continue using the last valid cached licence."
-    );
   }
 
   if (daysUntilExpiry !== null && daysUntilExpiry <= 14) {

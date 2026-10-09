@@ -1,5 +1,14 @@
 import type { ResolvedIntegrations } from "./school-integrations";
 
+function safeProviderDetail(detail: string): string {
+  return detail
+    .replace(/SG\.[A-Za-z0-9._-]{8,}/g, "[redacted]")
+    .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 180);
+}
+
 export async function sendEmailViaSendGrid(
   config: ResolvedIntegrations,
   to: string,
@@ -10,6 +19,7 @@ export async function sendEmailViaSendGrid(
 ) {
   const apiKey = config.sendgrid.apiKey;
   if (!apiKey) return { sent: false as const, reason: "not_configured" };
+  if (!config.sendgrid.senderValid) return { sent: false as const, reason: "invalid_sender" };
 
   const content = html
     ? [
@@ -30,6 +40,7 @@ export async function sendEmailViaSendGrid(
         email: config.sendgrid.fromEmail,
         name: config.sendgrid.fromName,
       },
+      ...(config.sendgrid.replyTo ? { reply_to: { email: config.sendgrid.replyTo } } : {}),
       subject,
       content,
       ...(attachments?.length
@@ -47,10 +58,12 @@ export async function sendEmailViaSendGrid(
 
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
-    throw new Error(`SendGrid ${res.status}: ${detail.slice(0, 200)}`);
+    const error = new Error(`SendGrid ${res.status}: ${safeProviderDetail(detail)}`);
+    (error as Error & { status?: number }).status = res.status;
+    throw error;
   }
 
-  return { sent: true as const };
+  return { sent: true as const, messageId: res.headers.get("x-message-id") };
 }
 
 export async function sendSmsViaTwilio(

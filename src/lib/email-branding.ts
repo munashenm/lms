@@ -1,3 +1,4 @@
+import { publicAppUrl } from "./app-url";
 import {
   DEFAULT_ACCENT_COLOR,
   DEFAULT_PRIMARY_COLOR,
@@ -24,7 +25,7 @@ function textToHtml(body: string): string {
 export function absoluteAssetUrl(path: string | null | undefined, appUrl?: string): string | null {
   if (!path) return null;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  const base = (appUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const base = (appUrl ?? publicAppUrl()).replace(/\/$/, "");
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
