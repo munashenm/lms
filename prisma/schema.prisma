@@ -3937,3 +3937,18 @@ model VisitorReferenceCounter {
   @@id([schoolId, year])
   @@map("visitor_reference_counters")
 }
+
+/// Database lease so one web replica runs a scheduled job at a time.
+model SchedulerJobState {
+  jobKey        String    @id
+  lockedUntil   DateTime?
+  lockedBy      String?
+  lastStartedAt DateTime?
+  lastSuccessAt DateTime?
+  lastFailureAt DateTime?
+  lastError     String?
+  nextRunAt     DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  @@map("scheduler_job_states")
+}
