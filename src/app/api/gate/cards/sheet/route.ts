@@ -5,6 +5,7 @@ import { requireSchoolPermission } from "@/lib/gate/access";
 import { cardSheetSchema } from "@/lib/gate/schema";
 import { generateStudentCardPdf } from "@/lib/pdf-student-card";
 import { toSchoolBrand } from "@/lib/pdf-branding";
+import { accessCardCopy } from "@/lib/gate/card-print";
 
 export async function POST(request: NextRequest) {
   const auth = await requireSchoolPermission("cards:manage");
@@ -32,28 +33,23 @@ export async function POST(request: NextRequest) {
   if (cards.length === 0) return NextResponse.json({ message: "No active cards in this school" }, { status: 404 });
 
   const QRCode = await import("qrcode");
+  const year = await prisma.academicYear.findFirst({
+    where: { schoolId: auth.schoolId, OR: [{ isCurrent: true }, { status: "ACTIVE" }] },
+    orderBy: { startDate: "desc" },
+    select: { name: true },
+  });
   const sheet = await PDFDocument.create();
   for (const card of cards) {
     const qrPng = await QRCode.toBuffer(card.token, { type: "png", margin: 1, width: 256, errorCorrectionLevel: "M" });
-    const student = card.student;
-    const employee = card.employee;
-    const user = card.user;
+    const copy = accessCardCopy({
+      student: card.student,
+      employee: card.employee,
+      user: card.user,
+      validYear: year?.name ?? null,
+    });
     const pdf = await generateStudentCardPdf({
       brand: toSchoolBrand(card.school),
-      studentName: student
-        ? `${student.firstName} ${student.lastName}`
-        : employee
-          ? `${employee.firstName} ${employee.lastName}`
-          : user
-            ? `${user.firstName} ${user.lastName}`
-            : "Card holder",
-      studentNumber: student?.studentNumber ?? employee?.employeeNumber ?? user?.employee?.employeeNumber ?? user?.teacher?.employeeNumber ?? "—",
-      studentNumberLabel: student ? "Learner No" : "Staff No",
-      cardTitle: student ? "LEARNER IDENTITY CARD" : "STAFF IDENTITY CARD",
-      gradeOrProgramme: student?.grade?.name ?? employee?.department ?? user?.employee?.department ?? user?.teacher?.department ?? null,
-      className: student?.class?.name ?? employee?.position ?? user?.employee?.position ?? null,
-      status: "ACTIVE",
-      photoUrl: student?.photoUrl ?? user?.avatarUrl ?? null,
+      ...copy,
       scanToken: card.token,
       qrPng,
     });

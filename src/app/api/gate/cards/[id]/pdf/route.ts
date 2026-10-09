@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireSchoolPermission } from "@/lib/gate/access";
 import { generateStudentCardPdf } from "@/lib/pdf-student-card";
 import { toSchoolBrand } from "@/lib/pdf-branding";
+import { accessCardCopy } from "@/lib/gate/card-print";
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -39,25 +40,20 @@ export async function GET(_request: Request, { params }: Params) {
     qrPng = null;
   }
 
-  const student = card.student;
-  const employee = card.employee;
-  const user = card.user;
+  const year = await prisma.academicYear.findFirst({
+    where: { schoolId: auth.schoolId, OR: [{ isCurrent: true }, { status: "ACTIVE" }] },
+    orderBy: { startDate: "desc" },
+    select: { name: true },
+  });
+  const copy = accessCardCopy({
+    student: card.student,
+    employee: card.employee,
+    user: card.user,
+    validYear: year?.name ?? null,
+  });
   const pdf = await generateStudentCardPdf({
     brand: toSchoolBrand(card.school),
-    studentName: student
-      ? `${student.firstName} ${student.lastName}`
-      : employee
-        ? `${employee.firstName} ${employee.lastName}`
-        : user
-          ? `${user.firstName} ${user.lastName}`
-          : "Card holder",
-    studentNumber: student?.studentNumber ?? employee?.employeeNumber ?? user?.employee?.employeeNumber ?? user?.teacher?.employeeNumber ?? "—",
-    studentNumberLabel: student ? "Learner No" : "Staff No",
-    cardTitle: student ? "LEARNER IDENTITY CARD" : "STAFF IDENTITY CARD",
-    gradeOrProgramme: student?.grade?.name ?? employee?.department ?? user?.employee?.department ?? user?.teacher?.department ?? null,
-    className: student?.class?.name ?? employee?.position ?? user?.employee?.position ?? null,
-    status: "ACTIVE",
-    photoUrl: student?.photoUrl ?? user?.avatarUrl ?? null,
+    ...copy,
     scanToken: card.token,
     qrPng,
   });

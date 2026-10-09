@@ -8,7 +8,7 @@ import {
   rgb,
   type RGB,
 } from "pdf-lib";
-import { hexToPdfRgb, DEFAULT_PRIMARY_COLOR } from "./school-branding";
+import { hexToPdfRgb, DEFAULT_ACCENT_COLOR, DEFAULT_PRIMARY_COLOR } from "./school-branding";
 
 export type SchoolBrand = {
   name: string;
@@ -30,6 +30,11 @@ const MUTED = rgb(0.45, 0.45, 0.5);
 
 export function brandPrimaryRgb(brand: Pick<SchoolBrand, "primaryColor">): RGB {
   const { r, g, b } = hexToPdfRgb(brand.primaryColor || DEFAULT_PRIMARY_COLOR);
+  return rgb(r, g, b);
+}
+
+export function brandAccentRgb(brand: Pick<SchoolBrand, "accentColor">): RGB {
+  const { r, g, b } = hexToPdfRgb(brand.accentColor || DEFAULT_ACCENT_COLOR);
   return rgb(r, g, b);
 }
 

@@ -214,6 +214,7 @@ export function CardAdmin() {
           {coverage
             ? `${coverage.learners} active learners and ${coverage.staff} active employees do not have a card yet. Employees do not need a login.`
             : "See who still needs a SchoolHub card."}
+          {" "}Each card prints on its own CR80 page (85.6 × 54 mm), the usual PVC ID-card size. Print a few and check them before issuing a large batch.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={() => void refreshCoverage()}>Count people without a card</Button>
