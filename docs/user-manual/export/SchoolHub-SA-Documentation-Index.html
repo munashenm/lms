@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8" /><title>SchoolHub-SA-Documentation-Index</title><link rel="stylesheet" href="print.css" /></head>
+<body>
+<header class="brand"><img src="logo.png" alt="SchoolHub SA" /><div><p class="name">SchoolHub SA</p><p class="meta">Cyber Developers · https://www.cyberdevelopers.co.za</p></div></header>
+<h1 id="schoolhub-sa-documentation-set">SchoolHub SA documentation
+set</h1>
+<p><strong>Product:</strong> SchoolHub SA<br />
+<strong>Publisher:</strong> Cyber Developers<br />
+<strong>Website:</strong> <a
+href="https://www.cyberdevelopers.co.za">https://www.cyberdevelopers.co.za</a><br />
+<strong>Tagline:</strong> School Management for South Africa<br />
+<strong>Currency and time:</strong> South African rand (ZAR),
+Africa/Johannesburg<br />
+<strong>Source reviewed:</strong> application source at commit
+<code>ca8089b</code> (9 October 2026)</p>
+<p>SchoolHub SA is an integrated management platform for schools,
+colleges, TVET colleges and training centres. It covers admissions,
+learner records, teaching, fees, people, communication, a public
+website, campus access and platform administration. It is not only a
+learning-management system.</p>
+<h2 id="documents">Documents</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Document</th>
+<th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1. Complete User Manual</td>
+<td><a
+href="./01-complete-user-manual.md">01-complete-user-manual.md</a></td>
+</tr>
+<tr class="even">
+<td>2. Functional Capabilities Catalogue</td>
+<td><a
+href="./02-functional-capabilities-catalogue.md">02-functional-capabilities-catalogue.md</a></td>
+</tr>
+<tr class="odd">
+<td>3. Business Benefits and Cost-Saving Guide</td>
+<td><a
+href="./03-business-benefits-guide.md">03-business-benefits-guide.md</a></td>
+</tr>
+<tr class="even">
+<td>4. Implementation and Training Manual</td>
+<td><a
+href="./04-implementation-and-training.md">04-implementation-and-training.md</a></td>
+</tr>
+<tr class="odd">
+<td>Module inventory</td>
+<td><a href="./module-inventory.md">module-inventory.md</a></td>
+</tr>
+<tr class="even">
+<td>Feature verification matrix</td>
+<td><a
+href="./feature-verification-matrix.md">feature-verification-matrix.md</a></td>
+</tr>
+<tr class="odd">
+<td>Screenshot checklist</td>
+<td><a href="./screenshot-checklist.md">screenshot-checklist.md</a></td>
+</tr>
+<tr class="even">
+<td>Defects held for a separate fix</td>
+<td><a
+href="./known-defects-for-remediation.md">known-defects-for-remediation.md</a></td>
+</tr>
+<tr class="odd">
+<td>Page list taken from the source</td>
+<td><a href="./appendix-pages.txt">appendix-pages.txt</a></td>
+</tr>
+<tr class="even">
+<td>API route list taken from the source</td>
+<td><a href="./appendix-api-routes.txt">appendix-api-routes.txt</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="status-words-used-in-every-document">Status words used in every
+document</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Implemented and tested</td>
+<td>The behaviour exists in source and is covered by automated tests, or
+it was exercised on the running product.</td>
+</tr>
+<tr class="even">
+<td>Implemented, not fully tested</td>
+<td>The screen or workflow exists. End-to-end proof is incomplete.</td>
+</tr>
+<tr class="odd">
+<td>Partially implemented</td>
+<td>Part of the workflow exists. A related step is manual, held, or
+incomplete.</td>
+</tr>
+<tr class="even">
+<td>Requires configuration</td>
+<td>The code exists and does nothing useful until credentials, a licence
+feature, or school settings are supplied.</td>
+</tr>
+<tr class="odd">
+<td>Planned or unavailable</td>
+<td>A label, licence flag, or menu concept exists without a working
+product feature. Do not sell it as available.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="accuracy-limits">Accuracy limits</h2>
+<p>These manuals describe the source code. They do not describe a
+production data audit. Production Postgres was not queried for this
+documentation. Screenshots are placeholders only.</p>
+<p>Three items must stay visible to anyone using the finance, scheduler,
+or security chapters:</p>
+<ol type="1">
+<li>Payment reversal, receipt numbering, and multi-step posting have
+confirmed defects. See <a
+href="./known-defects-for-remediation.md">known-defects-for-remediation.md</a>.
+Do not describe payment reversal as production-ready.</li>
+<li>Only the licence heartbeat runs automatically inside the web
+process. Backups, fee reminders, SA-SAMS import cleanup, leave accrual,
+and recurring expenses stay on protected manual routes.</li>
+<li>The existing security account for the college demonstration has not
+completed first login, forced password change, and role checks in this
+review.</li>
+</ol>
+<p>Brand marks used by the product are <code>/brand/logo.png</code> and
+<code>/brand/mark.png</code>.</p>
+<p>Word and PDF copies of these Markdown files are in <a
+href="./export/">export/</a>. The PDF header uses the SchoolHub SA logo
+and the colour <code>#1B4D6E</code> from the application theme. HTML
+files in that folder are the print source.</p>
+<footer class="brand">SchoolHub SA · Cyber Developers · School Management for South Africa · Documentation from source commit ca8089b · 9 October 2026</footer>
+</body></html>

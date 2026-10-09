@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>SchoolHub-SA-Known-Defects</title>
+<link rel="stylesheet" href="print.css" />
+</head>
+<body>
+<header class="brand">
+  <img src="logo.png" alt="SchoolHub SA" />
+  <div>
+    <p class="name">SchoolHub SA</p>
+    <p class="meta">Cyber Developers · https://www.cyberdevelopers.co.za</p>
+  </div>
+</header>
+<h1
+id="schoolhub-sa--defects-held-for-a-separate-remediation-task">SchoolHub
+SA — defects held for a separate remediation task</h1>
+<p><strong>Cyber Developers · SchoolHub SA</strong><br />
+<strong>Reviewed:</strong> 9 October 2026, against source commit
+<code>ca8089b</code><br />
+<strong>This file is not a user manual.</strong> It records defects so
+they are not lost inside the documentation work and are not described as
+production-ready.</p>
+<p>Do not mix the repairs into the documentation. The recommended
+follow-up is a separate change that adds atomic database transactions,
+protection against duplicate approvals, safe payment reversals, reliable
+receipt-number generation, and automated tests. Before calling finance
+resolved, compare existing payment, invoice, allocation, and
+learner-ledger rows for inconsistencies.</p>
+<h2 id="1-payment-reversal-can-fail-when-a-reference-exists">1. Payment
+reversal can fail when a reference exists</h2>
+<p><strong>Status:</strong> Confirmed in source. Not
+production-ready.</p>
+<p>The database index <code>payments_invoice_reference_live_uidx</code>
+allows one live payment per invoice and reference. A row is live when
+<code>reference</code> is set and <code>reversedAt</code> is null.</p>
+<p><code>src/app/api/payments/[id]/reverse/route.ts</code> inserts the
+reversal with the original reference, then marks the original payment
+reversed. The insert happens while the original row is still live, so
+Postgres can reject the reversal. Gateway collections store a reference,
+so those reversals are the ones most likely to fail. A payment with no
+reference can still be reversed.</p>
+<h2 id="2-receipt-numbers-break-after-a-suffixed-receipt">2. Receipt
+numbers break after a suffixed receipt</h2>
+<p><strong>Status:</strong> Confirmed in source. Not
+production-ready.</p>
+<p><code>nextReceiptNumber</code> in
+<code>src/lib/finance-catalog.ts</code> takes the last
+<code>RCP-YYYY-…</code> value in alphabetical order and parses the tail
+as a number. Reversals are stored as <code>RCP-YYYY-00002-REV</code>. A
+collision retry in <code>createManualPayment</code> uses an
+<code>-R</code> suffix.</p>
+<p><code>Number("00002-REV")</code> is not a finite number. The function
+then falls back to sequence <code>1</code>, which collides with
+<code>RCP-YYYY-00001</code>. Manual collection retries once. The next
+collection can hit the unique receipt constraint. Gateway recording in
+<code>src/lib/payment-gateways/record-payment.ts</code> has the same
+numbering approach and no equivalent retry.</p>
+<h2 id="3-reversing-an-unposted-payment-still-reduces-the-invoice">3.
+Reversing an unposted payment still reduces the invoice</h2>
+<p><strong>Status:</strong> Confirmed in source. Not
+production-ready.</p>
+<p>Invoice <code>amountPaid</code> increases when a payment is posted.
+The reversal route always subtracts the payment amount. It does not
+check <code>captureStatus</code> or <code>postedAt</code>. Reversing a
+pending or verified payment can understate what the learner has
+paid.</p>
+<h2 id="4-posting-and-reversal-are-several-separate-writes">4. Posting
+and reversal are several separate writes</h2>
+<p><strong>Status:</strong> Confirmed design risk. Not production-ready
+for concurrent use.</p>
+<p><code>postApprovedPayment</code> updates the invoice, allocations,
+learner ledger, credit note, and <code>postedAt</code> as separate
+steps. The payment row is not locked first. Two overlapping approvals of
+the same pending payment can both pass the status check in
+<code>src/app/api/payments/[id]/route.ts</code> before either sets
+<code>postedAt</code>. A failure halfway through can leave the invoice
+and the ledger apart.</p>
+<p>Gateway recording updates the invoice inside a transaction, then
+allocates and posts the ledger after that transaction commits.</p>
+<h2 id="5-scheduler-automation-is-incomplete">5. Scheduler automation is
+incomplete</h2>
+<p><strong>Status:</strong> By design until reviewed. Do not enable the
+held jobs from documentation.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Job</th>
+<th>Automatic</th>
+<th>Why it is held</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Licence heartbeat</td>
+<td>Yes. Daily at 15:00 UTC, plus a startup catch-up only when a licence
+is already due</td>
+<td>None</td>
+</tr>
+<tr class="even">
+<td>Backups</td>
+<td>No</td>
+<td>Creates backup objects and can delete older scheduled backups</td>
+</tr>
+<tr class="odd">
+<td>Fee reminders</td>
+<td>No</td>
+<td>Can email or SMS parents</td>
+</tr>
+<tr class="even">
+<td>Import cleanup</td>
+<td>No</td>
+<td>Deletes expired SA-SAMS staging files</td>
+</tr>
+<tr class="odd">
+<td>Leave accrual</td>
+<td>No</td>
+<td>Updates staff leave balances</td>
+</tr>
+<tr class="even">
+<td>Recurring expenses</td>
+<td>No</td>
+<td>Creates finance expense rows</td>
+</tr>
+</tbody>
+</table>
+<p>The protected HTTP routes remain for a manual trigger with the cron
+secret. The in-process scheduler does not run the held jobs.</p>
+<p>The first automatic licence check after the 9 October 2026
+verification was still in the future at the time of the operational
+review (<code>nextVerificationAt</code>
+<code>2026-10-10T14:42:58Z</code>, scheduler slot
+<code>2026-10-10T15:00:00Z</code>). That first due run had not yet been
+observed.</p>
+<h2 id="6-security-account-first-login-is-outstanding">6. Security
+account first login is outstanding</h2>
+<p><strong>Status:</strong> Account exists. Portal proof is
+outstanding.</p>
+<p>One security user, <code>security@college.co.za</code>, was invited
+through the normal invitation flow. Resend accepted the later
+invitation. Inbox delivery to that mailbox was not confirmed from the
+controlled mailbox used for the platform test. First login, the
+mandatory password change, the security desk, and the deny list for
+admin, finance, HR, marks, and settings were not completed. Do not
+create a second security user to finish that test. Do not bypass
+<code>mustResetPassword</code>.</p>
+<h2 id="7-canonical-public-url-still-needs-a-rebuild">7. Canonical
+public URL still needs a rebuild</h2>
+<p><strong>Status:</strong> Requires configuration.</p>
+<p>Invitation and password-reset links rewrite the known production
+Railway host to <code>https://app.schoolhubsa.co.za</code>. Sitemap,
+robots, and the stored licence domain still follow
+<code>NEXT_PUBLIC_APP_URL</code>. If that build value is the bare
+Railway host, those surfaces show the Railway host until the variable is
+the full <code>https://</code> address and the application is
+rebuilt.</p>
+<h2 id="8-stale-automated-test">8. Stale automated test</h2>
+<p><code>tests/teacher-classes.test.ts</code> expects Attendance and
+Assessments in the Classwork group. <code>getTeacherNav</code> places
+them in Daily. Timetable remains in Classwork. The menu is the product
+behaviour. The test expectation is stale. The last full run during the
+audit was 437 passed and this 1 failed.</p>
+<h2 id="what-the-remediation-task-should-include">What the remediation
+task should include</h2>
+<ul>
+<li>One database transaction for approve, post, and reverse.</li>
+<li>A row lock so the same payment cannot be approved twice.</li>
+<li>Reversal that does not violate the live reference index and does not
+change <code>amountPaid</code> unless the payment was posted.</li>
+<li>Receipt numbers that ignore <code>-REV</code> and <code>-R</code>
+suffixes and do not restart at <code>00001</code>.</li>
+<li>Tests for those cases.</li>
+<li>A read-only check of existing finance rows before any data
+repair.</li>
+<li>Leave the 14-day licence grace unchanged.</li>
+<li>Leave the held scheduler jobs off until each one is reviewed on its
+own.</li>
+</ul>
+<footer class="brand">SchoolHub SA · Cyber Developers · School Management for South Africa · Documentation from source commit ca8089b · 9 October 2026</footer>
+</body>
+</html>

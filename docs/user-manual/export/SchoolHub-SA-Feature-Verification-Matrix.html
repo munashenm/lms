@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>SchoolHub-SA-Feature-Verification-Matrix</title>
+<link rel="stylesheet" href="print.css" />
+</head>
+<body>
+<header class="brand">
+  <img src="logo.png" alt="SchoolHub SA" />
+  <div>
+    <p class="name">SchoolHub SA</p>
+    <p class="meta">Cyber Developers · https://www.cyberdevelopers.co.za</p>
+  </div>
+</header>
+<h1 id="schoolhub-sa--feature-verification-matrix">SchoolHub SA —
+feature verification matrix</h1>
+<p><strong>Cyber Developers · SchoolHub SA</strong><br />
+<strong>Commit:</strong> <code>ca8089b</code> · <strong>Date:</strong> 9
+October 2026</p>
+<p>Status key: <strong>Tested</strong> = implemented and covered by
+automated tests or an observed production check. <strong>Built</strong>
+= implemented, end-to-end proof incomplete. <strong>Partial</strong> =
+incomplete or held. <strong>Config</strong> = works only after
+credentials or a licence switch. <strong>Unavailable</strong> = do not
+describe as production-ready.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Area</th>
+<th>Capability</th>
+<th>Status</th>
+<th>Evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Access</td>
+<td>Email and password session</td>
+<td>Built</td>
+<td>Auth pages and session version</td>
+</tr>
+<tr class="even">
+<td>Access</td>
+<td>Forced password change</td>
+<td>Built</td>
+<td><code>/account/password</code>, <code>mustResetPassword</code></td>
+</tr>
+<tr class="odd">
+<td>Access</td>
+<td>Invitation email</td>
+<td>Config</td>
+<td>Resend or school SendGrid. Production test mail was accepted and
+seen in a controlled inbox during the October 2026 mail check</td>
+</tr>
+<tr class="even">
+<td>Access</td>
+<td>Admin set password</td>
+<td>Tested</td>
+<td><code>tests/admin-password.test.ts</code>, role limits in
+<code>canSetUserPassword</code></td>
+</tr>
+<tr class="odd">
+<td>Access</td>
+<td>Permission grants and denies</td>
+<td>Tested</td>
+<td><code>tests/permissions.test.ts</code></td>
+</tr>
+<tr class="even">
+<td>Access</td>
+<td>Tenant scoping</td>
+<td>Tested</td>
+<td>Tenant helpers and permission tests</td>
+</tr>
+<tr class="odd">
+<td>Licence</td>
+<td>Public check path</td>
+<td>Tested</td>
+<td>Licence check tests</td>
+</tr>
+<tr class="even">
+<td>Licence</td>
+<td>14-day grace and failure classes</td>
+<td>Tested</td>
+<td>Licensing tests. Do not change grace</td>
+</tr>
+<tr class="odd">
+<td>Licence</td>
+<td>In-process daily heartbeat</td>
+<td>Tested</td>
+<td>Scheduler tests. Production panel showed a successful no-op before
+the next due time</td>
+</tr>
+<tr class="even">
+<td>Licence</td>
+<td>First due check after 9 Oct 2026 14:42 UTC</td>
+<td>Built</td>
+<td>Scheduled for the 15:00 UTC slot on 10 Oct 2026. Not observed in
+that review</td>
+</tr>
+<tr class="odd">
+<td>Institution</td>
+<td>Settings and branding</td>
+<td>Tested</td>
+<td>Settings and branding tests</td>
+</tr>
+<tr class="even">
+<td>Institution</td>
+<td>Terminology school vs college</td>
+<td>Built</td>
+<td><code>src/lib/terminology.ts</code></td>
+</tr>
+<tr class="odd">
+<td>Institution</td>
+<td>Campuses</td>
+<td>Built</td>
+<td>Campus model and visitor campus</td>
+</tr>
+<tr class="even">
+<td>Institution</td>
+<td>Departments as an entity</td>
+<td>Unavailable</td>
+<td>Text field only</td>
+</tr>
+<tr class="odd">
+<td>Admissions</td>
+<td>Public apply and status</td>
+<td>Built</td>
+<td>Pages and application status copy</td>
+</tr>
+<tr class="even">
+<td>Admissions</td>
+<td>Deposit block and waiver</td>
+<td>Built</td>
+<td><code>admissions-deposit.ts</code></td>
+</tr>
+<tr class="odd">
+<td>Admissions</td>
+<td>Learner created on accept</td>
+<td>Built</td>
+<td><code>application-enrolment.ts</code></td>
+</tr>
+<tr class="even">
+<td>Admissions</td>
+<td>Interview appointments</td>
+<td>Unavailable</td>
+<td>Status label only</td>
+</tr>
+<tr class="odd">
+<td>Records</td>
+<td>Learner file, documents, guardians</td>
+<td>Built</td>
+<td>Admin and portal pages</td>
+</tr>
+<tr class="even">
+<td>Records</td>
+<td>SA ID protection</td>
+<td>Built</td>
+<td>Encryption fields and sensitive permission</td>
+</tr>
+<tr class="odd">
+<td>Academics</td>
+<td>Sessions, classes, subjects, timetable</td>
+<td>Built</td>
+<td>Admin pages</td>
+</tr>
+<tr class="even">
+<td>Teaching</td>
+<td>Educator register</td>
+<td>Built</td>
+<td>Teacher attendance page</td>
+</tr>
+<tr class="odd">
+<td>Teaching</td>
+<td>Gate updates daily attendance</td>
+<td>Tested</td>
+<td>Gate service and store. Period registers stay manual</td>
+</tr>
+<tr class="even">
+<td>Teaching</td>
+<td>Assessments, homework, materials</td>
+<td>Built</td>
+<td>Teacher and learner pages</td>
+</tr>
+<tr class="odd">
+<td>Teaching</td>
+<td>Online exam questions</td>
+<td>Built</td>
+<td>MCQ, true/false, short answer</td>
+</tr>
+<tr class="even">
+<td>Teaching</td>
+<td>Report card issue and skip rules</td>
+<td>Tested</td>
+<td><code>reportCardBatchSkipReason</code> and issue flow</td>
+</tr>
+<tr class="odd">
+<td>Teaching</td>
+<td>Promotion rules</td>
+<td>Built</td>
+<td><code>src/lib/promotion.ts</code></td>
+</tr>
+<tr class="even">
+<td>Teaching</td>
+<td>Educator nav groups</td>
+<td>Built</td>
+<td>Daily / Classwork / Campus. One stale test expects Classwork for
+attendance</td>
+</tr>
+<tr class="odd">
+<td>Finance</td>
+<td>Invoice, collect, approve, ledger</td>
+<td>Built</td>
+<td>Finance pages and <code>postApprovedPayment</code></td>
+</tr>
+<tr class="even">
+<td>Finance</td>
+<td>Gateway idempotent capture</td>
+<td>Built</td>
+<td><code>record-payment.ts</code> row lock and reference check</td>
+</tr>
+<tr class="odd">
+<td>Finance</td>
+<td>Debtors and age analysis</td>
+<td>Built</td>
+<td>Finance pages</td>
+</tr>
+<tr class="even">
+<td>Finance</td>
+<td>Reversal with a reference</td>
+<td>Partial</td>
+<td>Unique index conflict. Not production-ready</td>
+</tr>
+<tr class="odd">
+<td>Finance</td>
+<td>Receipt sequence after suffix</td>
+<td>Partial</td>
+<td>Falls back to <code>00001</code>. Not production-ready</td>
+</tr>
+<tr class="even">
+<td>Finance</td>
+<td>Reverse unposted payment</td>
+<td>Partial</td>
+<td>Subtracts <code>amountPaid</code> without a posted check</td>
+</tr>
+<tr class="odd">
+<td>Finance</td>
+<td>Concurrent double approval</td>
+<td>Partial</td>
+<td>No row lock around <code>postedAt</code></td>
+</tr>
+<tr class="even">
+<td>Finance</td>
+<td>Fee reminder rules</td>
+<td>Built</td>
+<td>Screen exists</td>
+</tr>
+<tr class="odd">
+<td>Finance</td>
+<td>Fee reminder schedule</td>
+<td>Partial</td>
+<td>Job held</td>
+</tr>
+<tr class="even">
+<td>Finance</td>
+<td>Recurring expense schedule</td>
+<td>Partial</td>
+<td>Job held</td>
+</tr>
+<tr class="odd">
+<td>Finance</td>
+<td>PayFast, Ozow, Yoco, Paystack</td>
+<td>Config</td>
+<td>School integration secrets</td>
+</tr>
+<tr class="even">
+<td>HR</td>
+<td>Employees, leave, timesheets</td>
+<td>Built</td>
+<td>HR pages</td>
+</tr>
+<tr class="odd">
+<td>HR</td>
+<td>Payroll prepare, approve, finalise</td>
+<td>Built</td>
+<td>Separate permissions. Double post blocked by
+<code>postedAt</code></td>
+</tr>
+<tr class="even">
+<td>HR</td>
+<td>Leave accrual schedule</td>
+<td>Partial</td>
+<td>Job held</td>
+</tr>
+<tr class="odd">
+<td>HR</td>
+<td>Biometric clock file</td>
+<td>Unavailable</td>
+<td>Comment in clock helper</td>
+</tr>
+<tr class="even">
+<td>Comms</td>
+<td>Announcements and messages</td>
+<td>Built</td>
+<td>Portal pages</td>
+</tr>
+<tr class="odd">
+<td>Comms</td>
+<td>Resend platform mail</td>
+<td>Config</td>
+<td>Resolver tests. Production sender confirmed without printing the
+key</td>
+</tr>
+<tr class="even">
+<td>Comms</td>
+<td>Inbox delivery events</td>
+<td>Unavailable</td>
+<td>No webhook. Acceptance is not delivered</td>
+</tr>
+<tr class="odd">
+<td>Comms</td>
+<td>Twilio SMS</td>
+<td>Config</td>
+<td>Defaults off</td>
+</tr>
+<tr class="even">
+<td>Comms</td>
+<td>WhatsApp inbox</td>
+<td>Unavailable</td>
+<td>Public click-to-chat only</td>
+</tr>
+<tr class="odd">
+<td>Website</td>
+<td>Public pages and CMS</td>
+<td>Built</td>
+<td><code>(public)</code> and <code>/{schoolSlug}</code></td>
+</tr>
+<tr class="even">
+<td>Security</td>
+<td>Scan, visitors, on site, missing checkout</td>
+<td>Tested</td>
+<td>Gate tests</td>
+</tr>
+<tr class="odd">
+<td>Security</td>
+<td>Biometric payload</td>
+<td>Unavailable</td>
+<td>Denied on purpose</td>
+</tr>
+<tr class="even">
+<td>Security</td>
+<td>Card administration</td>
+<td>Built</td>
+<td>Admin only</td>
+</tr>
+<tr class="odd">
+<td>Security</td>
+<td>Live security user first login</td>
+<td>Partial</td>
+<td>Invitation accepted by the provider. Portal walkthrough not
+done</td>
+</tr>
+<tr class="even">
+<td>Compliance</td>
+<td>Audit log</td>
+<td>Built</td>
+<td><code>/admin/audit</code></td>
+</tr>
+<tr class="odd">
+<td>Compliance</td>
+<td>SA-SAMS import</td>
+<td>Built</td>
+<td>Staging and execute</td>
+</tr>
+<tr class="even">
+<td>Compliance</td>
+<td>SA-SAMS cleanup schedule</td>
+<td>Partial</td>
+<td>Job held</td>
+</tr>
+<tr class="odd">
+<td>Compliance</td>
+<td>LURITS and CEMIS export jobs</td>
+<td>Built</td>
+<td>Compliance centre</td>
+</tr>
+<tr class="even">
+<td>Platform</td>
+<td>Manual backup and restore</td>
+<td>Built</td>
+<td>Backup pages</td>
+</tr>
+<tr class="odd">
+<td>Platform</td>
+<td>Scheduled backup</td>
+<td>Partial</td>
+<td>Job held</td>
+</tr>
+<tr class="even">
+<td>Platform</td>
+<td>Library, AI, public API, advanced analytics</td>
+<td>Unavailable</td>
+<td>Flags default off</td>
+</tr>
+<tr class="odd">
+<td>Quality</td>
+<td>Full automated suite</td>
+<td>Partial</td>
+<td>437 passed, 1 failed (<code>teacher-classes</code> group name)</td>
+</tr>
+</tbody>
+</table>
+<p>Production Postgres was not opened for this matrix. Empty local
+fixture data is not evidence that customer balances are clean.</p>
+<footer class="brand">SchoolHub SA · Cyber Developers · School Management for South Africa · Documentation from source commit ca8089b · 9 October 2026</footer>
+</body>
+</html>

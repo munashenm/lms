@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>SchoolHub-SA-Functional-Capabilities-Catalogue</title>
+<link rel="stylesheet" href="print.css" />
+</head>
+<body>
+<header class="brand">
+  <img src="logo.png" alt="SchoolHub SA" />
+  <div>
+    <p class="name">SchoolHub SA</p>
+    <p class="meta">Cyber Developers · https://www.cyberdevelopers.co.za</p>
+  </div>
+</header>
+<h1
+id="schoolhub-sa--complete-functional-capabilities-catalogue">SchoolHub
+SA — Complete Functional Capabilities Catalogue</h1>
+<p><strong>Cyber Developers · SchoolHub SA</strong><br />
+<a
+href="https://www.cyberdevelopers.co.za">https://www.cyberdevelopers.co.za</a><br />
+<strong>Source:</strong> commit <code>ca8089b</code>, 9 October
+2026<br />
+<strong>Companion:</strong> <a
+href="./feature-verification-matrix.md">feature-verification-matrix.md</a>,
+<a href="./module-inventory.md">module-inventory.md</a></p>
+<p>This catalogue lists what the software implements. Status words are
+defined in <a href="./README.md">README.md</a>. Items under “Planned or
+unavailable” must not be sold as working features.</p>
+<hr />
+<h2 id="1-platform-shape">1. Platform shape</h2>
+<ul>
+<li>Multi-institution data. Each operational row is scoped to a school.
+Super Admin can cross institutions. Other roles cannot.</li>
+<li>Twelve roles: Super Admin, School Admin, Principal,
+Teacher/Lecturer, Learner, Parent/Guardian, Finance Officer, Admissions
+Officer, HR Officer, Staff, Security.</li>
+<li>Per-user permission grants and denies on top of the role.</li>
+<li>Modules can be disabled per school. A disabled module hides related
+permissions for non–Super Admin users.</li>
+<li>Terminology switches between school language and college
+language.</li>
+<li>Institution types: school, primary, high, combined, college, TVET,
+training centre, training institution.</li>
+<li>Curricula: CAPS, NSC, TVET/NQF, custom.</li>
+<li>Calendar structures: four terms, two semesters, custom.</li>
+<li>Time zone Africa/Johannesburg. Money in ZAR.</li>
+<li>Brand assets served from <code>/brand/logo.png</code> and
+<code>/brand/mark.png</code>.</li>
+</ul>
+<p><strong>Authentication.</strong> Email and password, session version
+for forced sign-out, invitation with temporary password, forced reset,
+forgot-password link, admin set-password for Super Admin and School
+Admin. School Admin cannot set a Super Admin password.</p>
+<p><strong>Licence.</strong> Signed licence check against the licence
+server. Statuses trial, active, grace, expired, suspended, revoked.
+Grace is 14 days. Heartbeat is automatic. Feature flags can turn
+commercial modules off.</p>
+<hr />
+<h2 id="2-module-catalogue">2. Module catalogue</h2>
+<h3 id="institution-and-identity">Institution and identity</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Capability</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Admin dashboard</td>
+<td>Implemented, not fully tested as a single production script</td>
+<td><code>/admin/dashboard</code></td>
+</tr>
+<tr class="even">
+<td>School profile, province list, branding</td>
+<td>Implemented and tested in settings tests</td>
+<td><code>/admin/settings</code></td>
+</tr>
+<tr class="odd">
+<td>Campuses</td>
+<td>Implemented, not fully tested</td>
+<td>No separate “departments” entity. Department is text on staff.</td>
+</tr>
+<tr class="even">
+<td>Academic sessions, terms, rollover</td>
+<td>Implemented, not fully tested end to end</td>
+<td>Rollover is staff-run</td>
+</tr>
+<tr class="odd">
+<td>Grades, classes, subjects, courses, modules</td>
+<td>Implemented</td>
+<td>College labels differ</td>
+</tr>
+<tr class="even">
+<td>Users, invitations, role defaults</td>
+<td>Implemented and tested in permission and mail tests</td>
+<td>Delivery needs Resend or school SendGrid</td>
+</tr>
+<tr class="odd">
+<td>Per-user grants and denies</td>
+<td>Implemented and tested</td>
+<td><code>/admin/users/{id}/permissions</code></td>
+</tr>
+<tr class="even">
+<td>Admin set password</td>
+<td>Implemented and tested locally</td>
+<td>On master via <code>#72</code>. Not a substitute for the invitation
+flow</td>
+</tr>
+<tr class="odd">
+<td>Super Admin institutions</td>
+<td>Implemented</td>
+<td>Vendor only</td>
+</tr>
+</tbody>
+</table>
+<h3 id="admissions">Admissions</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Capability</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Public application form and status tracker</td>
+<td>Implemented</td>
+<td><code>/apply</code>, <code>/{slug}/apply</code>,
+<code>/apply/status</code></td>
+</tr>
+<tr class="even">
+<td>Staff pipeline with the statuses in the user manual</td>
+<td>Implemented</td>
+<td>Interview required is a status, not a scheduler</td>
+</tr>
+<tr class="odd">
+<td>Application documents</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Deposit invoice, paid flag, waiver</td>
+<td>Implemented</td>
+<td>Waiver needs <code>admissions.deposit_waive</code></td>
+</tr>
+<tr class="odd">
+<td>Create learner and enrolment on accept</td>
+<td>Implemented</td>
+<td>Grade or course name must match</td>
+</tr>
+<tr class="even">
+<td>Offer letters</td>
+<td>Implemented as letters desk</td>
+<td>Not auto-sent on status change</td>
+</tr>
+<tr class="odd">
+<td>Interviews as appointments</td>
+<td>Planned or unavailable</td>
+<td>Status flag only</td>
+</tr>
+<tr class="even">
+<td>Automatic acceptance</td>
+<td>Planned or unavailable</td>
+<td>Staff set every status</td>
+</tr>
+</tbody>
+</table>
+<h3 id="learner-records">Learner records</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Capability</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Registration, profile, guardians, documents</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Statuses applicant through withdrawn</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>SA ID encryption and sensitive-field permission</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Change log</td>
+<td>Implemented</td>
+<td><code>StudentChangeLog</code></td>
+</tr>
+<tr class="odd">
+<td>Portal user link</td>
+<td>Implemented, separate step</td>
+<td>Learner row can exist without a login</td>
+</tr>
+<tr class="even">
+<td>Transfers</td>
+<td>Partially implemented</td>
+<td>Letters, status, and promotion outcome. No standalone transfer
+wizard that moves a learner between schools by itself</td>
+</tr>
+</tbody>
+</table>
+<h3 id="teaching">Teaching</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Capability</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Timetable with room, educator, meeting URL</td>
+<td>Implemented</td>
+<td>Join link is an external URL</td>
+</tr>
+<tr class="even">
+<td>Lesson plans and curriculum topics</td>
+<td>Implemented</td>
+<td>Completion is staff-updated</td>
+</tr>
+<tr class="odd">
+<td>Class and session attendance</td>
+<td>Implemented and tested in attendance areas</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Gate writes daily learner attendance</td>
+<td>Implemented and covered by gate tests</td>
+<td>Does not write period registers</td>
+</tr>
+<tr class="odd">
+<td>Assessments and weighted marks</td>
+<td>Implemented</td>
+<td>Types listed in the user manual</td>
+</tr>
+<tr class="even">
+<td>Homework and submissions</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Online exam attempt (MCQ, true/false, short answer)</td>
+<td>Implemented</td>
+<td>No proctoring</td>
+</tr>
+<tr class="even">
+<td>Report card PDF, skip rules, family notice</td>
+<td>Implemented</td>
+<td>Staff must issue</td>
+</tr>
+<tr class="odd">
+<td>Certificates</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Promotion rules and outcomes</td>
+<td>Implemented</td>
+<td>Staff confirm</td>
+</tr>
+<tr class="odd">
+<td>Educator reviews by learners</td>
+<td>Implemented</td>
+<td>Licence feature defaults on</td>
+</tr>
+<tr class="even">
+<td>Hosted virtual classroom</td>
+<td>Planned or unavailable</td>
+<td>External URL only</td>
+</tr>
+<tr class="odd">
+<td>AI marking or AI tutor</td>
+<td>Planned or unavailable</td>
+<td><code>ai_features</code> defaults off and has no portal</td>
+</tr>
+</tbody>
+</table>
+<h3 id="finance">Finance</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Capability</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Fee schedule, structures, charges, instalments</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Invoices and PDFs</td>
+<td>Implemented</td>
+<td>Draft and cancelled reject collections</td>
+</tr>
+<tr class="odd">
+<td>Manual collection, bank-reference duplicate check</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Pending, verified, approved, rejected</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Ledger, allocations, credit notes, aid</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Debtors and age analysis</td>
+<td>Implemented</td>
+<td>On demand</td>
+</tr>
+<tr class="odd">
+<td>Budgets and projects</td>
+<td>Implemented on admin finance</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Expenses, suppliers, income, accounts</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>PayFast, Ozow, Yoco, Paystack settings</td>
+<td>Requires configuration</td>
+<td>Paystack is the current replacement path for the older PayPal method
+name</td>
+</tr>
+<tr class="even">
+<td>Gateway idempotency on reference</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Receipt numbering after a normal first receipt</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Reversal of a referenced payment</td>
+<td>Partially implemented</td>
+<td>Defect. Not production-ready</td>
+</tr>
+<tr class="odd">
+<td>Receipt number after <code>-REV</code> or <code>-R</code></td>
+<td>Partially implemented</td>
+<td>Defect. Not production-ready</td>
+</tr>
+<tr class="even">
+<td>Concurrent approval lock</td>
+<td>Partially implemented</td>
+<td>Status check is not row-locked</td>
+</tr>
+<tr class="odd">
+<td>Automatic fee reminders</td>
+<td>Partially implemented</td>
+<td>Rules and manual send exist. Daily job held</td>
+</tr>
+<tr class="even">
+<td>Automatic recurring expenses</td>
+<td>Partially implemented</td>
+<td>Definition exists. Daily job held</td>
+</tr>
+</tbody>
+</table>
+<h3 id="people">People</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Capability</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Employee file, contract, documents, salary structure</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Staff attendance including remote and on-leave</td>
+<td>Implemented</td>
+<td>Gate can stamp check-in and check-out</td>
+</tr>
+<tr class="odd">
+<td>Leave requests, policies, entitlements</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Monthly leave accrual job</td>
+<td>Partially implemented</td>
+<td>Route exists. Scheduler held</td>
+</tr>
+<tr class="odd">
+<td>Timesheets</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Payroll prepare, approve, finalise, payslip PDF</td>
+<td>Implemented</td>
+<td>Finalise can post to finance once</td>
+</tr>
+<tr class="odd">
+<td>Biometric clock import</td>
+<td>Planned or unavailable</td>
+<td>Explicitly not implemented</td>
+</tr>
+</tbody>
+</table>
+<h3 id="communication-and-website">Communication and website</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Capability</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Announcements with audiences</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Internal messages</td>
+<td>Implemented</td>
+<td>Security has no mailbox</td>
+</tr>
+<tr class="odd">
+<td>In-app notifications</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Platform email via Resend</td>
+<td>Requires configuration</td>
+<td>Acceptance is not inbox delivery. No webhook</td>
+</tr>
+<tr class="odd">
+<td>School SendGrid</td>
+<td>Requires configuration</td>
+<td>Used only when enabled, keyed, and From is deliverable</td>
+</tr>
+<tr class="even">
+<td>SMS via Twilio</td>
+<td>Requires configuration</td>
+<td>Licence feature defaults off</td>
+</tr>
+<tr class="odd">
+<td>Bulk fee email/SMS</td>
+<td>Requires configuration</td>
+<td>Manual</td>
+</tr>
+<tr class="even">
+<td>Public website, gallery, FAQ, admissions copy</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>WhatsApp click-to-chat on the public site</td>
+<td>Requires configuration</td>
+<td>Number on the school profile. No inbox</td>
+</tr>
+<tr class="even">
+<td>WhatsApp messaging product</td>
+<td>Planned or unavailable</td>
+<td>Flag defaults off</td>
+</tr>
+</tbody>
+</table>
+<h3 id="campus-access">Campus access</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Capability</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Gates, policy, day boundary, duplicate window</td>
+<td>Implemented and tested</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Cards for learners and staff, deactivate</td>
+<td>Implemented</td>
+<td>Admin issue. Security scans</td>
+</tr>
+<tr class="odd">
+<td>QR, barcode, camera, manual scan</td>
+<td>Implemented and tested</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>RFID/NFC as a method name resolved to a person</td>
+<td>Partially implemented</td>
+<td>No device fleet certified in this review</td>
+</tr>
+<tr class="odd">
+<td>Biometric capture</td>
+<td>Planned or unavailable</td>
+<td>Request is rejected</td>
+</tr>
+<tr class="even">
+<td>Visitors book, expected visitors, sign-out</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>On site and missing checkout</td>
+<td>Implemented and tested</td>
+<td>Prior-day IN is missing, not still on site</td>
+</tr>
+<tr class="even">
+<td>Early departure reasons</td>
+<td>Implemented</td>
+<td>Parent approval workflow for early release is reserved, not the
+security desk’s current path</td>
+</tr>
+<tr class="odd">
+<td>Gate incidents list</td>
+<td>Implemented, not fully tested as a case system</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Security role isolation</td>
+<td>Implemented in middleware and tests</td>
+<td>Live college account first login not completed</td>
+</tr>
+<tr class="odd">
+<td>Parent SMS on gate scan</td>
+<td>Planned or unavailable</td>
+<td>Not part of the scan</td>
+</tr>
+</tbody>
+</table>
+<h3 id="platform-operations">Platform operations</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Capability</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Audit log</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Compliance exports: SA-SAMS package, LURITS promotion, CEMIS
+marks</td>
+<td>Implemented, not fully tested against a department portal</td>
+<td>Staff-run</td>
+</tr>
+<tr class="odd">
+<td>SA-SAMS staging, map, execute, rollback</td>
+<td>Implemented</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Import staging cleanup job</td>
+<td>Partially implemented</td>
+<td>Held</td>
+</tr>
+<tr class="odd">
+<td>Backup create, download, restore</td>
+<td>Implemented</td>
+<td>Restore is destructive</td>
+</tr>
+<tr class="even">
+<td>Scheduled backups</td>
+<td>Partially implemented</td>
+<td>Held</td>
+</tr>
+<tr class="odd">
+<td>Licence heartbeat</td>
+<td>Implemented and tested</td>
+<td>Automatic, due-only</td>
+</tr>
+<tr class="even">
+<td>System health job panel</td>
+<td>Implemented</td>
+<td>Super Admin</td>
+</tr>
+<tr class="odd">
+<td>POPIA field controls and redacted mail logs</td>
+<td>Implemented</td>
+<td>Not a compliance certificate</td>
+</tr>
+<tr class="even">
+<td>Library catalogue</td>
+<td>Planned or unavailable</td>
+<td>Flag defaults off</td>
+</tr>
+<tr class="odd">
+<td>Public API for third parties</td>
+<td>Planned or unavailable</td>
+<td><code>api_access</code> defaults off</td>
+</tr>
+<tr class="even">
+<td>Advanced analytics product</td>
+<td>Planned or unavailable</td>
+<td>Flag defaults off</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-automation-stated-exactly">3. Automation, stated exactly</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Chain</th>
+<th>What the software does without a person clicking</th>
+<th>What still needs a person</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Application to learner</td>
+<td>On Accepted or Enrolled, creates or links the learner and enrols
+them when names match and the deposit rule allows</td>
+<td>Every status before that, including interview and offer</td>
+</tr>
+<tr class="even">
+<td>Enrolment to class</td>
+<td>Stores the enrolment</td>
+<td>Class placement and timetable slots</td>
+</tr>
+<tr class="odd">
+<td>Timetable to learner</td>
+<td>Shows slots and an external meeting link</td>
+<td>Building the timetable</td>
+</tr>
+<tr class="even">
+<td>Marks to report</td>
+<td>Calculates averages when staff issue the card</td>
+<td>Issuing the card</td>
+</tr>
+<tr class="odd">
+<td>Invoice to gateway receipt</td>
+<td>After the provider confirms, locks the invoice, records the payment,
+updates the balance, allocates, and writes the ledger</td>
+<td>Gateway keys, and the payer completing the hosted page</td>
+</tr>
+<tr class="even">
+<td>Manual receipt</td>
+<td>Allocates and writes the ledger when the payment is approved or
+captured as approved</td>
+<td>The cashier, and verification for pending methods</td>
+</tr>
+<tr class="odd">
+<td>Balance to debtor list</td>
+<td>Ageing reads current balances</td>
+<td>Opening the report, and any reminder send</td>
+</tr>
+<tr class="even">
+<td>Gate to daily attendance</td>
+<td>Recorded learner IN/OUT updates the daily row in the same
+transaction</td>
+<td>Card issue, and any period register</td>
+</tr>
+<tr class="odd">
+<td>Gate to staff time</td>
+<td>Recorded staff movement can set check-in and check-out</td>
+<td>Payroll</td>
+</tr>
+<tr class="even">
+<td>Employee to pay</td>
+<td>Nothing</td>
+<td>Prepare, approve, finalise</td>
+</tr>
+<tr class="odd">
+<td>Clock to backups</td>
+<td>Nothing automatic</td>
+<td>Backup screen, or a future reviewed scheduler</td>
+</tr>
+<tr class="even">
+<td>Clock to fee reminders</td>
+<td>Nothing automatic</td>
+<td>Manual send</td>
+</tr>
+<tr class="odd">
+<td>Clock to licence</td>
+<td>Heartbeat when due</td>
+<td>Licence server availability</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-integrations">4. Integrations</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Integration</th>
+<th>Direction</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Resend</td>
+<td>Platform transactional email</td>
+<td>Requires configuration. Official <code>resend</code> package</td>
+</tr>
+<tr class="even">
+<td>SendGrid</td>
+<td>Optional per-school email</td>
+<td>Requires configuration. Disabled school config does not block
+Resend</td>
+</tr>
+<tr class="odd">
+<td>Twilio</td>
+<td>SMS</td>
+<td>Requires configuration and licence</td>
+</tr>
+<tr class="even">
+<td>Paystack, PayFast, Ozow, Yoco</td>
+<td>Hosted fee collection</td>
+<td>Requires configuration per school</td>
+</tr>
+<tr class="odd">
+<td>Licence server</td>
+<td>Signed licence check</td>
+<td>Required for ongoing verification</td>
+</tr>
+<tr class="even">
+<td>SA-SAMS file</td>
+<td>Import and export package</td>
+<td>Staff-run</td>
+</tr>
+<tr class="odd">
+<td>LURITS / CEMIS</td>
+<td>Export files</td>
+<td>Staff-run</td>
+</tr>
+<tr class="even">
+<td>WhatsApp</td>
+<td>Public click-to-chat link</td>
+<td>Optional number</td>
+</tr>
+<tr class="odd">
+<td>Biometric terminals</td>
+<td>—</td>
+<td>Unavailable</td>
+</tr>
+<tr class="even">
+<td>Resend webhooks</td>
+<td>Delivery events</td>
+<td>Unavailable</td>
+</tr>
+</tbody>
+</table>
+<p>Secrets are encrypted on the school integration record. Screens
+return configured, sender validity, and provider name. They must not
+display API keys. This catalogue does not contain any key.</p>
+<hr />
+<h2 id="5-background-work">5. Background work</h2>
+<p>In-process scheduler, started from <code>instrumentation.ts</code> on
+the Node.js runtime, without blocking server startup. A database lease
+(<code>scheduler_job_states</code>) stops two replicas doing the same
+job. Lease failure is logged and does not crash the process.</p>
+<p>Automatic: <code>license-heartbeat</code> at 15:00 UTC.</p>
+<p>Held: <code>backups</code>, <code>fee-reminders</code>,
+<code>import-cleanup</code>, <code>leave-accrual</code>,
+<code>recurring-expenses</code>.</p>
+<p>Protected HTTP routes under <code>/api/cron/*</code> remain for an
+operator who presents the cron secret. Query-string secrets are not
+accepted.</p>
+<hr />
+<h2 id="6-generated-documents">6. Generated documents</h2>
+<p>Invoice PDF, receipt PDF, report card PDF, certificate PDF, official
+letter PDF, payslip PDF, identity card, compliance export files, backup
+archive. All are on demand except where a payment post or report issue
+creates the file as part of that action.</p>
+<hr />
+<h2 id="7-api-surface">7. API surface</h2>
+<p>212 route modules live under <code>src/app/api</code>. The file list
+is <a href="./appendix-api-routes.txt">appendix-api-routes.txt</a>. 213
+pages are listed in <a
+href="./appendix-pages.txt">appendix-pages.txt</a>. Those lists were
+generated from the source tree at this commit. They are the inventory.
+They are not a public API contract. <code>api_access</code> is off by
+default and these routes are the application’s own UI backend.</p>
+<hr />
+<h2 id="8-tests-that-support-this-catalogue">8. Tests that support this
+catalogue</h2>
+<p>Automated tests cover permissions, licensing, the public licence
+check, mail provider selection, the scheduler lease and due-only
+heartbeat, gate behaviour, school branding, and settings, among other
+suites. A full run during the audit passed 437 tests and failed 1:
+<code>tests/teacher-classes.test.ts</code> still expects the educator
+groups “Classwork” for attendance and assessments, while the menu uses
+“Daily”. The menu is the product.</p>
+<p>Payment reversal and receipt regeneration after a suffix do not have
+tests that would catch the defects in <a
+href="./known-defects-for-remediation.md">known-defects-for-remediation.md</a>.
+That absence is why those features are not marked production-ready.</p>
+<footer class="brand">SchoolHub SA · Cyber Developers · School Management for South Africa · Documentation from source commit ca8089b · 9 October 2026</footer>
+</body>
+</html>
