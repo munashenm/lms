@@ -57,10 +57,17 @@ export async function deleteImportFile(storageKey: string | null | undefined) {
   await rm(storageKey, { force: true });
 }
 
+/** Finished imports only. A job still being reviewed or imported keeps its file. */
+export const IMPORT_FILE_CLEANUP_STATUSES = ["COMPLETED", "FAILED", "ROLLED_BACK"] as const;
+
 export async function cleanupExpiredImportFiles(before: Date) {
   const { prisma } = await import("@/lib/db");
   const expired = await prisma.importJob.findMany({
-    where: { expiresAt: { lte: before }, encryptedStorageKey: { not: null } },
+    where: {
+      expiresAt: { lte: before },
+      encryptedStorageKey: { not: null },
+      status: { in: [...IMPORT_FILE_CLEANUP_STATUSES] },
+    },
     select: { id: true, encryptedStorageKey: true },
   });
   for (const job of expired) {

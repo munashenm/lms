@@ -67,7 +67,7 @@ export const SCHEDULED_JOBS: ScheduledJobDefinition[] = [
     cadence: "daily",
     automatic: false,
     leaseMs: 10 * 60 * 1000,
-    holdReason: "Deletes expired SA-SAMS staging files. Held until reviewed.",
+    holdReason: "Deletes expired staging files for finished SA-SAMS imports only. Held until a school reviews open imports.",
   },
   {
     key: "leave-accrual",
@@ -77,7 +77,7 @@ export const SCHEDULED_JOBS: ScheduledJobDefinition[] = [
     cadence: "daily",
     automatic: false,
     leaseMs: 10 * 60 * 1000,
-    holdReason: "Updates staff leave balances. Held until reviewed.",
+    holdReason: "Recalculates staff leave accrual for the calendar year. Held until one school is compared first.",
   },
   {
     key: "recurring-expenses",
@@ -87,7 +87,7 @@ export const SCHEDULED_JOBS: ScheduledJobDefinition[] = [
     cadence: "daily",
     automatic: false,
     leaseMs: 10 * 60 * 1000,
-    holdReason: "Creates finance expense rows. Held until reviewed.",
+    holdReason: "Creates finance expense rows. Held until one school’s due dates are reviewed.",
   },
 ];
 
