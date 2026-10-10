@@ -81,6 +81,9 @@ export async function POST(request: NextRequest) {
   let academicYearId = parsed.data.academicYearId;
   let customSchedule: Array<{ dueDate?: string; amount?: number; dueOffsetDays?: number }> | null = null;
   let dueDayOfMonth: number | null = null;
+  let priceIsPerPeriod = false;
+  let invoiceYearly = false;
+  let yearlyDiscountPercent: number | null = null;
 
   if (parsed.data.feeStructureId) {
     const fee = await prisma.feeStructure.findFirst({
@@ -96,6 +99,9 @@ export async function POST(request: NextRequest) {
     academicYearId = academicYearId || fee.academicYearId;
     customSchedule = customScheduleOf(fee.customScheduleJson);
     dueDayOfMonth = fee.dueDayOfMonth;
+    priceIsPerPeriod = parsed.data.amount == null && fee.priceIsPerPeriod;
+    invoiceYearly = fee.invoiceYearly;
+    yearlyDiscountPercent = fee.yearlyDiscountPercent == null ? null : Number(fee.yearlyDiscountPercent);
   }
 
   if (!academicYearId) {
@@ -125,6 +131,10 @@ export async function POST(request: NextRequest) {
     customSchedule,
     dueDayOfMonth,
     recordedById: session!.userId,
+    priceIsPerPeriod,
+    invoiceYearly,
+    yearlyDiscountPercent,
+    preserveDescription: Boolean(parsed.data.description),
   });
   await logAudit({
     schoolId,

@@ -2900,9 +2900,12 @@ model FeeStructure {
   name               String
   description        String?
   chargeSource       FeeChargeSource
-  amount             Decimal          @db.Decimal(12, 2)
-  billingFrequency   BillingFrequency @default(ONCE)
-  allowInstalments   Boolean          @default(false)
+  amount                Decimal          @db.Decimal(12, 2)
+  billingFrequency      BillingFrequency @default(ONCE)
+  priceIsPerPeriod      Boolean          @default(false)
+  yearlyDiscountPercent Decimal?         @db.Decimal(5, 2)
+  invoiceYearly         Boolean          @default(false)
+  allowInstalments      Boolean          @default(false)
   instalmentCount    Int?
   customScheduleJson Json?
   academicYearId     String?

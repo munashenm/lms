@@ -10,8 +10,10 @@ import { prisma } from "./db";
 import { calculateInvoiceTotals, generateInvoiceNumber } from "./finance";
 import {
   chargeIdempotencyKey,
+  enrolmentChargePlan,
   feeStructureApplies,
   planInstalments,
+  registrationChargeKey,
   type EnrolmentFeeContext,
 } from "./fee-matching";
 import { createStudentLedgerEntry } from "./student-ledger";
@@ -73,34 +75,40 @@ export async function applyEnrolmentFees(params: {
   let skipped = 0;
 
   for (const fee of applicable) {
-    const key = chargeIdempotencyKey(student.id, fee.id, year.id);
+    const registration = fee.chargeSource === FeeChargeSource.REGISTRATION_FEE;
+    if (registration) {
+      const liveRegistration = await prisma.studentCharge.findFirst({
+        where: {
+          schoolId: params.schoolId,
+          studentId: student.id,
+          source: FeeChargeSource.REGISTRATION_FEE,
+          reversedAt: null,
+        },
+        select: { id: true },
+      });
+      if (liveRegistration) {
+        skipped += 1;
+        continue;
+      }
+    }
+
+    const key = registration
+      ? registrationChargeKey(student.id)
+      : chargeIdempotencyKey(student.id, fee.id, year.id);
     const existing = await prisma.studentCharge.findUnique({ where: { idempotencyKey: key } });
     if (existing && !existing.reversedAt) {
       skipped += 1;
       continue;
     }
 
-    const custom = Array.isArray(fee.customScheduleJson)
-      ? (fee.customScheduleJson as Array<{ dueDate?: string; amount?: number; dueOffsetDays?: number }>)
-      : null;
-    const instalments = planInstalments({
-      amount: Number(fee.amount),
-      frequency: fee.billingFrequency,
-      allowInstalments: fee.allowInstalments,
-      instalmentCount: fee.instalmentCount,
-      customSchedule: custom,
-      startDate: ctx.startDate,
-      yearStart: ctx.yearStart,
-      dueDayOfMonth: fee.dueDayOfMonth,
-      termCount: ctx.termCount,
-    });
-    const firstDue = instalments[0]?.dueDate ?? ctx.startDate;
+    const plan = enrolmentChargePlan(fee, ctx);
+    const firstDue = plan.instalments[0]?.dueDate ?? ctx.startDate;
 
     const invoiceNumber = await generateInvoiceNumber(params.schoolId, () =>
       prisma.invoice.count({ where: { schoolId: params.schoolId } })
     );
     const { subtotal, total } = calculateInvoiceTotals(
-      [{ quantity: 1, unitPrice: Number(fee.amount) }],
+      [{ quantity: 1, unitPrice: plan.billedAmount }],
       0
     );
 
@@ -109,7 +117,7 @@ export async function applyEnrolmentFees(params: {
         schoolId: params.schoolId,
         studentId: student.id,
         invoiceNumber,
-        description: fee.name,
+        description: plan.description,
         subtotal,
         discount: 0,
         total,
@@ -118,10 +126,10 @@ export async function applyEnrolmentFees(params: {
         lineItems: {
           create: [
             {
-              description: fee.name,
+              description: plan.description,
               quantity: 1,
-              unitPrice: Number(fee.amount),
-              amount: Number(fee.amount),
+              unitPrice: plan.billedAmount,
+              amount: plan.billedAmount,
             },
           ],
         },
@@ -137,11 +145,11 @@ export async function applyEnrolmentFees(params: {
         academicYearId: year.id,
         invoiceId: invoice.id,
         source: fee.chargeSource,
-        description: fee.name,
-        amount: fee.amount,
+        description: plan.description,
+        amount: plan.billedAmount,
         idempotencyKey: existing ? `${key}:r${Date.now()}` : key,
         instalments: {
-          create: instalments.map((row) => ({
+          create: plan.instalments.map((row) => ({
             sequence: row.sequence,
             dueDate: row.dueDate,
             amount: row.amount,
@@ -155,8 +163,8 @@ export async function applyEnrolmentFees(params: {
       studentId: student.id,
       academicYearId: year.id,
       type: StudentLedgerType.CHARGE,
-      description: fee.name,
-      amount: Number(fee.amount),
+      description: plan.description,
+      amount: plan.billedAmount,
       reference: invoiceNumber,
       invoiceId: invoice.id,
       recordedById: params.recordedById,
@@ -207,12 +215,34 @@ export async function createManualStudentCharge(params: {
   customSchedule?: Array<{ dueDate?: string; amount?: number; dueOffsetDays?: number }> | null;
   dueDayOfMonth?: number | null;
   recordedById?: string | null;
+  priceIsPerPeriod?: boolean;
+  invoiceYearly?: boolean;
+  yearlyDiscountPercent?: number | null;
+  preserveDescription?: boolean;
 }) {
+  const source = params.source ?? FeeChargeSource.MANUAL_CHARGE;
+  if (source === FeeChargeSource.REGISTRATION_FEE) {
+    const liveRegistration = await prisma.studentCharge.findFirst({
+      where: {
+        schoolId: params.schoolId,
+        studentId: params.studentId,
+        source: FeeChargeSource.REGISTRATION_FEE,
+        reversedAt: null,
+      },
+      include: { invoice: true, instalments: true },
+    });
+    if (liveRegistration) {
+      return { charge: liveRegistration, invoice: liveRegistration.invoice, skipped: true as const };
+    }
+  }
+
   let key =
-    params.feeStructureId && params.academicYearId
-      ? chargeIdempotencyKey(params.studentId, params.feeStructureId, params.academicYearId)
-      : `manual:${params.studentId}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
-  if (params.feeStructureId && params.academicYearId) {
+    source === FeeChargeSource.REGISTRATION_FEE
+      ? registrationChargeKey(params.studentId)
+      : params.feeStructureId && params.academicYearId
+        ? chargeIdempotencyKey(params.studentId, params.feeStructureId, params.academicYearId)
+        : `manual:${params.studentId}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+  if (source === FeeChargeSource.REGISTRATION_FEE || (params.feeStructureId && params.academicYearId)) {
     const existing = await prisma.studentCharge.findUnique({
       where: { idempotencyKey: key },
       include: { invoice: true, instalments: true },
@@ -223,30 +253,52 @@ export async function createManualStudentCharge(params: {
     if (existing?.reversedAt) key = `${key}:r${Date.now()}`;
   }
 
+  const startDate = params.dueDate ?? new Date();
+  const plan = params.priceIsPerPeriod
+    ? enrolmentChargePlan(
+        {
+          name: params.description,
+          amount: params.amount,
+          billingFrequency: params.frequency ?? BillingFrequency.ONCE,
+          allowInstalments: Boolean(params.allowInstalments),
+          instalmentCount: params.instalmentCount,
+          customScheduleJson: params.customSchedule,
+          dueDayOfMonth: params.dueDayOfMonth,
+          priceIsPerPeriod: true,
+          invoiceYearly: params.invoiceYearly,
+          yearlyDiscountPercent: params.yearlyDiscountPercent,
+        },
+        { startDate, yearStart: startDate, termCount: 4 }
+      )
+    : null;
+  const description = plan && !params.preserveDescription ? plan.description : params.description;
+  const billedAmount = plan?.billedAmount ?? params.amount;
+  const planned =
+    plan?.instalments ??
+    planInstalments({
+      amount: params.amount,
+      frequency: params.frequency ?? BillingFrequency.ONCE,
+      allowInstalments: Boolean(params.allowInstalments || (params.instalmentCount ?? 1) > 1),
+      instalmentCount: params.instalmentCount,
+      customSchedule: params.customSchedule,
+      startDate,
+      yearStart: startDate,
+      dueDayOfMonth: params.dueDayOfMonth,
+    });
+
   const invoiceNumber = await generateInvoiceNumber(params.schoolId, () =>
     prisma.invoice.count({ where: { schoolId: params.schoolId } })
   );
   const { subtotal, total } = calculateInvoiceTotals(
-    [{ quantity: 1, unitPrice: params.amount }],
+    [{ quantity: 1, unitPrice: billedAmount }],
     0
   );
-  const startDate = params.dueDate ?? new Date();
-  const planned = planInstalments({
-    amount: params.amount,
-    frequency: params.frequency ?? BillingFrequency.ONCE,
-    allowInstalments: Boolean(params.allowInstalments || (params.instalmentCount ?? 1) > 1),
-    instalmentCount: params.instalmentCount,
-    customSchedule: params.customSchedule,
-    startDate,
-    yearStart: startDate,
-    dueDayOfMonth: params.dueDayOfMonth,
-  });
   const invoice = await prisma.invoice.create({
     data: {
       schoolId: params.schoolId,
       studentId: params.studentId,
       invoiceNumber,
-      description: params.description,
+      description,
       subtotal,
       discount: 0,
       total,
@@ -255,10 +307,10 @@ export async function createManualStudentCharge(params: {
       lineItems: {
         create: [
           {
-            description: params.description,
+            description,
             quantity: 1,
-            unitPrice: params.amount,
-            amount: params.amount,
+            unitPrice: billedAmount,
+            amount: billedAmount,
           },
         ],
       },
@@ -271,9 +323,9 @@ export async function createManualStudentCharge(params: {
       studentId: params.studentId,
       academicYearId: params.academicYearId ?? null,
       invoiceId: invoice.id,
-      source: params.source ?? FeeChargeSource.MANUAL_CHARGE,
-      description: params.description,
-      amount: params.amount,
+      source,
+      description,
+      amount: billedAmount,
       idempotencyKey: key,
       feeStructureId: params.feeStructureId ?? null,
       instalments: {
@@ -291,8 +343,8 @@ export async function createManualStudentCharge(params: {
     studentId: params.studentId,
     academicYearId: params.academicYearId,
     type: StudentLedgerType.CHARGE,
-    description: params.description,
-    amount: params.amount,
+    description,
+    amount: billedAmount,
     reference: invoiceNumber,
     invoiceId: invoice.id,
     recordedById: params.recordedById,

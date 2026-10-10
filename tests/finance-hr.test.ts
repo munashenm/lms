@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { AccrualMethod, LeaveType, RecurringInterval, FeeChargeSource, BillingFrequency, UserRole, ApprovalStatus } from "@prisma/client";
 import { splitInstalmentAmounts, roundMoney, addMoney } from "@/lib/money";
+import { formatZAR } from "@/lib/utils";
 import { amountInWordsZar } from "@/lib/amount-in-words";
 import {
   chargeIdempotencyKey,
+  enrolmentChargePlan,
   feeStructureApplies,
   instalmentCountFor,
   planInstalments,
+  registrationChargeKey,
   type EnrolmentFeeContext,
 } from "@/lib/fee-matching";
+import { feeStructureRuleError, yearlySettlementAmount } from "@/lib/fee-pricing";
 import { calculateEmployeePay, EMPTY_PAYROLL_RULES, namedAmountText, parseNamedAmountText, parsePayrollRules } from "@/lib/payroll-engine";
 import { hoursBetweenHhmm, parseClockPunches } from "@/lib/clock-hours";
 import { hasPermission } from "@/lib/rbac";
@@ -129,6 +133,151 @@ describe("fee matching", () => {
     const b = chargeIdempotencyKey("stu", "fee", "year");
     expect(a).toBe(b);
     expect(chargeIdempotencyKey("stu", "fee", "year-2")).not.toBe(a);
+  });
+
+  it("applies registration once for the whole enrolment", () => {
+    expect(
+      feeStructureApplies(
+        fee({ chargeSource: FeeChargeSource.REGISTRATION_FEE, gradeId: null, academicYearId: null }),
+        { ...ctx, gradeId: null, courseId: null }
+      )
+    ).toBe(true);
+    expect(
+      feeStructureApplies(
+        fee({ chargeSource: FeeChargeSource.REGISTRATION_FEE, gradeId: "g11" }),
+        ctx
+      )
+    ).toBe(false);
+    expect(registrationChargeKey("stu")).toBe("fee:stu:registration");
+    expect(registrationChargeKey("stu")).not.toBe(chargeIdempotencyKey("stu", "fee", "year"));
+  });
+
+  it("prices a monthly fee per period and discounts the yearly settlement", () => {
+    expect(yearlySettlementAmount(1000, 12, 10)).toBe(10800);
+    const monthly = planInstalments({
+      amount: 1000,
+      frequency: BillingFrequency.MONTHLY,
+      allowInstalments: true,
+      amountIsPerPeriod: true,
+      yearlyDiscountPercent: 10,
+      startDate: ctx.startDate,
+      yearStart: ctx.yearStart,
+    });
+    expect(monthly).toHaveLength(12);
+    expect(monthly.every((row) => row.amount === 1000)).toBe(true);
+
+    const settled = planInstalments({
+      amount: 1000,
+      frequency: BillingFrequency.MONTHLY,
+      allowInstalments: false,
+      amountIsPerPeriod: true,
+      invoiceYearly: true,
+      yearlyDiscountPercent: 10,
+      startDate: ctx.startDate,
+      yearStart: ctx.yearStart,
+    });
+    expect(settled).toEqual([expect.objectContaining({ sequence: 1, amount: 10800 })]);
+
+    const plan = enrolmentChargePlan(
+      {
+        name: "Grade 10 tuition",
+        amount: 1000,
+        billingFrequency: BillingFrequency.MONTHLY,
+        allowInstalments: true,
+        priceIsPerPeriod: true,
+        invoiceYearly: false,
+        yearlyDiscountPercent: 10,
+      },
+      ctx
+    );
+    expect(plan.billedAmount).toBe(12000);
+    expect(plan.instalments).toHaveLength(12);
+    expect(plan.description).toContain("10%");
+    expect(plan.description).toContain(formatZAR(10800));
+  });
+
+  it("keeps an annual total when the amount is not a price per period", () => {
+    const plan = enrolmentChargePlan(
+      {
+        name: "Tuition",
+        amount: 12000,
+        billingFrequency: BillingFrequency.MONTHLY,
+        allowInstalments: true,
+        priceIsPerPeriod: false,
+      },
+      ctx
+    );
+    expect(plan.billedAmount).toBe(12000);
+    expect(plan.instalments).toHaveLength(12);
+    expect(plan.instalments[0].amount).toBe(1000);
+    expect(plan.description).toBe("Tuition");
+  });
+});
+
+describe("fee structure rules", () => {
+  it("accepts once-off registration and a monthly grade fee with a yearly discount", () => {
+    expect(
+      feeStructureRuleError({
+        chargeSource: FeeChargeSource.REGISTRATION_FEE,
+        billingFrequency: BillingFrequency.ONCE,
+      })
+    ).toBeNull();
+    expect(
+      feeStructureRuleError({
+        chargeSource: FeeChargeSource.GRADE_FEE,
+        billingFrequency: BillingFrequency.MONTHLY,
+        priceIsPerPeriod: true,
+        gradeId: "g10",
+        yearlyDiscountPercent: 10,
+      })
+    ).toBeNull();
+    expect(
+      feeStructureRuleError({
+        chargeSource: FeeChargeSource.CLASS_FEE,
+        billingFrequency: BillingFrequency.ONCE,
+      })
+    ).toBeNull();
+  });
+
+  it("rejects a second registration cycle, a missing scope, and a discount on a yearly fee", () => {
+    expect(
+      feeStructureRuleError({
+        chargeSource: FeeChargeSource.REGISTRATION_FEE,
+        billingFrequency: BillingFrequency.MONTHLY,
+      })
+    ).toMatch(/once-off/);
+    expect(
+      feeStructureRuleError({
+        chargeSource: FeeChargeSource.COURSE_FEE,
+        billingFrequency: BillingFrequency.QUARTERLY,
+        priceIsPerPeriod: true,
+      })
+    ).toMatch(/programme/);
+    expect(
+      feeStructureRuleError({
+        chargeSource: FeeChargeSource.MODULE_FEE,
+        billingFrequency: BillingFrequency.HALF_YEARLY,
+        priceIsPerPeriod: true,
+        courseId: "prog",
+        moduleId: "mod",
+      })
+    ).toMatch(/cannot also target/);
+    expect(
+      feeStructureRuleError({
+        chargeSource: FeeChargeSource.GRADE_FEE,
+        billingFrequency: BillingFrequency.YEARLY,
+        priceIsPerPeriod: true,
+        gradeId: "g10",
+        yearlyDiscountPercent: 10,
+      })
+    ).toMatch(/more often than once a year/);
+    expect(
+      feeStructureRuleError({
+        chargeSource: FeeChargeSource.HOSTEL_FEE,
+        billingFrequency: BillingFrequency.YEARLY,
+        yearlyDiscountPercent: 5,
+      })
+    ).toMatch(/price per period/);
   });
 });
 

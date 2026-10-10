@@ -7,6 +7,7 @@ import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 import { BillingFrequency, FeeChargeSource } from "@prisma/client";
+import { feeStructureRuleError, normalizeYearlyDiscount, structuredAllowInstalments } from "@/lib/fee-pricing";
 
 const schema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -18,6 +19,9 @@ const schema = z.object({
   instalmentCount: z.coerce.number().int().positive().optional().nullable(),
   isActive: z.boolean().optional(),
   applyOnEnrolment: z.boolean().optional(),
+  priceIsPerPeriod: z.boolean().optional(),
+  invoiceYearly: z.boolean().optional(),
+  yearlyDiscountPercent: z.coerce.number().min(0).max(100).optional().nullable(),
 });
 
 interface Params {
@@ -38,7 +42,36 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (denied) return denied;
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ message: "Invalid data" }, { status: 400 });
-  const item = await prisma.feeStructure.update({ where: { id }, data: parsed.data });
+  const discount =
+    parsed.data.yearlyDiscountPercent !== undefined
+      ? normalizeYearlyDiscount(parsed.data.yearlyDiscountPercent)
+      : existing.yearlyDiscountPercent == null
+        ? null
+        : Number(existing.yearlyDiscountPercent);
+  if (discount === "invalid") {
+    return NextResponse.json({ message: "Yearly discount must be between 0 and 100." }, { status: 400 });
+  }
+  const rule = {
+    chargeSource: parsed.data.chargeSource ?? existing.chargeSource,
+    billingFrequency: parsed.data.billingFrequency ?? existing.billingFrequency,
+    priceIsPerPeriod: parsed.data.priceIsPerPeriod ?? existing.priceIsPerPeriod,
+    invoiceYearly: parsed.data.invoiceYearly ?? existing.invoiceYearly,
+    yearlyDiscountPercent: discount,
+    allowInstalments: parsed.data.allowInstalments ?? existing.allowInstalments,
+    gradeId: existing.gradeId,
+    courseId: existing.courseId,
+    moduleId: existing.moduleId,
+  };
+  const ruleError = feeStructureRuleError(rule);
+  if (ruleError) return NextResponse.json({ message: ruleError }, { status: 400 });
+  const item = await prisma.feeStructure.update({
+    where: { id },
+    data: {
+      ...parsed.data,
+      ...(parsed.data.yearlyDiscountPercent !== undefined ? { yearlyDiscountPercent: discount } : {}),
+      allowInstalments: structuredAllowInstalments(rule, rule.allowInstalments),
+    },
+  });
   await logAudit({
     schoolId: existing.schoolId,
     userId: session.userId,

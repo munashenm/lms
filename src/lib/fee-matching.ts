@@ -3,7 +3,12 @@ import {
   FeeChargeSource,
   type FeeStructure,
 } from "@prisma/client";
-import { splitInstalmentAmounts } from "./money";
+import { addMoney, splitInstalmentAmounts } from "./money";
+import {
+  feeBillingDescription,
+  periodCountFor,
+  yearlySettlementAmount,
+} from "./fee-pricing";
 
 export interface EnrolmentFeeContext {
   schoolId: string;
@@ -61,7 +66,8 @@ export function feeStructureApplies(fee: FeeStructureMatch, ctx: EnrolmentFeeCon
       if (fee.gradeId && fee.gradeId !== ctx.gradeId) return false;
       if (fee.classId && fee.classId !== ctx.classId) return false;
       if (fee.courseId && fee.courseId !== ctx.courseId) return false;
-      return Boolean(ctx.gradeId || ctx.courseId);
+      if (fee.moduleId && !ctx.moduleIds.includes(fee.moduleId)) return false;
+      return true;
     case FeeChargeSource.HOSTEL_FEE:
       return Boolean(ctx.hostel);
     case FeeChargeSource.TRANSPORT_FEE:
@@ -116,7 +122,37 @@ export function planInstalments(params: {
   yearStart: Date;
   dueDayOfMonth?: number | null;
   termCount?: number;
+  /** When true, amount is the price of one billing period rather than the annual total. */
+  amountIsPerPeriod?: boolean;
+  yearlyDiscountPercent?: number | null;
+  invoiceYearly?: boolean;
 }): PlannedInstalment[] {
+  if (params.amountIsPerPeriod) {
+    const periods = periodCountFor(params.frequency, params.termCount);
+    const settleYearly = Boolean(params.invoiceYearly) || periods <= 1;
+    if (settleYearly) {
+      return [
+        {
+          sequence: 1,
+          amount: yearlySettlementAmount(params.amount, periods, params.yearlyDiscountPercent),
+          dueDate: params.startDate,
+        },
+      ];
+    }
+    return Array.from({ length: periods }, (_, index) => ({
+      sequence: index + 1,
+      amount: roundPeriod(params.amount),
+      dueDate: instalmentDueDate({
+        index,
+        count: periods,
+        frequency: params.frequency,
+        startDate: params.startDate,
+        yearStart: params.yearStart,
+        dueDayOfMonth: params.dueDayOfMonth,
+      }),
+    }));
+  }
+
   const custom = params.customSchedule ?? [];
   if (params.allowInstalments && params.frequency === BillingFrequency.CUSTOM && custom.length > 0) {
     return custom.map((row, i) => ({
@@ -146,6 +182,60 @@ export function planInstalments(params: {
       dueDayOfMonth: params.dueDayOfMonth,
     }),
   }));
+}
+
+function roundPeriod(amount: number): number {
+  return yearlySettlementAmount(amount, 1, 0);
+}
+
+export function enrolmentChargePlan(
+  fee: {
+    name: string;
+    amount: number | { toString(): string };
+    billingFrequency: BillingFrequency;
+    allowInstalments: boolean;
+    instalmentCount?: number | null;
+    customScheduleJson?: unknown;
+    dueDayOfMonth?: number | null;
+    priceIsPerPeriod?: boolean;
+    invoiceYearly?: boolean;
+    yearlyDiscountPercent?: number | { toString(): string } | null;
+  },
+  schedule: { startDate: Date; yearStart: Date; termCount?: number }
+): { instalments: PlannedInstalment[]; billedAmount: number; description: string } {
+  const amount = Number(fee.amount);
+  const discount =
+    fee.yearlyDiscountPercent == null ? null : Number(fee.yearlyDiscountPercent);
+  const custom = Array.isArray(fee.customScheduleJson)
+    ? (fee.customScheduleJson as Array<{ dueDate?: string; amount?: number; dueOffsetDays?: number }>)
+    : null;
+  const instalments = planInstalments({
+    amount,
+    frequency: fee.billingFrequency,
+    allowInstalments: fee.allowInstalments,
+    instalmentCount: fee.instalmentCount,
+    customSchedule: custom,
+    startDate: schedule.startDate,
+    yearStart: schedule.yearStart,
+    dueDayOfMonth: fee.dueDayOfMonth,
+    termCount: schedule.termCount,
+    amountIsPerPeriod: Boolean(fee.priceIsPerPeriod),
+    yearlyDiscountPercent: discount,
+    invoiceYearly: Boolean(fee.invoiceYearly),
+  });
+  return {
+    instalments,
+    billedAmount: addMoney(...instalments.map((row) => row.amount)),
+    description: feeBillingDescription({
+      name: fee.name,
+      amount,
+      frequency: fee.billingFrequency,
+      priceIsPerPeriod: fee.priceIsPerPeriod,
+      invoiceYearly: fee.invoiceYearly,
+      yearlyDiscountPercent: discount,
+      termCount: schedule.termCount,
+    }),
+  };
 }
 
 function instalmentDueDate(params: {
@@ -205,4 +295,9 @@ export function chargeIdempotencyKey(
   academicYearId: string
 ): string {
   return `fee:${studentId}:${feeStructureId}:${academicYearId}`;
+}
+
+/** One registration charge for the whole enrolment, across every academic year. */
+export function registrationChargeKey(studentId: string): string {
+  return `fee:${studentId}:registration`;
 }
