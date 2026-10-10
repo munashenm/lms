@@ -475,8 +475,9 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
         <CardHeader>
           <CardTitle className="text-base">Absence notifications</CardTitle>
           <p className="text-sm text-muted">
-            When enabled, primary guardians with a phone number receive an SMS if a learner is
-            marked absent or sick (requires Twilio in Integrations).
+            Absent and late alerts appear in the parent portal. Each parent can turn those off
+            per child. When this box is on, guardians who still want absence alerts and have a
+            phone number also receive an SMS for absent or sick (requires Twilio in Integrations).
           </p>
         </CardHeader>
         <CardContent>

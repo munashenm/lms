@@ -1,5 +1,6 @@
 import { AttendanceStatus, type Prisma } from "@prisma/client";
 import { prisma } from "./db";
+import { addUtcDays, johannesburgDayStart } from "./school-day";
 
 export const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, string> = {
   PRESENT: "Present",
@@ -49,7 +50,7 @@ export async function getAttendanceDashboard(params: {
   threshold?: number;
 }) {
   const day = params.date ?? new Date();
-  const dayStart = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()));
+  const dayStart = johannesburgDayStart(day);
 
   const studentWhere: Prisma.StudentWhereInput = {
     schoolId: params.schoolId,
@@ -81,7 +82,7 @@ export async function getAttendanceDashboard(params: {
           where: {
             ...recordWhere,
             date: {
-              gte: new Date(new Date(dayStart).setDate(dayStart.getDate() - 30)),
+              gte: addUtcDays(dayStart, -30),
             },
           },
           select: { status: true, studentId: true },

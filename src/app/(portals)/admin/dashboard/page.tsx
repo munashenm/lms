@@ -19,6 +19,8 @@ import { SYSTEM_MODULES } from "@/lib/modules";
 import { needsSuperAdminSchoolPicker, resolveLicenseSchoolId } from "@/lib/licensing/enforce";
 import { getSchoolSetupProgress } from "@/lib/school-setup";
 import { SchoolSetupChecklist } from "@/components/admin/school-setup-checklist";
+import { summarizeInvoices } from "@/lib/invoice-summary";
+import { getAttendanceDashboard } from "@/lib/attendance";
 
 interface PageProps {
   searchParams: Promise<{ schoolId?: string }>;
@@ -32,7 +34,7 @@ async function getDashboardData(schoolId: string | null) {
     activeStudents,
     totalTeachers,
     totalClasses,
-    outstanding,
+    invoiceRows,
     recentStudents,
     announcements,
     enrollmentData,
@@ -42,12 +44,9 @@ async function getDashboardData(schoolId: string | null) {
     prisma.student.count({ where: { ...filter, status: "ACTIVE" } }),
     prisma.teacher.count({ where: filter }),
     prisma.class.count({ where: { ...filter, isActive: true } }),
-    prisma.invoice.aggregate({
-      where: {
-        ...filter,
-        status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] },
-      },
-      _sum: { total: true, amountPaid: true },
+    prisma.invoice.findMany({
+      where: filter,
+      select: { status: true, total: true, amountPaid: true, dueDate: true },
     }),
     prisma.student.findMany({
       where: filter,
@@ -64,15 +63,21 @@ async function getDashboardData(schoolId: string | null) {
     getMonthlyFeeCollection(filter),
   ]);
 
-  const outstandingAmount =
-    Number(outstanding._sum.total ?? 0) - Number(outstanding._sum.amountPaid ?? 0);
-
-  const overdueCount = await prisma.invoice.count({
-    where: { ...filter, status: "OVERDUE" },
-  });
+  const fees = summarizeInvoices(invoiceRows);
+  const attendance = schoolId
+    ? await getAttendanceDashboard({ schoolId })
+    : null;
 
   return {
-    stats: { totalStudents, activeStudents, totalTeachers, totalClasses, outstandingAmount, overdueCount },
+    stats: {
+      totalStudents,
+      activeStudents,
+      totalTeachers,
+      totalClasses,
+      outstandingAmount: fees.outstanding,
+      overdueCount: fees.overdueCount,
+      attendanceToday: attendance?.today ?? null,
+    },
     enrollmentData,
     feeData,
     recentStudents,
@@ -389,7 +394,10 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
           value={stats.totalStudents}
           subtitle={`${stats.activeStudents} active`}
           icon={Users}
-          trend={{ value: "+12% this term", positive: true }}
+          trend={stats.attendanceToday ? {
+            value: `${stats.attendanceToday.present} present · ${stats.attendanceToday.absent + stats.attendanceToday.sick} absent · ${stats.attendanceToday.late} late`,
+            positive: stats.attendanceToday.absent + stats.attendanceToday.sick === 0,
+          } : undefined}
         />
         <StatCard
           title="Staff Members"

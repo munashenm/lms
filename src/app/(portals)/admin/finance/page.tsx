@@ -6,7 +6,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { InvoiceList } from "@/components/finance/invoice-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getOutstandingBalance } from "@/lib/finance";
+import { summarizeInvoices } from "@/lib/invoice-summary";
 import { formatZAR } from "@/lib/utils";
 import { CreditCard, FileText, TrendingDown, Wallet } from "lucide-react";
 
@@ -39,11 +39,7 @@ export default async function AdminFinancePage() {
 
   const totalBilled = invoices.reduce((s, i) => s + Number(i.total), 0);
   const totalCollected = invoices.reduce((s, i) => s + Number(i.amountPaid), 0);
-  const totalOutstanding = invoices.reduce(
-    (s, i) => s + getOutstandingBalance(Number(i.total), Number(i.amountPaid)),
-    0
-  );
-  const overdueCount = invoices.filter((i) => i.status === "OVERDUE").length;
+  const { outstanding: totalOutstanding, overdueCount } = summarizeInvoices(invoices);
 
   const recentInvoices = invoices.slice(0, 8).map((i) => ({
     ...i,

@@ -6,6 +6,21 @@ import { prisma } from "./db";
 import { getOutstandingBalance } from "./finance";
 import { formatDate, formatZAR } from "./utils";
 import { sendLoggedEmail, sendLoggedSms } from "./communications";
+import { notifyUser } from "./notifications";
+import { addUtcDays, johannesburgDayStart } from "./school-day";
+
+/** Retry a missed or failed reminder for this many extra Johannesburg days. */
+export const FEE_REMINDER_CATCHUP_DAYS = 2;
+
+export function reminderDueWindows(asOf: Date, daysOffset: number, catchup = FEE_REMINDER_CATCHUP_DAYS) {
+  const start = johannesburgDayStart(asOf);
+  const windows = [];
+  for (let late = 0; late <= catchup; late += 1) {
+    const from = addUtcDays(start, -daysOffset - late);
+    windows.push({ from, to: addUtcDays(from, 1) });
+  }
+  return windows;
+}
 
 export const DEFAULT_FEE_REMINDER_RULES: {
   name: string;
@@ -26,13 +41,7 @@ export function describeDaysOffset(daysOffset: number): string {
 }
 
 function startOfDay(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-}
-
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setUTCDate(d.getUTCDate() + days);
-  return startOfDay(d);
+  return johannesburgDayStart(date);
 }
 
 function renderTemplate(
@@ -95,15 +104,13 @@ export async function runFeeReminderRules(params?: {
     for (const rule of rules) {
       if (schoolSent >= limit) break;
 
-      // Target due date for this rule relative to today
-      const targetDue = addDays(asOf, -rule.daysOffset);
-      const nextDay = addDays(targetDue, 1);
+      const windows = reminderDueWindows(asOf, rule.daysOffset);
 
       const invoices = await prisma.invoice.findMany({
         where: {
           schoolId: school.id,
           status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] },
-          dueDate: { gte: targetDue, lt: nextDay },
+          OR: windows.map((window) => ({ dueDate: { gte: window.from, lt: window.to } })),
         },
         include: {
           student: {
@@ -123,6 +130,7 @@ export async function runFeeReminderRules(params?: {
                       lastName: true,
                       phone: true,
                       email: true,
+                      userId: true,
                     },
                   },
                 },
@@ -190,16 +198,6 @@ export async function runFeeReminderRules(params?: {
 
           if (!contact) {
             summary.failed += 1;
-            await prisma.feeReminderDispatch.create({
-              data: {
-                schoolId: school.id,
-                ruleId: rule.id,
-                invoiceId: invoice.id,
-                studentId: invoice.studentId,
-                channel,
-                communicationLogId: null,
-              },
-            });
             continue;
           }
 
@@ -243,6 +241,7 @@ ${vars.schoolName} Accounts Department`;
                 schoolSent += 1;
               } else {
                 summary.failed += 1;
+                continue;
               }
             } else {
               const log = await sendLoggedEmail({
@@ -266,6 +265,7 @@ ${vars.schoolName} Accounts Department`;
                 schoolSent += 1;
               } else {
                 summary.failed += 1;
+                continue;
               }
             }
 
@@ -279,6 +279,43 @@ ${vars.schoolName} Accounts Department`;
                 communicationLogId: logId,
               },
             });
+          } catch {
+            summary.failed += 1;
+          }
+        }
+
+        const guardianUserId = guardian?.userId ?? null;
+        if (guardianUserId && schoolSent < limit) {
+          try {
+            const portalKey = {
+              ruleId: rule.id,
+              invoiceId: invoice.id,
+              channel: "PORTAL",
+            };
+            const existingPortal = await prisma.feeReminderDispatch.findUnique({
+              where: { ruleId_invoiceId_channel: portalKey },
+            });
+            if (!existingPortal) {
+              await notifyUser({
+                userId: guardianUserId,
+                schoolId: school.id,
+                title: rule.daysOffset > 0 ? "Overdue school fees" : "School fee reminder",
+                message: `${vars.studentName} has ${vars.balance} outstanding on invoice ${vars.invoiceNumber} (due ${vars.dueDate}).`,
+                type: "FEE",
+                link: "/parent/fees",
+              });
+              await prisma.feeReminderDispatch.create({
+                data: {
+                  schoolId: school.id,
+                  ruleId: rule.id,
+                  invoiceId: invoice.id,
+                  studentId: invoice.studentId,
+                  channel: "PORTAL",
+                },
+              });
+              summary.sent += 1;
+              schoolSent += 1;
+            }
           } catch {
             summary.failed += 1;
           }

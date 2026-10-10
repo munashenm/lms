@@ -22,6 +22,7 @@ const schema = z.object({
   pensionEmployerPercent: percent.optional(),
   medicalEmployeePercent: percent.optional(),
   sdlEmployerPercent: percent.optional(),
+  uifMonthlyCeiling: z.coerce.number().min(0).max(10_000_000).optional(),
 });
 
 export async function GET() {
@@ -62,6 +63,7 @@ export async function POST(request: NextRequest) {
     pensionEmployerPercent: parsed.data.pensionEmployerPercent ?? 0,
     medicalEmployeePercent: parsed.data.medicalEmployeePercent ?? 0,
     sdlEmployerPercent: parsed.data.sdlEmployerPercent ?? 0,
+    uifMonthlyCeiling: parsed.data.uifMonthlyCeiling ?? 0,
   };
   await prisma.payrollRuleSet.updateMany({
     where: { schoolId, isActive: true },

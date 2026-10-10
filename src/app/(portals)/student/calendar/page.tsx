@@ -2,9 +2,9 @@ import { InstalmentStatus } from "@prisma/client";
 import { getSession } from "@/lib/auth";
 import { getStudentForSession } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDate } from "@/lib/utils";
 import { DAYS_ORDER } from "@/lib/portal-data";
+import { AcademicCalendarList } from "@/components/calendar/academic-calendar-list";
+import { calendarKindForAssessment, type CalendarEntry } from "@/lib/academic-calendar";
 import { getTerminology } from "@/lib/terminology";
 import { calendarAssessmentLabel } from "@/lib/learner-portal";
 
@@ -16,7 +16,7 @@ export default async function StudentCalendarPage() {
 
   const terms = getTerminology(student?.school.institutionType);
 
-  const [assessments, instalments, termRows, announcements] = student
+  const [assessments, instalments, termRows, announcements, schoolEvents] = student
     ? await Promise.all([
         prisma.assessment.findMany({
           where: {
@@ -52,12 +52,18 @@ export default async function StudentCalendarPage() {
           orderBy: { publishAt: "asc" },
           take: 20,
         }),
+        prisma.schoolEvent.findMany({
+          where: { schoolId: student.schoolId, startsAt: { gte: now, lte: horizon } },
+          orderBy: { startsAt: "asc" },
+          take: 20,
+        }),
       ])
-    : [[], [], [], []];
+    : [[], [], [], [], []];
 
-  const events = [
+  const events: CalendarEntry[] = [
     ...assessments.map((a) => ({
       date: a.dueDate!,
+      kind: calendarKindForAssessment(a.type),
       label: calendarAssessmentLabel({
         type: a.type,
         title: a.title,
@@ -67,15 +73,17 @@ export default async function StudentCalendarPage() {
     })),
     ...instalments.map((row) => ({
       date: row.dueDate,
+      kind: "DEADLINE" as const,
       label: `Payment: ${row.charge.description}`,
-      detail: null as string | null,
+      detail: null,
     })),
     ...termRows.flatMap((term) => [
-      { date: term.startDate, label: `${term.name} starts`, detail: null },
-      { date: term.endDate, label: `${term.name} ends`, detail: null },
+      { date: term.startDate, kind: "EVENT" as const, label: `${term.name} starts`, detail: null },
+      { date: term.endDate, kind: "EVENT" as const, label: `${term.name} ends`, detail: null },
     ]),
-    ...announcements.map((a) => ({ date: a.publishAt, label: `Event/notice: ${a.title}`, detail: null })),
-  ].sort((a, b) => a.date.getTime() - b.date.getTime());
+    ...announcements.map((a) => ({ date: a.publishAt, kind: "EVENT" as const, label: a.title, detail: "Notice" })),
+    ...schoolEvents.map((event) => ({ date: event.startsAt, kind: "EVENT" as const, label: event.title, detail: "School event" })),
+  ];
 
   return (
     <div className="space-y-6">
@@ -85,24 +93,7 @@ export default async function StudentCalendarPage() {
           Classes follow {DAYS_ORDER.slice(0, 5).join(", ").toLowerCase()}. Upcoming assessments, payments and {terms.period.toLowerCase()} dates are listed below.
         </p>
       </div>
-      <Card>
-        <CardHeader><CardTitle className="text-base">Upcoming</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {events.length === 0 ? (
-            <p className="text-sm text-muted">Nothing scheduled in the next 60 days.</p>
-          ) : (
-            events.map((event, index) => (
-              <div key={`${event.label}-${index}`} className="flex justify-between gap-3 text-sm border-b border-border pb-2 last:border-0">
-                <div>
-                  <p className="font-medium">{event.label}</p>
-                  {event.detail ? <p className="text-xs text-muted">{event.detail}</p> : null}
-                </div>
-                <p className="text-muted shrink-0">{formatDate(event.date)}</p>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <AcademicCalendarList entries={events} />
     </div>
   );
 }

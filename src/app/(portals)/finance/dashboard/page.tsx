@@ -6,7 +6,8 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { InvoiceList } from "@/components/finance/invoice-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { COLLECTED_PAYMENT_WHERE, getOutstandingBalance } from "@/lib/finance";
+import { COLLECTED_PAYMENT_WHERE } from "@/lib/finance";
+import { summarizeInvoices } from "@/lib/invoice-summary";
 import { formatZAR } from "@/lib/utils";
 import { CreditCard, FileText, TrendingDown, Wallet } from "lucide-react";
 import { FinancePositionChart } from "@/components/finance/finance-position-chart";
@@ -58,11 +59,7 @@ export default async function FinanceDashboardPage() {
 
   const totalBilled = invoices.reduce((s, i) => s + Number(i.total), 0);
   const totalCollected = invoices.reduce((s, i) => s + Number(i.amountPaid), 0);
-  const totalOutstanding = invoices.reduce(
-    (s, i) => s + getOutstandingBalance(Number(i.total), Number(i.amountPaid)),
-    0
-  );
-  const overdueCount = invoices.filter((i) => i.status === "OVERDUE").length;
+  const { outstanding: totalOutstanding, overdueCount } = summarizeInvoices(invoices);
   const totalIncome = ledger.filter((e) => e.type === "INCOME").reduce((s, e) => s + Number(e.amount), 0) + totalCollected;
   const totalExpenses = ledger.filter((e) => e.type === "EXPENSE").reduce((s, e) => s + Number(e.amount), 0);
   const collectionRate = totalBilled > 0 ? (totalCollected / totalBilled) * 100 : 0;
