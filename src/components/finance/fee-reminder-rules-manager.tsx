@@ -162,7 +162,9 @@ export function FeeReminderRulesManager({
           <div>
             <CardTitle>Automated reminder rules</CardTitle>
             <p className="text-sm text-muted mt-1">
-              Schedule reminders relative to invoice due dates. Negative days =
+              Schedule reminders relative to invoice due dates. Due dates use the Johannesburg day,
+              and a missed send is retried for two extra days. A parent with a portal login also
+              gets an overdue or reminder notice there. Negative days =
               before due; positive = overdue. Templates support{" "}
               <code className="text-xs">{"{{studentName}}"}</code>,{" "}
               <code className="text-xs">{"{{balance}}"}</code>,{" "}

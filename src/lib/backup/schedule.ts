@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { runBackupJob } from "./engine";
 import { notifySchoolRoles } from "@/lib/notifications";
 import { UserRole } from "@prisma/client";
+import { sanitizeSchedulerError } from "@/lib/scheduler/catalog";
 
 const DEFAULTS: Record<BackupScheduleFrequency, number> = {
   DAILY: 14,
@@ -55,7 +56,14 @@ export async function runDueBackupSchedules(now = new Date()) {
       });
       await pruneBackups(schedule.schoolId, schedule.frequency, schedule.retainCount);
       results.push({ schoolId: schedule.schoolId, frequency: schedule.frequency, ok: true });
-    } catch {
+    } catch (error) {
+      const detail = sanitizeSchedulerError(error);
+      await notifyBackupIssue({
+        schoolId: schedule.schoolId,
+        title: "Backup failed",
+        message: `The ${schedule.frequency.toLowerCase()} backup did not finish. ${detail}`,
+        now,
+      });
       results.push({ schoolId: schedule.schoolId, frequency: schedule.frequency, ok: false });
     }
   }
@@ -78,6 +86,30 @@ export async function pruneBackups(
   }
 }
 
+async function notifyBackupIssue(params: {
+  schoolId: string;
+  title: string;
+  message: string;
+  now: Date;
+}) {
+  const recent = await prisma.notification.findFirst({
+    where: {
+      schoolId: params.schoolId,
+      title: params.title,
+      createdAt: { gte: new Date(params.now.getTime() - 20 * 60 * 60 * 1000) },
+    },
+  });
+  if (recent) return;
+  await notifySchoolRoles({
+    schoolId: params.schoolId,
+    roles: [UserRole.SCHOOL_ADMIN, UserRole.SUPER_ADMIN],
+    title: params.title,
+    message: params.message,
+    type: "WARNING",
+    link: "/admin/settings/backup",
+  });
+}
+
 export async function flagOverdueBackups(now = new Date()) {
   const schedules = await prisma.backupSchedule.findMany({
     where: { enabled: true },
@@ -86,13 +118,11 @@ export async function flagOverdueBackups(now = new Date()) {
     if (!schedule.nextRunAt) continue;
     const overdueMs = now.getTime() - schedule.nextRunAt.getTime();
     if (overdueMs > 36 * 60 * 60 * 1000) {
-      await notifySchoolRoles({
+      await notifyBackupIssue({
         schoolId: schedule.schoolId,
-        roles: [UserRole.SCHOOL_ADMIN, UserRole.SUPER_ADMIN],
         title: "Backup overdue",
         message: "A scheduled backup has not completed within the expected period.",
-        type: "WARNING",
-        link: "/admin/settings/backup",
+        now,
       });
     }
   }

@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
   if (schoolId) {
     const { notifyAbsenceAlerts } = await import("@/lib/communications");
     const absences = records.filter(
-      (r) => r.status === "ABSENT" || r.status === "SICK"
+      (r) => r.status === "ABSENT" || r.status === "SICK" || r.status === "LATE"
     );
     if (absences.length > 0) {
       absenceNotifications = await notifyAbsenceAlerts({

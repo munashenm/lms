@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { TimetableGrid } from "@/components/academics/timetable-grid";
 import { TimetableForm } from "@/components/academics/timetable-form";
 import { TimetableConflicts } from "@/components/academics/timetable-conflicts";
+import { TimetableGenerateButton } from "@/components/academics/timetable-generate-button";
 import { ClassFilter } from "@/components/academics/class-filter";
 import { resolveOwnedClassId } from "@/lib/tenant";
 
@@ -46,8 +47,11 @@ export default async function TimetablePage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Timetable</h1>
-        <p className="text-muted text-sm mt-1">Build weekly class schedules</p>
+        <p className="text-muted text-sm mt-1">
+          Generate a week from class subjects, or add periods one at a time. Teacher, class, and room clashes are blocked.
+        </p>
       </div>
+      <TimetableGenerateButton classId={selectedClass ?? undefined} />
 
       <Suspense fallback={<div className="h-10" />}>
         <ClassFilter

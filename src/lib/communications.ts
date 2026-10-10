@@ -10,6 +10,7 @@ import { createSmsProvider } from "./sms/create-provider";
 import { deliverEmail, toEmailLogFields } from "./email/deliver";
 import { sanitizeEmailDetail } from "./email/sanitize";
 import { formatDate } from "./utils";
+import { addUtcDays, johannesburgDayStart } from "./school-day";
 
 export async function logCommunication(entry: {
   schoolId: string;
@@ -154,7 +155,14 @@ export async function sendLoggedEmail(params: {
   }
 }
 
-/** Notify primary guardians by SMS when a learner is marked absent/sick. */
+function alertDayWindow(date: string | Date) {
+  const start = typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? new Date(`${date}T00:00:00.000Z`)
+    : johannesburgDayStart(date instanceof Date ? date : new Date(date));
+  return { gte: start, lt: addUtcDays(start, 1) };
+}
+
+/** Notify guardians in the parent portal, and by SMS when the school has turned that on. */
 export async function notifyAbsenceAlerts(params: {
   schoolId: string;
   date: string | Date;
@@ -164,7 +172,7 @@ export async function notifyAbsenceAlerts(params: {
     where: { id: params.schoolId },
     select: { id: true, name: true, absenceNotifyEnabled: true },
   });
-  if (!school?.absenceNotifyEnabled) return { sent: 0, skipped: true as const };
+  if (!school) return { sent: 0, skipped: true as const };
 
   const dateLabel =
     typeof params.date === "string"
@@ -174,22 +182,8 @@ export async function notifyAbsenceAlerts(params: {
   let sent = 0;
 
   for (const absence of params.absences) {
-    if (absence.status !== "ABSENT" && absence.status !== "SICK") continue;
-
-    const already = await prisma.communicationLog.findFirst({
-      where: {
-        schoolId: params.schoolId,
-        studentId: absence.studentId,
-        category: CommunicationCategory.ABSENCE_ALERT,
-        channel: CommunicationChannel.SMS,
-        createdAt: {
-          gte: new Date(new Date(params.date).setHours(0, 0, 0, 0)),
-          lt: new Date(new Date(params.date).setHours(23, 59, 59, 999)),
-        },
-        status: { in: [CommunicationStatus.SENT, CommunicationStatus.QUEUED] },
-      },
-    });
-    if (already) continue;
+    const alertKind = absence.status === "LATE" ? "late" : absence.status === "ABSENT" || absence.status === "SICK" ? "absent" : null;
+    if (!alertKind) continue;
 
     const student = await prisma.student.findUnique({
       where: { id: absence.studentId },
@@ -197,9 +191,9 @@ export async function notifyAbsenceAlerts(params: {
         firstName: true,
         lastName: true,
         guardians: {
-          where: { isPrimary: true },
+          where: alertKind === "late" ? { notifyLate: true } : { notifyAbsent: true },
           include: {
-            guardian: { select: { firstName: true, lastName: true, phone: true } },
+            guardian: { select: { firstName: true, lastName: true, phone: true, userId: true } },
           },
           take: 3,
         },
@@ -207,20 +201,48 @@ export async function notifyAbsenceAlerts(params: {
     });
     if (!student) continue;
 
-    let recipients = student.guardians
+    const links = student.guardians;
+    const { notifyUser } = await import("./notifications");
+    for (const link of links) {
+      const guardian = link.guardian;
+      if (!guardian.userId) continue;
+      const alreadyPortal = await prisma.notification.findFirst({
+        where: {
+          userId: guardian.userId,
+          type: "ATTENDANCE",
+          createdAt: alertDayWindow(params.date),
+          message: { contains: `${student.firstName} ${student.lastName}` },
+        },
+      });
+      if (alreadyPortal) continue;
+      await notifyUser({
+        userId: guardian.userId,
+        schoolId: params.schoolId,
+        title: alertKind === "late" ? "Learner arrived late" : "Learner marked absent",
+        message: `${student.firstName} ${student.lastName} was marked ${absence.status.toLowerCase()} on ${dateLabel}.`,
+        type: "ATTENDANCE",
+        link: `/parent/attendance?studentId=${absence.studentId}`,
+      });
+      sent += 1;
+    }
+
+    if (alertKind !== "absent" || !school.absenceNotifyEnabled) continue;
+
+    const already = await prisma.communicationLog.findFirst({
+      where: {
+        schoolId: params.schoolId,
+        studentId: absence.studentId,
+        category: CommunicationCategory.ABSENCE_ALERT,
+        channel: CommunicationChannel.SMS,
+        createdAt: alertDayWindow(params.date),
+        status: { in: [CommunicationStatus.SENT, CommunicationStatus.QUEUED] },
+      },
+    });
+    if (already) continue;
+
+    let recipients = links
       .map((g) => g.guardian)
       .filter((g) => Boolean(g.phone));
-
-    if (recipients.length === 0) {
-      const any = await prisma.studentGuardian.findMany({
-        where: { studentId: absence.studentId },
-        include: {
-          guardian: { select: { firstName: true, lastName: true, phone: true } },
-        },
-        take: 3,
-      });
-      recipients = any.map((g) => g.guardian).filter((g) => Boolean(g.phone));
-    }
 
     for (const guardian of recipients) {
       if (!guardian.phone) continue;

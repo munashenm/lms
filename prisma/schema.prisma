@@ -1236,6 +1236,8 @@ model StudentGuardian {
   relationship String
   isPrimary    Boolean  @default(false)
   canPickup    Boolean  @default(true)
+  notifyAbsent Boolean  @default(true)
+  notifyLate   Boolean  @default(true)
   createdAt    DateTime @default(now())
 
   student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
