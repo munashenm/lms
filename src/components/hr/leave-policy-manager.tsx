@@ -31,26 +31,30 @@ export function LeavePolicyManager(props: {
   }
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const form = e.currentTarget;
+    const data = new FormData(form);
     setLoading(true);
-    const form = new FormData(e.currentTarget);
     try {
       const res = await fetch("/api/leave-policies", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.get("name"),
-          leaveType: form.get("leaveType"),
-          daysPerYear: Number(form.get("daysPerYear")),
-          accrualMethod: form.get("accrualMethod"),
-          requiresHrApproval: form.get("requiresHrApproval") === "on",
+          name: data.get("name"),
+          leaveType: data.get("leaveType"),
+          daysPerYear: Number(data.get("daysPerYear")),
+          accrualMethod: data.get("accrualMethod"),
+          requiresHrApproval: data.get("requiresHrApproval") === "on",
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(typeof body.message === "string" ? body.message : "Could not save policy");
+      }
       toast.success("Leave policy saved");
-      e.currentTarget.reset();
+      form.reset();
       router.refresh();
-    } catch {
-      toast.error("Could not save policy");
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : "Could not save policy");
     } finally {
       setLoading(false);
     }
