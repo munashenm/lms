@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>SchoolHub-SA-Module-Inventory</title>
+<link rel="stylesheet" href="print.css" />
+</head>
+<body>
+<header class="brand">
+  <img src="logo.png" alt="SchoolHub SA" />
+  <div>
+    <p class="name">SchoolHub SA</p>
+    <p class="meta">Cyber Developers · https://www.cyberdevelopers.co.za</p>
+  </div>
+</header>
+<h1 id="schoolhub-sa--module-inventory">SchoolHub SA — module
+inventory</h1>
+<p><strong>Cyber Developers · SchoolHub SA</strong><br />
+Generated from navigation, <code>SYSTEM_MODULES</code>, pages, and
+scheduled jobs at commit <code>ca8089b</code>.<br />
+Page and API file lists: <a
+href="./appendix-pages.txt">appendix-pages.txt</a>, <a
+href="./appendix-api-routes.txt">appendix-api-routes.txt</a>.</p>
+<h2 id="product-modules-that-can-be-switched">Product modules that can
+be switched</h2>
+<p>From <code>src/lib/modules.ts</code>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Key</th>
+<th>Label</th>
+<th>Licence feature</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>students</td>
+<td>Students</td>
+<td>Core</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>admissions</td>
+<td>Admissions</td>
+<td>admissions</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>academics</td>
+<td>Academics</td>
+<td>Core</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>attendance</td>
+<td>Attendance</td>
+<td>attendance</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>assessments</td>
+<td>Assessments</td>
+<td>assessments</td>
+<td>Includes homework permission mapping</td>
+</tr>
+<tr class="even">
+<td>finance</td>
+<td>Finance</td>
+<td>finance</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>communications</td>
+<td>Communications</td>
+<td>Core menu</td>
+<td>Announcements and calendar</td>
+</tr>
+<tr class="even">
+<td>parent_portal</td>
+<td>Parent Portal</td>
+<td>parent_portal</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>student_portal</td>
+<td>Student Portal</td>
+<td>student_portal</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>website</td>
+<td>Website Management</td>
+<td>Core</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>hr</td>
+<td>HR</td>
+<td>hr_payroll</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>payroll</td>
+<td>Payroll</td>
+<td>hr_payroll</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>student_cards</td>
+<td>Student Cards</td>
+<td>Core mapping via cards permission</td>
+<td>Issued under security admin</td>
+</tr>
+<tr class="even">
+<td>transfers</td>
+<td>Transfers</td>
+<td>—</td>
+<td>Letters and promotion outcomes, not a full transfer product</td>
+</tr>
+<tr class="odd">
+<td>online_classes</td>
+<td>Online Classes</td>
+<td>online_exams</td>
+<td>Meeting URL plus online exam attempts</td>
+</tr>
+<tr class="even">
+<td>biometrics</td>
+<td>Biometrics</td>
+<td>biometrics</td>
+<td>Flag only. Scans that carry a template are denied</td>
+</tr>
+<tr class="odd">
+<td>gate_security</td>
+<td>Gate/Security</td>
+<td>—</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>visitor_management</td>
+<td>Visitor Management</td>
+<td>visitor_management</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>reports</td>
+<td>Reports</td>
+<td>reporting</td>
+<td>Also used for compliance menu mapping</td>
+</tr>
+<tr class="even">
+<td>messaging</td>
+<td>Internal Messaging</td>
+<td>messaging</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>sms</td>
+<td>SMS Gateway</td>
+<td>sms</td>
+<td>Off until configured</td>
+</tr>
+<tr class="even">
+<td>backup</td>
+<td>Backup &amp; Restore</td>
+<td>Core</td>
+<td>Scheduled run held</td>
+</tr>
+</tbody>
+</table>
+<p>Licence flags that are not product modules and default
+<strong>off</strong>: library, ai_features, whatsapp, api_access,
+advanced_analytics. SMS and biometrics also default off.</p>
+<h2 id="menus">Menus</h2>
+<h3 id="admin-getadminnav">Admin (<code>getAdminNav</code>)</h3>
+<p>Dashboard.</p>
+<p>Students: Online applications, Registration, Student details, Student
+absent request.</p>
+<p>Human Resource: Staff, Employees, Staff attendance, Staff leave,
+Timesheets, Payroll, Leave policies, HR reports.</p>
+<p>Academics: Academic sessions, Classes, Subjects, Timetable,
+Attendance, Assessments, Homework and study materials, Reports,
+Certificates, Letters, Promotion, Promotion rules.</p>
+<p>Finance: Overview, Fee schedule, Fee structures, Charges and plans,
+Invoices, New invoice, Collect fees, Payments, Student accounts,
+Debtors, Age analysis, Fee reminders, Expenses, Credits and aid, Budgets
+and projects, Income and expenses, Reports.</p>
+<p>Communication: Announcements, Messages, Calendar, Email and SMS,
+SMS.</p>
+<p>Website: Website, Admissions content.</p>
+<p>School: Documents.</p>
+<p>Security: Gate desk, Gates, Cards, Gate settings, Gate reports,
+Visitors book.</p>
+<p>Insights: Reports.</p>
+<p>Settings: Users, School settings, Licence, Backup and restore, System
+health, Compliance centre, SA-SAMS, Audit log.</p>
+<p>Super Admin control: Institutions, Licensing, Modules, Roles and
+permissions, Customers and licences.</p>
+<p>Also present as pages and not all repeated as top-level labels:
+academic rollover, learner profile, assessment detail, invoice detail,
+payroll detail, employee detail, user permissions, SA-SAMS job detail,
+backup restore.</p>
+<h3 id="finance-officer">Finance officer</h3>
+<p>Dashboard, fee schedule, structures, charges, invoices, new invoice,
+collect, payments, student accounts, debtors, age analysis, reminders,
+letters, expenses, credits and aid, ledger, reports, income, suppliers,
+accounts, plus own attendance, visitors, messages, leave, payslips,
+timesheets.</p>
+<p>Budgets and projects are on the admin finance menu.</p>
+<h3 id="hr-officer">HR officer</h3>
+<p>Dashboard, staff, employees, staff attendance, leave, timesheets,
+payroll, leave policies, HR reports, plus own attendance, visitors,
+messages, leave, payslips, timesheets.</p>
+<h3 id="educator">Educator</h3>
+<p>Today. Daily: attendance, assessments, homework, messages. Classwork:
+my classes, reports, timetable, materials, lesson plans, curriculum.
+Campus: learner leave, announcements. My work: attendance, leave,
+payslips, timesheets.</p>
+<p><code>/teacher/visitors</code> exists as a page. It is not in
+<code>getTeacherNav</code>.</p>
+<h3 id="learner">Learner</h3>
+<p>Dashboard, profile, documents, subjects, timetable, lesson plan,
+curriculum progress, homework, attendance, examinations, results,
+reports, certificates, letters, fees, notice board, messages,
+notifications, educator reviews, apply leave, download centre, academic
+calendar.</p>
+<h3 id="parent-or-sponsor">Parent or sponsor</h3>
+<p>Home, my children, fees, attendance, assessments, messages, results,
+examinations, reports, materials, timetable, academic calendar, apply
+leave, notice board, certificates, letters, download centre.</p>
+<h3 id="staff">Staff</h3>
+<p>Visitor book, messages, my attendance, my leave, my timesheets, my
+payslips.</p>
+<h3 id="security">Security</h3>
+<p>Dashboard, scan, visitors book, currently on site, expected visitors,
+missing checkouts, incidents, gate activity.</p>
+<h2 id="public-and-account-pages">Public and account pages</h2>
+<p><code>/login</code>, <code>/student/login</code>,
+<code>/parent/login</code>, <code>/{school-slug}</code>,
+<code>/{school-slug}/login</code>,
+<code>/{school-slug}/student/login</code>,
+<code>/{school-slug}/parent/login</code>,
+<code>/{school-slug}/apply</code>, <code>/apply</code>,
+<code>/apply/status</code>, <code>/forgot-password</code>,
+<code>/reset-password</code>, <code>/account/password</code>.</p>
+<p>Public content: home, about, academics, admissions, calendar,
+contact, fees, gallery, news, privacy, programmes.</p>
+<h2 id="scheduled-jobs">Scheduled jobs</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Job</th>
+<th>Intended rhythm</th>
+<th>Automatic</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Licence heartbeat</td>
+<td>Daily 15:00 UTC, startup only if already due</td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td>Backups</td>
+<td>Hourly check of due schedules</td>
+<td>No</td>
+</tr>
+<tr class="odd">
+<td>Fee reminders</td>
+<td>Daily</td>
+<td>No</td>
+</tr>
+<tr class="even">
+<td>Import cleanup</td>
+<td>Daily</td>
+<td>No</td>
+</tr>
+<tr class="odd">
+<td>Leave accrual</td>
+<td>Monthly</td>
+<td>No</td>
+</tr>
+<tr class="even">
+<td>Recurring expenses</td>
+<td>Daily</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="data-areas">Data areas</h2>
+<p>The Prisma schema covers school, campus, user, academic year, term,
+grade, subject, course, module, class, enrolment, application,
+attendance, timetable, assessment, assignment, exam, mark, report card,
+invoice, payment, ledger, communication, announcement, certificate,
+letter, leave, staff attendance, employee, payroll, visitor, gate,
+access card, licence, backup, SA-SAMS import, compliance export, budget,
+and audit. There is no Department table and no Library table.</p>
+<footer class="brand">SchoolHub SA · Cyber Developers · School Management for South Africa · Documentation from source commit ca8089b · 9 October 2026</footer>
+</body>
+</html>
