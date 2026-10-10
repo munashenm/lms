@@ -24,6 +24,7 @@ export async function runBackupJob(opts: {
   schoolId: string;
   type: BackupType;
   createdById?: string | null;
+  scheduleFrequency?: string | null;
 }): Promise<{ jobId: string; status: BackupJobStatus; filename: string }> {
   const configError = backupConfigurationError();
   if (configError) throw new Error(configError);
@@ -91,7 +92,12 @@ export async function runBackupJob(opts: {
       action: "BACKUP_CREATED",
       entity: "BackupJob",
       entityId: job.id,
-      metadata: { type: opts.type, size: pkg.length, files: counts.fileCount },
+        metadata: {
+          type: opts.type,
+          size: pkg.length,
+          files: counts.fileCount,
+          ...(opts.scheduleFrequency ? { scheduleFrequency: opts.scheduleFrequency } : {}),
+        },
     });
 
     try {

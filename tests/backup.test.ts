@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { backupIdsToPrune } from "@/lib/backup/schedule";
 import { packBackup, unpackBackup, verifyBackupIntegrity } from "@/lib/backup/package";
 import { backupConfigurationError, deriveBackupKey } from "@/lib/backup/crypto";
 import { checkBackupCompatibility, assertBackupBelongsToSchool } from "@/lib/backup/compatibility";
@@ -24,6 +25,21 @@ function sampleManifest() {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+describe("backup retention", () => {
+  it("keeps untagged historical backups and prunes only the matching schedule", () => {
+    const jobs = [
+      { id: "new-daily", metadata: { scheduleFrequency: "DAILY" } },
+      { id: "older-daily", metadata: { scheduleFrequency: "DAILY" } },
+      { id: "weekly", metadata: { scheduleFrequency: "WEEKLY" } },
+      { id: "historical", metadata: null },
+      { id: "manual", metadata: { type: "MANUAL" } },
+    ];
+    expect(backupIdsToPrune(jobs, "DAILY", 1)).toEqual(["older-daily"]);
+    expect(backupIdsToPrune(jobs, "WEEKLY", 1)).toEqual([]);
+    expect(backupIdsToPrune(jobs, "DAILY", 14)).toEqual([]);
+  });
 });
 
 describe("backup packages", () => {

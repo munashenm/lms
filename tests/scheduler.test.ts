@@ -2,9 +2,16 @@ import { describe, expect, it } from "vitest";
 import { SCHEDULED_JOBS, nextDailyRunAt, sanitizeSchedulerError } from "@/lib/scheduler/catalog";
 
 describe("in-process scheduler", () => {
-  it("automatically runs only the licence heartbeat", () => {
+  it("runs the licence heartbeat, backups and fee reminders, and holds the other jobs", () => {
     const automatic = SCHEDULED_JOBS.filter((job) => job.automatic).map((job) => job.key);
-    expect(automatic).toEqual(["license-heartbeat"]);
+    expect(automatic).toEqual(["license-heartbeat", "backups", "fee-reminders"]);
+    expect(SCHEDULED_JOBS.find((job) => job.key === "backups")?.cadence).toBe("hourly");
+    expect(SCHEDULED_JOBS.find((job) => job.key === "fee-reminders")?.cadence).toBe("daily");
+    expect(SCHEDULED_JOBS.filter((job) => !job.automatic).map((job) => job.key)).toEqual([
+      "import-cleanup",
+      "leave-accrual",
+      "recurring-expenses",
+    ]);
     expect(SCHEDULED_JOBS).toHaveLength(6);
   });
 

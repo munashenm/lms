@@ -20,7 +20,11 @@ export interface ScheduledJobDefinition {
   name: string;
   route: string;
   intendedSchedule: string;
+  /** daily jobs use 15:00 UTC. hourly jobs are checked every hour, including startup. */
+  cadence: "daily" | "hourly";
   automatic: boolean;
+  /** How long a run may hold the single-flight lease. */
+  leaseMs: number;
   holdReason: string | null;
 }
 
@@ -30,31 +34,39 @@ export const SCHEDULED_JOBS: ScheduledJobDefinition[] = [
     name: "Licence heartbeat",
     route: "/api/cron/license-heartbeat",
     intendedSchedule: "Daily at 15:00 UTC, plus a startup catch-up when a licence is already due",
+    cadence: "daily",
     automatic: true,
+    leaseMs: 10 * 60 * 1000,
     holdReason: null,
   },
   {
     key: "backups",
     name: "Backups",
     route: "/api/cron/backups",
-    intendedSchedule: "Hourly check of due backup schedules",
-    automatic: false,
-    holdReason: "Creates backup objects and can delete older scheduled backups. Held until reviewed.",
+    intendedSchedule: "Hourly check of due backup schedules, plus a startup catch-up",
+    cadence: "hourly",
+    automatic: true,
+    leaseMs: 2 * 60 * 60 * 1000,
+    holdReason: null,
   },
   {
     key: "fee-reminders",
     name: "Fee reminders",
     route: "/api/cron/fee-reminders",
-    intendedSchedule: "Daily",
-    automatic: false,
-    holdReason: "Can email or SMS parents about outstanding fees. Held until reviewed.",
+    intendedSchedule: "Daily at 15:00 UTC, plus a startup catch-up. Only enabled rules send.",
+    cadence: "daily",
+    automatic: true,
+    leaseMs: 30 * 60 * 1000,
+    holdReason: null,
   },
   {
     key: "import-cleanup",
     name: "Import cleanup",
     route: "/api/cron/import-cleanup",
     intendedSchedule: "Daily",
+    cadence: "daily",
     automatic: false,
+    leaseMs: 10 * 60 * 1000,
     holdReason: "Deletes expired SA-SAMS staging files. Held until reviewed.",
   },
   {
@@ -62,7 +74,9 @@ export const SCHEDULED_JOBS: ScheduledJobDefinition[] = [
     name: "Leave accrual",
     route: "/api/cron/leave-accrual",
     intendedSchedule: "Monthly",
+    cadence: "daily",
     automatic: false,
+    leaseMs: 10 * 60 * 1000,
     holdReason: "Updates staff leave balances. Held until reviewed.",
   },
   {
@@ -70,7 +84,9 @@ export const SCHEDULED_JOBS: ScheduledJobDefinition[] = [
     name: "Recurring expenses",
     route: "/api/cron/recurring-expenses",
     intendedSchedule: "Daily",
+    cadence: "daily",
     automatic: false,
+    leaseMs: 10 * 60 * 1000,
     holdReason: "Creates finance expense rows. Held until reviewed.",
   },
 ];

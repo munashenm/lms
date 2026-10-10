@@ -39,24 +39,53 @@ export async function ensureDefaultSchedules(schoolId: string) {
   }
 }
 
+export function scheduleFrequencyFromMetadata(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object") return null;
+  const value = (metadata as { scheduleFrequency?: unknown }).scheduleFrequency;
+  return typeof value === "string" && value ? value : null;
+}
+
+/** Newest-first jobs. Untagged historical backups are never selected for deletion. */
+export function backupIdsToPrune(
+  jobs: Array<{ id: string; metadata: unknown }>,
+  frequency: string,
+  retainCount: number
+): string[] {
+  const keep = Math.max(0, retainCount);
+  return jobs
+    .filter((job) => scheduleFrequencyFromMetadata(job.metadata) === frequency)
+    .slice(keep)
+    .map((job) => job.id);
+}
+
 export async function runDueBackupSchedules(now = new Date()) {
   const due = await prisma.backupSchedule.findMany({
     where: { enabled: true, nextRunAt: { lte: now } },
   });
   const results = [];
   for (const schedule of due) {
+    const claimed = await prisma.backupSchedule.updateMany({
+      where: { id: schedule.id, enabled: true, nextRunAt: { lte: now } },
+      data: { nextRunAt: nextRunAt(schedule.frequency, now) },
+    });
+    if (claimed.count !== 1) continue;
     try {
       await runBackupJob({
         schoolId: schedule.schoolId,
         type: BackupType.CLOUD_SCHEDULED,
+        scheduleFrequency: schedule.frequency,
       });
       await prisma.backupSchedule.update({
         where: { id: schedule.id },
-        data: { lastRunAt: now, nextRunAt: nextRunAt(schedule.frequency, now) },
+        data: { lastRunAt: now },
       });
       await pruneBackups(schedule.schoolId, schedule.frequency, schedule.retainCount);
       results.push({ schoolId: schedule.schoolId, frequency: schedule.frequency, ok: true });
     } catch (error) {
+      await prisma.backupSchedule.update({
+        where: { id: schedule.id },
+        data: { nextRunAt: now },
+      });
       const detail = sanitizeSchedulerError(error);
       await notifyBackupIssue({
         schoolId: schedule.schoolId,
@@ -78,11 +107,12 @@ export async function pruneBackups(
   const jobs = await prisma.backupJob.findMany({
     where: { schoolId, type: BackupType.CLOUD_SCHEDULED, status: { in: ["SUCCEEDED", "VERIFIED"] } },
     orderBy: { createdAt: "desc" },
+    select: { id: true, metadata: true },
   });
-  const extras = jobs.slice(retainCount);
+  const extras = backupIdsToPrune(jobs, frequency, retainCount);
   const { deleteBackupJob } = await import("./engine");
-  for (const job of extras) {
-    await deleteBackupJob(schoolId, job.id);
+  for (const jobId of extras) {
+    await deleteBackupJob(schoolId, jobId);
   }
 }
 

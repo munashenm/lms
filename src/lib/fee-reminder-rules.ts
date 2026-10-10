@@ -1,6 +1,7 @@
 import {
   CommunicationCategory,
   CommunicationStatus,
+  Prisma,
 } from "@prisma/client";
 import { prisma } from "./db";
 import { getOutstandingBalance } from "./finance";
@@ -38,6 +39,26 @@ export function describeDaysOffset(daysOffset: number): string {
   if (daysOffset === 0) return "On due date";
   if (daysOffset < 0) return `${Math.abs(daysOffset)} days before due`;
   return `${daysOffset} days overdue`;
+}
+
+export async function claimFeeReminderDispatch(data: {
+  schoolId: string;
+  ruleId: string;
+  invoiceId: string;
+  studentId: string;
+  channel: string;
+}): Promise<boolean> {
+  try {
+    await prisma.feeReminderDispatch.create({ data });
+    return true;
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return false;
+    throw error;
+  }
+}
+
+export async function releaseFeeReminderDispatch(ruleId: string, invoiceId: string, channel: string) {
+  await prisma.feeReminderDispatch.deleteMany({ where: { ruleId, invoiceId, channel } });
 }
 
 function startOfDay(date: Date): Date {
@@ -177,16 +198,14 @@ export async function runFeeReminderRules(params?: {
         for (const channel of channels) {
           if (schoolSent >= limit) break;
 
-          const existing = await prisma.feeReminderDispatch.findUnique({
-            where: {
-              ruleId_invoiceId_channel: {
-                ruleId: rule.id,
-                invoiceId: invoice.id,
-                channel,
-              },
-            },
+          const claimed = await claimFeeReminderDispatch({
+            schoolId: school.id,
+            ruleId: rule.id,
+            invoiceId: invoice.id,
+            studentId: invoice.studentId,
+            channel,
           });
-          if (existing) {
+          if (!claimed) {
             summary.skipped += 1;
             continue;
           }
@@ -197,6 +216,7 @@ export async function runFeeReminderRules(params?: {
               : guardian?.email ?? invoice.student.email;
 
           if (!contact) {
+            await releaseFeeReminderDispatch(rule.id, invoice.id, channel);
             summary.failed += 1;
             continue;
           }
@@ -240,6 +260,7 @@ ${vars.schoolName} Accounts Department`;
                 summary.sent += 1;
                 schoolSent += 1;
               } else {
+                await releaseFeeReminderDispatch(rule.id, invoice.id, channel);
                 summary.failed += 1;
                 continue;
               }
@@ -264,22 +285,20 @@ ${vars.schoolName} Accounts Department`;
                 summary.sent += 1;
                 schoolSent += 1;
               } else {
+                await releaseFeeReminderDispatch(rule.id, invoice.id, channel);
                 summary.failed += 1;
                 continue;
               }
             }
 
-            await prisma.feeReminderDispatch.create({
-              data: {
-                schoolId: school.id,
-                ruleId: rule.id,
-                invoiceId: invoice.id,
-                studentId: invoice.studentId,
-                channel,
-                communicationLogId: logId,
-              },
-            });
+            if (logId) {
+              await prisma.feeReminderDispatch.update({
+                where: { ruleId_invoiceId_channel: { ruleId: rule.id, invoiceId: invoice.id, channel } },
+                data: { communicationLogId: logId },
+              });
+            }
           } catch {
+            await releaseFeeReminderDispatch(rule.id, invoice.id, channel);
             summary.failed += 1;
           }
         }
@@ -292,10 +311,14 @@ ${vars.schoolName} Accounts Department`;
               invoiceId: invoice.id,
               channel: "PORTAL",
             };
-            const existingPortal = await prisma.feeReminderDispatch.findUnique({
-              where: { ruleId_invoiceId_channel: portalKey },
+            const claimedPortal = await claimFeeReminderDispatch({
+              schoolId: school.id,
+              ruleId: portalKey.ruleId,
+              invoiceId: portalKey.invoiceId,
+              studentId: invoice.studentId,
+              channel: "PORTAL",
             });
-            if (!existingPortal) {
+            if (claimedPortal) {
               await notifyUser({
                 userId: guardianUserId,
                 schoolId: school.id,
@@ -304,19 +327,11 @@ ${vars.schoolName} Accounts Department`;
                 type: "FEE",
                 link: "/parent/fees",
               });
-              await prisma.feeReminderDispatch.create({
-                data: {
-                  schoolId: school.id,
-                  ruleId: rule.id,
-                  invoiceId: invoice.id,
-                  studentId: invoice.studentId,
-                  channel: "PORTAL",
-                },
-              });
               summary.sent += 1;
               schoolSent += 1;
             }
           } catch {
+            await releaseFeeReminderDispatch(rule.id, invoice.id, "PORTAL");
             summary.failed += 1;
           }
         }
