@@ -36,6 +36,7 @@ export function BackupDashboard({ schoolId }: { schoolId?: string }) {
   const [health, setHealth] = useState<Health | null>(null);
   const [jobs, setJobs] = useState<BackupJob[]>([]);
   const [schedules, setSchedules] = useState<{ frequency: string; retainCount: number; enabled: boolean }[]>([]);
+  const [coverageNote, setCoverageNote] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -50,6 +51,7 @@ export function BackupDashboard({ schoolId }: { schoolId?: string }) {
     setHealth(json.health);
     setJobs(json.jobs);
     setSchedules(json.schedules);
+    setCoverageNote(typeof json.coverageNote === "string" ? json.coverageNote : null);
   }
 
   useEffect(() => {
@@ -157,6 +159,7 @@ export function BackupDashboard({ schoolId }: { schoolId?: string }) {
           <CardTitle className="text-base">Schedules & retention</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
+          {coverageNote ? <p className="text-muted">{coverageNote}</p> : null}
           {schedules.map((s) => (
             <div key={s.frequency} className="flex flex-wrap items-center gap-3 border-b border-border pb-3 last:border-0">
               <span className="w-24 font-medium">{s.frequency}</span>
