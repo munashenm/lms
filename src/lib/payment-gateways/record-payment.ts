@@ -1,4 +1,4 @@
-import { PaymentMethod, UserRole } from "@prisma/client";
+import { PaymentMethod, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "../db";
 import { deriveInvoiceStatus } from "../finance";
 import { notifyUser, notifySchoolRoles } from "../notifications";
@@ -7,6 +7,7 @@ import { getDocumentRelease } from "../fee-clearance";
 import { postPaymentToStudentLedger } from "../student-ledger";
 import { allocatePaymentToOldest } from "../payment-allocation";
 import { logAudit } from "../audit";
+import { nextReceiptNumber } from "../finance-catalog";
 
 interface RecordGatewayPaymentParams {
   invoiceId: string;
@@ -16,8 +17,37 @@ interface RecordGatewayPaymentParams {
   notes: string;
 }
 
-export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
-  const settled = await prisma.$transaction(async (tx) => {
+async function repairGatewayPosting(
+  invoice: { id: string; schoolId: string; studentId: string; invoiceNumber: string },
+  payment: { id: string },
+  amount: number,
+  method: PaymentMethod,
+  reference: string
+) {
+  const allocationCount = await prisma.paymentAllocation.count({ where: { paymentId: payment.id } });
+  if (allocationCount === 0) {
+    await allocatePaymentToOldest({
+      schoolId: invoice.schoolId,
+      studentId: invoice.studentId,
+      paymentId: payment.id,
+      invoiceId: invoice.id,
+      amount,
+    });
+  }
+  await postPaymentToStudentLedger({
+    schoolId: invoice.schoolId,
+    studentId: invoice.studentId,
+    paymentId: payment.id,
+    invoiceId: invoice.id,
+    invoiceNumber: invoice.invoiceNumber,
+    amount,
+    method,
+    reference,
+  });
+}
+
+async function settleGatewayPayment(params: RecordGatewayPaymentParams) {
+  return prisma.$transaction(async (tx) => {
     const locked = await tx.$queryRaw<Array<{ id: string }>>`
       SELECT id FROM invoices WHERE id = ${params.invoiceId} FOR UPDATE
     `;
@@ -48,18 +78,10 @@ export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
       },
     });
     if (existing) {
-      return { ok: true as const, duplicate: true as const };
+      return { ok: true as const, duplicate: true as const, invoice, payment: existing };
     }
 
-    const year = new Date().getFullYear();
-    const prefix = `RCP-${year}-`;
-    const last = await tx.payment.findFirst({
-      where: { schoolId: invoice.schoolId, receiptNumber: { startsWith: prefix } },
-      orderBy: { receiptNumber: "desc" },
-      select: { receiptNumber: true },
-    });
-    const seq = last?.receiptNumber ? Number(last.receiptNumber.slice(prefix.length)) + 1 : 1;
-    const receiptNumber = `${prefix}${String(Number.isFinite(seq) ? seq : 1).padStart(5, "0")}`;
+    const receiptNumber = await nextReceiptNumber(invoice.schoolId, tx);
     const newAmountPaid = Number(invoice.amountPaid) + params.amount;
     const total = Number(invoice.total);
 
@@ -91,31 +113,29 @@ export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
 
     return { ok: true as const, duplicate: false as const, invoice, payment };
   });
+}
+
+export async function recordGatewayPayment(params: RecordGatewayPaymentParams) {
+  let settled: Awaited<ReturnType<typeof settleGatewayPayment>>;
+  try {
+    settled = await settleGatewayPayment(params);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { ok: true as const, duplicate: true as const };
+    }
+    throw error;
+  }
 
   if (!settled.ok) return settled;
-  if (settled.duplicate) return { ok: true as const, duplicate: true };
+  if (settled.duplicate) {
+    await repairGatewayPosting(settled.invoice, settled.payment, params.amount, params.method, params.reference);
+    return { ok: true as const, duplicate: true };
+  }
 
   const { invoice, payment } = settled;
   const previousRelease = await getDocumentRelease(invoice.studentId);
 
-  await allocatePaymentToOldest({
-    schoolId: invoice.schoolId,
-    studentId: invoice.studentId,
-    paymentId: payment.id,
-    invoiceId: params.invoiceId,
-    amount: params.amount,
-  });
-
-  await postPaymentToStudentLedger({
-    schoolId: invoice.schoolId,
-    studentId: invoice.studentId,
-    paymentId: payment.id,
-    invoiceId: params.invoiceId,
-    invoiceNumber: invoice.invoiceNumber,
-    amount: params.amount,
-    method: params.method,
-    reference: params.reference,
-  });
+  await repairGatewayPosting(invoice, payment, params.amount, params.method, params.reference);
 
   await logAudit({
     schoolId: invoice.schoolId,

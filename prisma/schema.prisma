@@ -667,6 +667,7 @@ model School {
   feeScheduleItems FeeScheduleItem[]
   feeReminderRules FeeReminderRule[]
   feeReminderDispatches FeeReminderDispatch[]
+  receiptSequences ReceiptSequence[]
   notifications   Notification[]
   certificates    Certificate[]
   issuedLetters   IssuedLetter[]
@@ -1729,6 +1730,19 @@ model Payment {
   @@index([schoolId, bankReference])
   @@index([gatewayTxnId])
   @@map("payments")
+}
+
+/// Per-school yearly counter. Allocation is one atomic upsert so concurrent
+/// receipts, retries and gateway callbacks cannot share a number.
+model ReceiptSequence {
+  schoolId   String
+  year       Int
+  lastNumber Int    @default(0)
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@id([schoolId, year])
+  @@map("receipt_sequences")
 }
 
 model FeeScheduleItem {

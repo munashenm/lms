@@ -1,4 +1,4 @@
-import { PaymentCaptureStatus, PaymentMethod, StudentLedgerType } from "@prisma/client";
+import { PaymentCaptureStatus, PaymentMethod, Prisma, StudentLedgerType } from "@prisma/client";
 import { prisma } from "./db";
 import { deriveInvoiceStatus, paymentRequiresVerification, splitPaymentAgainstInvoice } from "./finance";
 import { nextCreditNoteNumber, nextReceiptNumber } from "./finance-catalog";
@@ -197,46 +197,38 @@ export async function createManualPayment(opts: {
   const pending = opts.forcePending ?? paymentRequiresVerification(opts.method);
   const status = pending ? PaymentCaptureStatus.PENDING : PaymentCaptureStatus.APPROVED;
 
+  const paymentData = {
+    schoolId: opts.schoolId,
+    invoiceId: opts.invoiceId,
+    amount: opts.amount,
+    method: opts.method,
+    reference: opts.reference || opts.bankReference || null,
+    bankReference: opts.bankReference || opts.reference || null,
+    notes: opts.notes || null,
+    feeType: opts.feeType || null,
+    academicYearId: opts.academicYearId || null,
+    proofUrl: opts.proofUrl || null,
+    recordedById: opts.recordedById,
+    captureStatus: status,
+    ...(opts.paidAt ? { paidAt: opts.paidAt } : {}),
+  };
+
   let payment;
-  try {
-    payment = await prisma.payment.create({
-      data: {
-        schoolId: opts.schoolId,
-        invoiceId: opts.invoiceId,
-        amount: opts.amount,
-        method: opts.method,
-        reference: opts.reference || opts.bankReference || null,
-        bankReference: opts.bankReference || opts.reference || null,
-        notes: opts.notes || null,
-        feeType: opts.feeType || null,
-        academicYearId: opts.academicYearId || null,
-        proofUrl: opts.proofUrl || null,
-        receiptNumber: await nextReceiptNumber(opts.schoolId),
-        recordedById: opts.recordedById,
-        captureStatus: status,
-        ...(opts.paidAt ? { paidAt: opts.paidAt } : {}),
-      },
-    });
-  } catch {
-    payment = await prisma.payment.create({
-      data: {
-        schoolId: opts.schoolId,
-        invoiceId: opts.invoiceId,
-        amount: opts.amount,
-        method: opts.method,
-        reference: opts.reference || opts.bankReference || null,
-        bankReference: opts.bankReference || opts.reference || null,
-        notes: opts.notes || null,
-        feeType: opts.feeType || null,
-        academicYearId: opts.academicYearId || null,
-        proofUrl: opts.proofUrl || null,
-        receiptNumber: `${await nextReceiptNumber(opts.schoolId)}-R`,
-        recordedById: opts.recordedById,
-        captureStatus: status,
-        ...(opts.paidAt ? { paidAt: opts.paidAt } : {}),
-      },
-    });
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      payment = await prisma.payment.create({
+        data: {
+          ...paymentData,
+          receiptNumber: await nextReceiptNumber(opts.schoolId),
+        },
+      });
+      break;
+    } catch (error) {
+      const unique = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+      if (!unique || attempt === 2) throw error;
+    }
   }
+  if (!payment) throw new Error("Could not allocate a receipt number");
 
   await logAudit({
     schoolId: opts.schoolId,
