@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { BackupScheduleFrequency, BackupType } from "@prisma/client";
 import { resolveLicenseSchoolId } from "@/lib/licensing/enforce";
 import { ensureDefaultSchedules, nextRunAt } from "@/lib/backup/schedule";
+import { backupCoverageNote } from "@/lib/backup/coverage";
 import { runBackupJob } from "@/lib/backup/engine";
 import { backupConfigurationError } from "@/lib/backup/crypto";
 
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
   }
   await ensureDefaultSchedules(schoolId);
 
-  const [jobs, schedules, restores] = await Promise.all([
+  const [jobs, schedules, restores, license] = await Promise.all([
     prisma.backupJob.findMany({
       where: { schoolId, status: { not: "DELETED" } },
       orderBy: { createdAt: "desc" },
@@ -33,7 +34,9 @@ export async function GET(request: NextRequest) {
     }),
     prisma.backupSchedule.findMany({ where: { schoolId } }),
     prisma.restoreJob.findMany({ where: { schoolId }, orderBy: { createdAt: "desc" }, take: 10 }),
+    prisma.schoolLicense.findUnique({ where: { schoolId }, select: { status: true } }),
   ]);
+  const daily = schedules.find((schedule) => schedule.frequency === "DAILY");
 
   const successful = jobs.filter((j) => j.status === "SUCCEEDED" || j.status === "VERIFIED");
   const lastSuccessful = successful[0] ?? null;
@@ -65,6 +68,11 @@ export async function GET(request: NextRequest) {
       sizeBytes: j.sizeBytes.toString(),
     })),
     restores,
+    coverageNote: backupCoverageNote({
+      licenseStatus: license?.status,
+      dailyEnabled: Boolean(daily?.enabled),
+      retainCount: daily?.retainCount ?? 14,
+    }),
   });
 }
 

@@ -1,9 +1,9 @@
-import { BackupScheduleFrequency, BackupType } from "@prisma/client";
+import { BackupScheduleFrequency, BackupType, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { runBackupJob } from "./engine";
 import { notifySchoolRoles } from "@/lib/notifications";
-import { UserRole } from "@prisma/client";
 import { sanitizeSchedulerError } from "@/lib/scheduler/catalog";
+import { dailyBackupEnabledForLicenseStatus, paidBackupCoverageMessage } from "./coverage";
 
 const DEFAULTS: Record<BackupScheduleFrequency, number> = {
   DAILY: 14,
@@ -23,20 +23,94 @@ export function nextRunAt(frequency: BackupScheduleFrequency, from = new Date())
   return next;
 }
 
-export async function ensureDefaultSchedules(schoolId: string) {
+/**
+ * Creates any missing schedule. An existing row is never updated, so a saved
+ * retain count or an already enabled backup is not turned off or overwritten.
+ * New daily schedules are enabled only for a stored ACTIVE (paid) licence.
+ */
+export async function ensureDefaultSchedules(schoolId: string): Promise<number> {
+  const license = await prisma.schoolLicense.findUnique({
+    where: { schoolId },
+    select: { status: true },
+  });
+  const dailyEnabled = dailyBackupEnabledForLicenseStatus(license?.status);
+  let created = 0;
   for (const frequency of Object.values(BackupScheduleFrequency)) {
-    await prisma.backupSchedule.upsert({
+    const existing = await prisma.backupSchedule.findUnique({
       where: { schoolId_frequency: { schoolId, frequency } },
-      update: {},
-      create: {
-        schoolId,
-        frequency,
-        retainCount: DEFAULTS[frequency],
-        enabled: frequency === BackupScheduleFrequency.DAILY,
-        nextRunAt: nextRunAt(frequency),
-      },
+      select: { id: true },
+    });
+    if (existing) continue;
+    try {
+      await prisma.backupSchedule.create({
+        data: {
+          schoolId,
+          frequency,
+          retainCount: DEFAULTS[frequency],
+          enabled: frequency === BackupScheduleFrequency.DAILY && dailyEnabled,
+          nextRunAt: nextRunAt(frequency),
+        },
+      });
+      created += 1;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") continue;
+      throw error;
+    }
+  }
+  return created;
+}
+
+/** Missing schedules only. Does not delete backup files or edit an existing schedule. */
+export async function provisionMissingBackupSchedules(schoolId?: string) {
+  const schools = await prisma.school.findMany({
+    where: schoolId ? { id: schoolId } : undefined,
+    select: { id: true },
+  });
+  let created = 0;
+  for (const school of schools) {
+    created += await ensureDefaultSchedules(school.id);
+  }
+  return { schools: schools.length, created };
+}
+
+/**
+ * Turns daily backups on when a trial becomes paid.
+ * A schedule that is already enabled is not edited. Retain counts are never rewritten.
+ */
+export async function enableDailyBackupsForPaidLicence(schoolId: string) {
+  const before = await prisma.backupSchedule.findUnique({
+    where: { schoolId_frequency: { schoolId, frequency: BackupScheduleFrequency.DAILY } },
+  });
+  await ensureDefaultSchedules(schoolId);
+  const daily = await prisma.backupSchedule.findUnique({
+    where: { schoolId_frequency: { schoolId, frequency: BackupScheduleFrequency.DAILY } },
+  });
+  if (!daily) return { changed: false as const, retainCount: DEFAULTS.DAILY };
+
+  const alreadyOn = Boolean(before?.enabled);
+  if (!daily.enabled) {
+    await prisma.backupSchedule.update({
+      where: { id: daily.id },
+      data: { enabled: true, nextRunAt: nextRunAt(BackupScheduleFrequency.DAILY) },
     });
   }
+  const notice = paidBackupCoverageMessage({
+    enabledNow: !alreadyOn,
+    retainCount: daily.retainCount,
+  });
+  try {
+    await notifySchoolRoles({
+      schoolId,
+      roles: [UserRole.SCHOOL_ADMIN],
+      title: notice.title,
+      message: notice.message,
+      type: "INFO",
+      link: "/admin/settings/backup",
+    });
+  } catch (error) {
+    console.error("Paid backup notice failed:", error instanceof Error ? error.message : "notice failed");
+  }
+  return { changed: !alreadyOn, retainCount: daily.retainCount };
 }
 
 export function scheduleFrequencyFromMetadata(metadata: unknown): string | null {
@@ -59,6 +133,7 @@ export function backupIdsToPrune(
 }
 
 export async function runDueBackupSchedules(now = new Date()) {
+  await provisionMissingBackupSchedules();
   const due = await prisma.backupSchedule.findMany({
     where: { enabled: true, nextRunAt: { lte: now } },
   });

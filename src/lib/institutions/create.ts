@@ -5,6 +5,7 @@ import { findOrCreatePortalUser } from "@/lib/portal-provision";
 import { createLocalTrialLicense } from "@/lib/licensing/service";
 import { toMoneyDecimal, DEFAULT_PRICE_CURRENCY } from "@/lib/licensing/commercial";
 import { asInputJson } from "@/lib/json";
+import { ensureDefaultSchedules } from "@/lib/backup/schedule";
 
 export async function createInstitutionWithTrial(params: {
   name: string;
@@ -76,6 +77,8 @@ export async function createInstitutionWithTrial(params: {
       data,
     });
   }
+
+  await ensureDefaultSchedules(school.id);
 
   await logAudit({
     schoolId: school.id,

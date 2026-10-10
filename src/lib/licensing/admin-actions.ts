@@ -1,6 +1,7 @@
 import { LicenseStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
+import { enableDailyBackupsForPaidLicence } from "@/lib/backup/schedule";
 import { asInputJson } from "@/lib/json";
 import { isLicenseServerEnabled } from "@/lib/licensing/crypto";
 import {
@@ -193,6 +194,7 @@ export async function applySchoolLicenseAdminAction(params: {
       reason: params.reason,
       actor: params.actorEmail,
     });
+    await enableBackupsAfterPaidConversion(params.action, params.schoolId);
     return { license, evaluation: await evaluateStoredLicense(params.schoolId) };
   }
 
@@ -332,7 +334,20 @@ export async function applySchoolLicenseAdminAction(params: {
     actor: params.actorEmail,
   });
 
+  await enableBackupsAfterPaidConversion(params.action, params.schoolId);
   return { license, evaluation: await evaluateStoredLicense(params.schoolId) };
+}
+
+async function enableBackupsAfterPaidConversion(action: SchoolLicenseAdminAction, schoolId: string) {
+  if (action !== "convert_to_paid") return;
+  try {
+    await enableDailyBackupsForPaidLicence(schoolId);
+  } catch (error) {
+    console.error(
+      "Paid backup coverage was not updated:",
+      error instanceof Error ? error.message : "backup coverage failed"
+    );
+  }
 }
 
 export function enabledFeatureKeys(
