@@ -42,6 +42,10 @@ interface SchoolData {
   province: string | null;
   postalCode: string | null;
   registrationNo: string | null;
+  bankName?: string | null;
+  bankAccountName?: string | null;
+  bankAccountNumber?: string | null;
+  bankBranchCode?: string | null;
   popiaConsentText: string | null;
   institutionType: string;
   curriculumType: string;
@@ -115,6 +119,10 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
             province: form.get("province") || undefined,
             postalCode: form.get("postalCode") || undefined,
             registrationNo: form.get("registrationNo") || undefined,
+            bankName: form.get("bankName") || "",
+            bankAccountName: form.get("bankAccountName") || "",
+            bankAccountNumber: form.get("bankAccountNumber") || "",
+            bankBranchCode: form.get("bankBranchCode") || "",
             popiaConsentText: form.get("popiaConsentText") || undefined,
             institutionType: form.get("institutionType"),
             curriculumType: form.get("curriculumType"),
@@ -241,6 +249,22 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
           <div className="space-y-2">
             <Label>Registration / EMIS No.</Label>
             <Input name="registrationNo" defaultValue={school.registrationNo ?? ""} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="bankName">Bank</Label>
+            <Input id="bankName" name="bankName" defaultValue={school.bankName ?? ""} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="bankAccountName">Account name</Label>
+            <Input id="bankAccountName" name="bankAccountName" defaultValue={school.bankAccountName ?? ""} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="bankAccountNumber">Account number</Label>
+            <Input id="bankAccountNumber" name="bankAccountNumber" inputMode="numeric" defaultValue={school.bankAccountNumber ?? ""} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="bankBranchCode">Branch code</Label>
+            <Input id="bankBranchCode" name="bankBranchCode" inputMode="numeric" defaultValue={school.bankBranchCode ?? ""} />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label>School Logo</Label>
@@ -526,8 +550,9 @@ export function SchoolSettingsForm({ school, manageSchoolId }: SchoolSettingsFor
         <CardHeader>
           <CardTitle className="text-base">Reports and letters</CardTitle>
           <p className="text-sm text-muted">
-            Hold official academic documents until the learner account has no outstanding school fees.
-            Staff can still generate reports, certificates and transfer letters.
+            Each institution chooses whether families must settle fees before they can download
+            reports, certificates and letters. A bursary or credit that clears the learner ledger
+            releases those documents. Staff can still generate and download them.
           </p>
         </CardHeader>
         <CardContent>

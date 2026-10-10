@@ -391,6 +391,10 @@ async function replaceSchoolData(
           : [],
         admissionYearId: null,
         requireFeesPaidForDocuments: school.requireFeesPaidForDocuments !== false,
+        bankName: (school.bankName as string | null) ?? null,
+        bankAccountName: (school.bankAccountName as string | null) ?? null,
+        bankAccountNumber: (school.bankAccountNumber as string | null) ?? null,
+        bankBranchCode: (school.bankBranchCode as string | null) ?? null,
       },
     });
 

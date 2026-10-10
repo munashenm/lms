@@ -12,6 +12,7 @@ import { addMoney } from "./money";
 import { asInputJson } from "./json";
 import { sumTimesheetHours } from "./timesheet-hours";
 import { reversingLedgerAmount } from "./payroll-reversal";
+import { uifFinaliseBlockers } from "./payroll-checks";
 
 export async function calculatePayrollRun(params: {
   runId: string;
@@ -160,13 +161,20 @@ export async function finalisePayrollRun(params: {
 }) {
   const run = await prisma.payrollRun.findFirst({
     where: { id: params.runId, schoolId: params.schoolId },
-    include: { items: true },
+    include: { items: true, ruleSet: true },
   });
   if (!run) throw new Error("Payroll run not found");
   if (run.status !== PayrollRunStatus.APPROVED) {
     throw new Error("Payroll must be approved before finalising");
   }
   if (run.postedAt) throw new Error("Payroll already posted to finance");
+  if (!run.ruleSet) {
+    throw new Error("Save payroll rules before finalising. This run has no statutory rule set.");
+  }
+  const blockers = uifFinaliseBlockers(parsePayrollRules(run.ruleSet.rulesJson));
+  if (blockers.length > 0) {
+    throw new Error(blockers[0]);
+  }
 
   for (const item of run.items) {
     const existing = await prisma.payslip.findUnique({ where: { payrollItemId: item.id } });

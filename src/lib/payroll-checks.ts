@@ -8,6 +8,25 @@ export interface PayrollCheck {
   message: string;
 }
 
+/** Reasons a ZA payroll run must not be finalised. Warnings stay on the rules form. */
+export function uifFinaliseBlockers(rules: PayrollRules): string[] {
+  const jurisdiction = String(rules.jurisdiction ?? "ZA").toUpperCase();
+  if (!jurisdiction.startsWith("ZA")) return [];
+  const blockers: string[] = [];
+  const employee = Number(rules.uifEmployeePercent ?? 0);
+  const employer = Number(rules.uifEmployerPercent ?? 0);
+  const ceiling = Number(rules.uifMonthlyCeiling ?? 0);
+  if (employee !== 1 || employer !== 1) {
+    blockers.push("UIF must be 1% from the employee and 1% from the employer before this payroll can be finalised.");
+  }
+  if (ceiling <= 0) {
+    blockers.push(
+      `Set the UIF monthly ceiling to R${ZA_UIF_MONTHLY_CEILING.toLocaleString("en-ZA")} before this payroll can be finalised. Without it, UIF would be calculated on the full gross.`
+    );
+  }
+  return blockers;
+}
+
 export function payrollConfigurationChecks(rules: PayrollRules): PayrollCheck[] {
   const jurisdiction = String(rules.jurisdiction ?? "ZA").toUpperCase();
   if (!jurisdiction.startsWith("ZA")) {

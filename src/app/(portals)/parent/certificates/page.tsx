@@ -4,12 +4,10 @@ import { prisma } from "@/lib/db";
 import { ChildFilter } from "@/components/finance/child-filter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { CERTIFICATE_TYPE_LABELS } from "@/lib/certificate-labels";
 import { getDocumentReleases, summarizeDocumentReleases } from "@/lib/fee-clearance";
-import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
+import { DocumentsHoldNotice, HeldDocumentAction } from "@/components/documents/documents-hold-notice";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
@@ -28,9 +26,9 @@ export default async function ParentCertificatesPage({ searchParams }: PageProps
     await getDocumentReleases(filterIds)
   );
 
-  const certificates = releasedIds.length
+  const certificates = filterIds.length
     ? await prisma.certificate.findMany({
-        where: { studentId: { in: releasedIds } },
+        where: { studentId: { in: filterIds } },
         include: {
           course: { select: { name: true } },
           student: { select: { firstName: true, lastName: true } },
@@ -53,10 +51,10 @@ export default async function ParentCertificatesPage({ searchParams }: PageProps
       />
 
       {blocked ? (
-        <DocumentsHoldNotice outstandingCents={blocked.outstandingCents} feesHref="/parent/fees" />
+        <DocumentsHoldNotice compact outstandingCents={blocked.outstandingCents} feesHref="/parent/fees" />
       ) : null}
 
-      {certificates.length === 0 && !blocked ? (
+      {certificates.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted">
             No certificates issued yet.
@@ -78,12 +76,10 @@ export default async function ParentCertificatesPage({ searchParams }: PageProps
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <Badge variant="secondary">{CERTIFICATE_TYPE_LABELS[cert.type] ?? cert.type}</Badge>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`/api/certificates/${cert.id}/pdf`}>
-                      <Download className="h-4 w-4" />
-                      PDF
-                    </a>
-                  </Button>
+                  <HeldDocumentAction
+                    released={releasedIds.includes(cert.studentId)}
+                    href={`/api/certificates/${cert.id}/pdf`}
+                  />
                 </div>
               </CardContent>
             </Card>

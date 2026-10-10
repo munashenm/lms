@@ -594,6 +594,10 @@ model School {
   curriculumType  CurriculumType  @default(CAPS)
   periodStructure AcademicPeriodStructure @default(TERMS_4)
   registrationNo  String?
+  bankName        String?
+  bankAccountName String?
+  bankAccountNumber String?
+  bankBranchCode  String?
   email           String?
   phone           String?
   website         String?

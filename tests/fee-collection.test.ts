@@ -178,6 +178,25 @@ describe("invoice school and collection rows", () => {
     ]);
   });
 
+  it("prints this institution's banking details and omits empty bank fields", () => {
+    expect(
+      invoiceSchoolDetailLines({
+        name: "Sunrise High",
+        bankName: "First National Bank",
+        bankAccountName: "Sunrise High",
+        bankAccountNumber: "62123456789",
+        bankBranchCode: "250655",
+      })
+    ).toEqual([
+      "Sunrise High",
+      "Bank: First National Bank",
+      "Account name: Sunrise High",
+      "Account number: 62123456789",
+      "Branch code: 250655",
+    ]);
+    expect(invoiceSchoolDetailLines({ name: "Sunrise High" })).toEqual(["Sunrise High"]);
+  });
+
   it("omits reversed receipts from the invoice collection list", () => {
     const rows = collectedPaymentsForInvoice([
       { id: "p1", reversedAt: null, reversalOfId: null },
