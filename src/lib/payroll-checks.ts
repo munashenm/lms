@@ -8,6 +8,22 @@ export interface PayrollCheck {
   message: string;
 }
 
+/** Blank form suggestions. A saved rule set, including a stored zero, is returned unchanged. */
+export function payrollFormDefaults(saved: PayrollRules | null | undefined): PayrollRules {
+  if (saved) return saved;
+  return {
+    jurisdiction: "ZA",
+    employeeTaxPercent: 0,
+    uifEmployeePercent: 1,
+    uifEmployerPercent: 1,
+    pensionEmployeePercent: 0,
+    pensionEmployerPercent: 0,
+    medicalEmployeePercent: 0,
+    sdlEmployerPercent: 0,
+    uifMonthlyCeiling: ZA_UIF_MONTHLY_CEILING,
+  };
+}
+
 /** Reasons a ZA payroll run must not be finalised. Warnings stay on the rules form. */
 export function uifFinaliseBlockers(rules: PayrollRules): string[] {
   const jurisdiction = String(rules.jurisdiction ?? "ZA").toUpperCase();

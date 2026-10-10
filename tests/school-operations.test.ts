@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { proposeTimetable } from "@/lib/timetable-generate";
 import { calculateEmployeePay } from "@/lib/payroll-engine";
-import { payrollConfigurationChecks, uifFinaliseBlockers, ZA_UIF_MONTHLY_CEILING } from "@/lib/payroll-checks";
+import { payrollConfigurationChecks, payrollFormDefaults, uifFinaliseBlockers, ZA_UIF_MONTHLY_CEILING } from "@/lib/payroll-checks";
 import { summarizeInvoices } from "@/lib/invoice-summary";
 import { calendarKindForAssessment, groupCalendarEntries, isHighlightedCalendarDate } from "@/lib/academic-calendar";
 import { attendanceOccupancyGaps } from "@/lib/attendance-occupancy";
@@ -125,6 +125,18 @@ describe("payroll configuration", () => {
         uifMonthlyCeiling: ZA_UIF_MONTHLY_CEILING,
       })[0]
     ).toMatch(/1%/);
+  });
+
+  it("suggests statutory UIF only when the institution has not saved a rule set", () => {
+    const suggested = payrollFormDefaults(null);
+    expect(suggested.uifEmployeePercent).toBe(1);
+    expect(suggested.uifEmployerPercent).toBe(1);
+    expect(suggested.uifMonthlyCeiling).toBe(ZA_UIF_MONTHLY_CEILING);
+    expect(payrollFormDefaults({ uifEmployeePercent: 0, uifEmployerPercent: 0, uifMonthlyCeiling: 0 })).toEqual({
+      uifEmployeePercent: 0,
+      uifEmployerPercent: 0,
+      uifMonthlyCeiling: 0,
+    });
   });
 });
 
