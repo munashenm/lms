@@ -1,7 +1,12 @@
 import { roundMoney } from "./money";
+import { monthlyEmployeesTax, statutoryVersionFor } from "./za-statutory";
 
 export interface PayrollRules {
   jurisdiction?: string;
+  /** FLAT keeps the saved percent. SARS_TABLE uses the dated statutory table for the pay period. */
+  payeMethod?: "FLAT" | "SARS_TABLE" | string;
+  /** People covered by a medical scheme. Used only when payeMethod is SARS_TABLE. */
+  medicalSchemeMembers?: number;
   employeeTaxPercent?: number;
   uifEmployeePercent?: number;
   uifEmployerPercent?: number;
@@ -25,6 +30,8 @@ export interface SalaryInput {
   bonuses?: Array<{ name: string; amount: number }>;
   reimbursements?: Array<{ name: string; amount: number }>;
   extraDeductions?: Array<{ name: string; amount: number }>;
+  dateOfBirth?: Date | string | null;
+  periodEnd?: Date | string | null;
 }
 
 export interface PayrollLine {
@@ -123,12 +130,37 @@ export function calculateEmployeePay(input: SalaryInput, rules: PayrollRules = {
   }
 
   const grossPay = sumLines(earnings);
-  const uifCeiling = Number(rules.uifMonthlyCeiling ?? 0);
+  const jurisdiction = String(rules.jurisdiction ?? "ZA").toUpperCase();
+  const useSarsTable = String(rules.payeMethod ?? "FLAT").toUpperCase() === "SARS_TABLE" && jurisdiction.startsWith("ZA");
+  const periodEnd = input.periodEnd ? new Date(input.periodEnd) : new Date();
+  const statutory = useSarsTable ? statutoryVersionFor(periodEnd) : null;
+  let tableNote: string | undefined;
+  let tax = 0;
+  if (statutory) {
+    const employeesTax = monthlyEmployeesTax({
+      version: statutory,
+      monthlyGross: grossPay,
+      dateOfBirth: input.dateOfBirth,
+      periodEnd,
+      medicalSchemeMembers: Number(rules.medicalSchemeMembers ?? 0),
+    });
+    tax = employeesTax.monthlyPaye;
+    if (employeesTax.primaryRebateOnly) {
+      tableNote = "Date of birth is missing, so only the primary rebate was applied.";
+    }
+  } else {
+    if (useSarsTable) {
+      tableNote = "No SARS table covers this pay period, so the saved flat tax percent was used.";
+    }
+    tax = pct(grossPay, rules.employeeTaxPercent);
+  }
+  const uifEmployeePercent = statutory ? statutory.uifEmployeePercent : rules.uifEmployeePercent;
+  const uifEmployerPercent = statutory ? statutory.uifEmployerPercent : rules.uifEmployerPercent;
+  const uifCeiling = statutory ? statutory.uifMonthlyCeiling : Number(rules.uifMonthlyCeiling ?? 0);
   const uifBase = uifCeiling > 0 ? Math.min(grossPay, uifCeiling) : grossPay;
   const deductions: PayrollLine[] = [];
-  const tax = pct(grossPay, rules.employeeTaxPercent);
   if (tax) deductions.push({ name: "Income tax", amount: tax });
-  const uifEmp = pct(uifBase, rules.uifEmployeePercent);
+  const uifEmp = pct(uifBase, uifEmployeePercent);
   if (uifEmp) deductions.push({ name: "UIF (employee)", amount: uifEmp });
   const pensionEmp = pct(grossPay, rules.pensionEmployeePercent);
   if (pensionEmp) deductions.push({ name: "Pension / provident", amount: pensionEmp });
@@ -139,7 +171,7 @@ export function calculateEmployeePay(input: SalaryInput, rules: PayrollRules = {
   }
 
   const employer: PayrollLine[] = [];
-  const uifEr = pct(uifBase, rules.uifEmployerPercent);
+  const uifEr = pct(uifBase, uifEmployerPercent);
   if (uifEr) employer.push({ name: "UIF (employer)", amount: uifEr });
   const pensionEr = pct(grossPay, rules.pensionEmployerPercent);
   if (pensionEr) employer.push({ name: "Pension (employer)", amount: pensionEr });
@@ -158,7 +190,9 @@ export function calculateEmployeePay(input: SalaryInput, rules: PayrollRules = {
     totalDeductions,
     employerContributions,
     netPay,
-    exceptionNote: netPay < 0 ? "Net pay is negative — review salary or deductions" : undefined,
+    exceptionNote: [tableNote, netPay < 0 ? "Net pay is negative — review salary or deductions" : undefined]
+      .filter(Boolean)
+      .join(" ") || undefined,
   };
 }
 

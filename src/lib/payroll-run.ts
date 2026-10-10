@@ -72,6 +72,8 @@ export async function calculatePayrollRun(params: {
         overtimeHours: hours.overtimeHours,
         allowances: namedMoneyLines(salary.allowancesJson),
         extraDeductions: namedMoneyLines(salary.deductionsJson),
+        dateOfBirth: employee.dateOfBirth,
+        periodEnd: run.periodEnd,
       },
       rules
     );

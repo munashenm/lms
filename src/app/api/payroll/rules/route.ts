@@ -15,6 +15,8 @@ const schema = z.object({
   name: z.string().min(1),
   jurisdiction: z.string().default("ZA"),
   effectiveFrom: z.string().min(1),
+  payeMethod: z.enum(["FLAT", "SARS_TABLE"]).optional(),
+  medicalSchemeMembers: z.coerce.number().int().min(0).max(30).optional(),
   employeeTaxPercent: percent.optional(),
   uifEmployeePercent: percent.optional(),
   uifEmployerPercent: percent.optional(),
@@ -56,6 +58,8 @@ export async function POST(request: NextRequest) {
   const rules: PayrollRules = {
     ...EMPTY_PAYROLL_RULES,
     jurisdiction: parsed.data.jurisdiction,
+    payeMethod: parsed.data.payeMethod ?? "FLAT",
+    medicalSchemeMembers: parsed.data.medicalSchemeMembers ?? 0,
     employeeTaxPercent: parsed.data.employeeTaxPercent ?? 0,
     uifEmployeePercent: parsed.data.uifEmployeePercent ?? 0,
     uifEmployerPercent: parsed.data.uifEmployerPercent ?? 0,
