@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { SchoolLogo } from "@/components/layout/brand-mark";
 import { resolveBrandLogo } from "@/lib/school-branding";
@@ -15,73 +15,103 @@ const LOGIN_LINKS = [
   { href: "/login", label: "Staff login" },
 ] as const;
 
+function placeLoginMenu(menu: HTMLElement, button: HTMLElement) {
+  const rect = button.getBoundingClientRect();
+  const width = Math.max(180, rect.width);
+  const left = Math.min(Math.max(8, rect.right - width), window.innerWidth - width - 8);
+  menu.style.position = "fixed";
+  menu.style.inset = "auto";
+  menu.style.margin = "0";
+  menu.style.top = `${Math.round(rect.bottom + 4)}px`;
+  menu.style.left = `${Math.round(left)}px`;
+  menu.style.width = `${Math.round(width)}px`;
+  menu.style.right = "auto";
+  menu.style.bottom = "auto";
+}
+
 function LoginMenu({
   onNavigate,
   buttonClassName,
-  menuClassName,
 }: {
   onNavigate?: () => void;
   buttonClassName?: string;
-  menuClassName?: string;
 }) {
+  const menuId = useId().replace(/:/g, "");
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const openedAt = useRef(0);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    function onPointerDown(event: MouseEvent) {
-      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    function place() {
+      if (buttonRef.current && menuRef.current) placeLoginMenu(menuRef.current, buttonRef.current);
     }
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
     return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
     };
   }, [open]);
 
+  function onButtonClick(event: React.MouseEvent<HTMLButtonElement>) {
+    const menu = menuRef.current;
+    const button = buttonRef.current;
+    if (!menu || !button) return;
+    const now = performance.now();
+    const isOpen = menu.matches(":popover-open");
+    // The opening click was immediately followed by a second click that closed the menu.
+    if ((isOpen && now - openedAt.current < 450) || (openedAt.current > 0 && now - openedAt.current < 50)) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if (!isOpen) openedAt.current = now;
+    placeLoginMenu(menu, button);
+  }
+
   return (
-    <div ref={menuRef} className="relative">
+    <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
+        popoverTarget={menuId}
         className={cn(
           "flex items-center font-semibold text-[var(--site-ink)] hover:text-primary",
           buttonClassName
         )}
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={onButtonClick}
       >
         Login
         <ChevronDown className={cn("ml-1 h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
       </button>
-      {open ? (
-        <div
-          role="menu"
-          className={cn(
-            "z-50 min-w-[180px] rounded-[12px] border border-[var(--site-line)] bg-white py-1 shadow-lg",
-            menuClassName
-          )}
-        >
-          {LOGIN_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              role="menuitem"
-              className="block px-4 py-2.5 text-sm font-semibold text-[var(--site-ink)] hover:bg-[var(--site-paper-2)] hover:text-primary"
-              onClick={() => {
-                setOpen(false);
-                onNavigate?.();
-              }}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-      ) : null}
+      <div
+        id={menuId}
+        ref={menuRef}
+        popover="auto"
+        role="menu"
+        onToggle={(event) => setOpen(event.currentTarget.matches(":popover-open"))}
+        className="z-50 m-0 min-w-[180px] rounded-[12px] border border-[var(--site-line)] bg-white p-0 py-1 text-[var(--site-ink)] shadow-lg"
+      >
+        {LOGIN_LINKS.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            role="menuitem"
+            className="block px-4 py-2.5 text-sm font-semibold text-[var(--site-ink)] hover:bg-[var(--site-paper-2)] hover:text-primary"
+            onClick={() => {
+              menuRef.current?.hidePopover();
+              onNavigate?.();
+            }}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
@@ -150,7 +180,6 @@ export function PublicHeader({
           ))}
           <LoginMenu
             buttonClassName="rounded-[10px] px-2 py-2 text-[0.82rem] whitespace-nowrap hover:bg-[var(--site-paper-2)] xl:px-3 xl:text-[0.92rem]"
-            menuClassName="absolute right-0 top-full mt-1"
           />
           <Link href="/apply" className="site-btn site-btn-gold ml-2 !py-2 !px-3.5 xl:!py-2.5 xl:!px-4">
             Apply
@@ -191,7 +220,6 @@ export function PublicHeader({
             <LoginMenu
               onNavigate={() => setOpen(false)}
               buttonClassName="w-full justify-between text-base"
-              menuClassName="static mt-2 w-full shadow-none"
             />
           </div>
         </nav>
