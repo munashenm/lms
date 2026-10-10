@@ -19,40 +19,38 @@ export async function generateOneRecurringExpense(params: {
   });
   if (!rec) return { ok: false as const, reason: "not_found" as const };
 
-  const already = await prisma.expense.findFirst({
-    where: {
-      recurringExpenseId: rec.id,
-      transactionDate: rec.nextDueDate,
-    },
-    select: { id: true },
-  });
-  if (already) {
-    await prisma.recurringExpense.update({
-      where: { id: rec.id },
-      data: { nextDueDate: advanceRecurringDate(rec.nextDueDate, rec.interval) },
+  return prisma.$transaction(async (tx) => {
+    const nextDueDate = advanceRecurringDate(rec.nextDueDate, rec.interval);
+    const claimed = await tx.recurringExpense.updateMany({
+      where: { id: rec.id, nextDueDate: rec.nextDueDate },
+      data: { nextDueDate },
     });
-    return { ok: true as const, skipped: true, expenseId: already.id };
-  }
-
-  const expense = await prisma.expense.create({
-    data: {
-      schoolId: rec.schoolId,
-      supplierId: rec.supplierId,
-      categoryId: rec.categoryId,
-      financialAccountId: rec.financialAccountId,
-      recurringExpenseId: rec.id,
-      description: rec.description,
-      amount: rec.amount,
-      transactionDate: rec.nextDueDate,
-      approvalStatus: rec.requireConfirm ? ApprovalStatus.DRAFT : ApprovalStatus.PENDING,
-      createdById: params.actorId ?? null,
-    },
+    const already = await tx.expense.findFirst({
+      where: { recurringExpenseId: rec.id, transactionDate: rec.nextDueDate },
+      select: { id: true },
+    });
+    if (claimed.count !== 1) {
+      return { ok: true as const, skipped: true, expenseId: already?.id ?? null };
+    }
+    if (already) {
+      return { ok: true as const, skipped: true, expenseId: already.id };
+    }
+    const expense = await tx.expense.create({
+      data: {
+        schoolId: rec.schoolId,
+        supplierId: rec.supplierId,
+        categoryId: rec.categoryId,
+        financialAccountId: rec.financialAccountId,
+        recurringExpenseId: rec.id,
+        description: rec.description,
+        amount: rec.amount,
+        transactionDate: rec.nextDueDate,
+        approvalStatus: rec.requireConfirm ? ApprovalStatus.DRAFT : ApprovalStatus.PENDING,
+        createdById: params.actorId ?? null,
+      },
+    });
+    return { ok: true as const, skipped: false, expenseId: expense.id };
   });
-  await prisma.recurringExpense.update({
-    where: { id: rec.id },
-    data: { nextDueDate: advanceRecurringDate(rec.nextDueDate, rec.interval) },
-  });
-  return { ok: true as const, skipped: false, expenseId: expense.id };
 }
 
 export async function generateDueRecurringExpenses(params?: {
@@ -77,7 +75,7 @@ export async function generateDueRecurringExpenses(params?: {
       actorId: params?.actorId,
       requireActive: true,
     });
-    if (result.ok && !result.skipped) generated.push(result.expenseId);
+    if (result.ok && !result.skipped && result.expenseId) generated.push(result.expenseId);
   }
 
   return { scanned: due.length, generated: generated.length, expenseIds: generated };

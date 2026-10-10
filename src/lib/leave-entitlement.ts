@@ -18,7 +18,7 @@ export async function ensureLeaveEntitlement(params: {
     cycleYear: params.cycleYear,
     asOf: params.asOf,
   });
-  const existing = await prisma.leaveEntitlement.findUnique({
+  return prisma.leaveEntitlement.upsert({
     where: {
       employeeId_leavePolicyId_cycleYear: {
         employeeId: params.employeeId,
@@ -26,24 +26,14 @@ export async function ensureLeaveEntitlement(params: {
         cycleYear: params.cycleYear,
       },
     },
+    create: {
+      employeeId: params.employeeId,
+      leavePolicyId: params.policy.id,
+      cycleYear: params.cycleYear,
+      accrued,
+    },
+    update: { accrued },
   });
-  if (!existing) {
-    return prisma.leaveEntitlement.create({
-      data: {
-        employeeId: params.employeeId,
-        leavePolicyId: params.policy.id,
-        cycleYear: params.cycleYear,
-        accrued,
-      },
-    });
-  }
-  if (Number(existing.accrued) !== accrued) {
-    return prisma.leaveEntitlement.update({
-      where: { id: existing.id },
-      data: { accrued },
-    });
-  }
-  return existing;
 }
 
 export async function assertLeaveBalance(params: {
