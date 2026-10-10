@@ -2,13 +2,89 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import { SchoolLogo } from "@/components/layout/brand-mark";
 import { resolveBrandLogo } from "@/lib/school-branding";
 import { cn } from "@/lib/utils";
 
 export type PublicNavLink = { href: string; label: string };
+
+const LOGIN_LINKS = [
+  { href: "/student/login", label: "Student login" },
+  { href: "/login", label: "Staff login" },
+] as const;
+
+function LoginMenu({
+  onNavigate,
+  buttonClassName,
+  menuClassName,
+}: {
+  onNavigate?: () => void;
+  buttonClassName?: string;
+  menuClassName?: string;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: MouseEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        type="button"
+        className={cn(
+          "flex items-center font-semibold text-[var(--site-ink)] hover:text-primary",
+          buttonClassName
+        )}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        Login
+        <ChevronDown className={cn("ml-1 h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className={cn(
+            "z-50 min-w-[180px] rounded-[12px] border border-[var(--site-line)] bg-white py-1 shadow-lg",
+            menuClassName
+          )}
+        >
+          {LOGIN_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              role="menuitem"
+              className="block px-4 py-2.5 text-sm font-semibold text-[var(--site-ink)] hover:bg-[var(--site-paper-2)] hover:text-primary"
+              onClick={() => {
+                setOpen(false);
+                onNavigate?.();
+              }}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function PublicHeader({
   schoolName,
@@ -72,12 +148,10 @@ export function PublicHeader({
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/student/login"
-            className="rounded-[10px] px-2 py-2 text-[0.82rem] font-semibold text-[var(--site-ink)] hover:text-primary hover:bg-[var(--site-paper-2)] whitespace-nowrap xl:px-3 xl:text-[0.92rem]"
-          >
-            Student Login
-          </Link>
+          <LoginMenu
+            buttonClassName="rounded-[10px] px-2 py-2 text-[0.82rem] whitespace-nowrap hover:bg-[var(--site-paper-2)] xl:px-3 xl:text-[0.92rem]"
+            menuClassName="absolute right-0 top-full mt-1"
+          />
           <Link href="/apply" className="site-btn site-btn-gold ml-2 !py-2 !px-3.5 xl:!py-2.5 xl:!px-4">
             Apply
           </Link>
@@ -113,13 +187,13 @@ export function PublicHeader({
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/student/login"
-            onClick={() => setOpen(false)}
-            className="block border-t border-[var(--site-line)] px-7 py-3.5 font-semibold"
-          >
-            Student Login
-          </Link>
+          <div className="border-t border-[var(--site-line)] px-7 py-3.5">
+            <LoginMenu
+              onNavigate={() => setOpen(false)}
+              buttonClassName="w-full justify-between text-base"
+              menuClassName="static mt-2 w-full shadow-none"
+            />
+          </div>
         </nav>
       )}
     </header>
