@@ -104,9 +104,12 @@ export async function nextReceiptNumber(schoolId: string, db: ReceiptDb = prisma
   return formatReceiptNumber(year, sequence);
 }
 
-export async function nextCreditNoteNumber(schoolId: string): Promise<string> {
+export async function nextCreditNoteNumber(
+  schoolId: string,
+  db: Prisma.TransactionClient = prisma as unknown as Prisma.TransactionClient
+): Promise<string> {
   const year = new Date().getFullYear();
-  const count = await prisma.creditNote.count({ where: { schoolId } });
+  const count = await db.creditNote.count({ where: { schoolId } });
   return `CN-${year}-${String(count + 1).padStart(4, "0")}`;
 }
 

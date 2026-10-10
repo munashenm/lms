@@ -1,5 +1,11 @@
-import { StudentLedgerType, type Prisma } from "@prisma/client";
+import { Prisma, StudentLedgerType } from "@prisma/client";
 import { prisma } from "./db";
+
+type LedgerDb = Prisma.TransactionClient;
+
+function ledgerDb(db?: LedgerDb): LedgerDb {
+  return db ?? (prisma as unknown as LedgerDb);
+}
 
 export { STUDENT_LEDGER_TYPE_LABELS } from "./student-ledger-labels";
 
@@ -37,11 +43,13 @@ export async function createStudentLedgerEntry(params: {
   chargeSource?: import("@prisma/client").FeeChargeSource | null;
   studentChargeId?: string | null;
   reversesEntryId?: string | null;
+  db?: LedgerDb;
 }) {
   const signedAmount =
     params.signedAmount ?? signedAmountForType(params.type, params.amount);
+  const db = ledgerDb(params.db);
 
-  return prisma.studentLedgerEntry.create({
+  return db.studentLedgerEntry.create({
     data: {
       schoolId: params.schoolId,
       studentId: params.studentId,
@@ -178,13 +186,15 @@ export async function postPaymentToStudentLedger(params: {
   method: string;
   reference?: string | null;
   recordedById?: string | null;
+  db?: LedgerDb;
 }) {
-  const existing = await prisma.studentLedgerEntry.findFirst({
+  const db = ledgerDb(params.db);
+  const existing = await db.studentLedgerEntry.findFirst({
     where: { paymentId: params.paymentId, type: StudentLedgerType.PAYMENT },
   });
   if (existing) return existing;
 
-  const currentYear = await prisma.academicYear.findFirst({
+  const currentYear = await db.academicYear.findFirst({
     where: { schoolId: params.schoolId, isCurrent: true },
     select: { id: true },
   });
@@ -200,5 +210,6 @@ export async function postPaymentToStudentLedger(params: {
     invoiceId: params.invoiceId,
     paymentId: params.paymentId,
     recordedById: params.recordedById,
+    db,
   });
 }

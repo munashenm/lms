@@ -42,14 +42,17 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const next = nextRefundStatus(existing.status, parsed.data.action);
-  if (!next) {
+  if (!next && existing.status !== ApprovalStatus.POSTED) {
     return NextResponse.json(
       { message: "Only pending refunds can be approved or rejected" },
       { status: 400 }
     );
   }
 
-  if (next === ApprovalStatus.REJECTED) {
+  if (parsed.data.action === "reject") {
+    if (existing.status !== ApprovalStatus.PENDING) {
+      return NextResponse.json({ message: "Only pending refunds can be approved or rejected" }, { status: 400 });
+    }
     const refund = await prisma.refund.update({
       where: { id },
       data: { status: ApprovalStatus.REJECTED, processedAt: new Date() },
@@ -65,32 +68,43 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ refund });
   }
 
-  if (existing.ledgerEntryId) {
-    const refund = await prisma.refund.update({
-      where: { id },
-      data: { status: ApprovalStatus.POSTED, processedAt: existing.processedAt ?? new Date() },
+  let refund;
+  try {
+    refund = await prisma.$transaction(async (tx) => {
+    const locked = await tx.$queryRaw<Array<{ id: string; status: ApprovalStatus; ledgerEntryId: string | null }>>`
+      SELECT id, status, "ledgerEntryId" FROM "refunds" WHERE id = ${id} FOR UPDATE
+    `;
+    const row = locked[0];
+    if (!row) throw new Error("Not found");
+    if (row.status === ApprovalStatus.POSTED || row.ledgerEntryId) {
+      return tx.refund.findUniqueOrThrow({ where: { id } });
+    }
+    if (row.status !== ApprovalStatus.PENDING) {
+      throw new Error("Only pending refunds can be approved or rejected");
+    }
+    const ledger = await createStudentLedgerEntry({
+      schoolId: existing.schoolId,
+      studentId: existing.studentId,
+      type: StudentLedgerType.REFUND,
+      description: existing.reason,
+      amount: roundMoney(Number(existing.amount)),
+      paymentId: existing.paymentId,
+      recordedById: session.userId,
+      db: tx as unknown as import("@prisma/client").Prisma.TransactionClient,
     });
-    return NextResponse.json({ refund });
+    return tx.refund.update({
+      where: { id },
+      data: {
+        status: ApprovalStatus.POSTED,
+        ledgerEntryId: ledger.id,
+        processedAt: new Date(),
+      },
+    });
+  });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not approve refund";
+    return NextResponse.json({ message }, { status: 400 });
   }
-
-  const ledger = await createStudentLedgerEntry({
-    schoolId: existing.schoolId,
-    studentId: existing.studentId,
-    type: StudentLedgerType.REFUND,
-    description: existing.reason,
-    amount: roundMoney(Number(existing.amount)),
-    paymentId: existing.paymentId,
-    recordedById: session.userId,
-  });
-
-  const refund = await prisma.refund.update({
-    where: { id },
-    data: {
-      status: ApprovalStatus.POSTED,
-      ledgerEntryId: ledger.id,
-      processedAt: new Date(),
-    },
-  });
 
   await logAudit({
     schoolId: existing.schoolId,

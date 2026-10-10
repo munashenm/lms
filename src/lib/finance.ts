@@ -26,6 +26,31 @@ export function getOutstandingBalance(total: number, amountPaid: number): number
   return Math.max(0, total - amountPaid);
 }
 
+export const PAYMENT_REVIEW_ACTIONS = ["verify", "approve", "reject"] as const;
+
+export type PaymentPostingDecision = "post" | "already_posted" | "blocked";
+
+/** A posted payment is finished. Reversed, rejected, and reversal rows cannot be posted again. */
+export function paymentPostingDecision(payment: {
+  postedAt?: Date | string | null;
+  captureStatus?: string | null;
+  reversedAt?: Date | string | null;
+  reversalOfId?: string | null;
+}): PaymentPostingDecision {
+  if (payment.reversedAt || payment.reversalOfId) return "blocked";
+  if (payment.captureStatus === "REJECTED" || payment.captureStatus === "REVERSED") return "blocked";
+  if (payment.postedAt) return "already_posted";
+  if (
+    payment.captureStatus &&
+    payment.captureStatus !== "PENDING" &&
+    payment.captureStatus !== "VERIFIED" &&
+    payment.captureStatus !== "APPROVED"
+  ) {
+    return "blocked";
+  }
+  return "post";
+}
+
 /** Original receipts that still count as collections. Reversed rows and audit reversals are excluded. */
 export const COLLECTED_PAYMENT_WHERE = {
   reversedAt: null,

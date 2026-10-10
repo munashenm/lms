@@ -1,6 +1,6 @@
 import { PaymentCaptureStatus, PaymentMethod, Prisma, StudentLedgerType } from "@prisma/client";
 import { prisma } from "./db";
-import { deriveInvoiceStatus, paymentRequiresVerification, splitPaymentAgainstInvoice } from "./finance";
+import { deriveInvoiceStatus, paymentPostingDecision, paymentRequiresVerification, splitPaymentAgainstInvoice } from "./finance";
 import { nextCreditNoteNumber, nextReceiptNumber } from "./finance-catalog";
 import { logAudit } from "./audit";
 import { notifyUser, notifyStudentGuardians } from "./notifications";
@@ -33,100 +33,153 @@ export async function postApprovedPayment(opts: {
   userId: string;
   allocations?: Array<{ instalmentId: string; amount: number }>;
 }) {
-  const payment = await prisma.payment.findUnique({
-    where: { id: opts.paymentId },
-    include: {
-      invoice: { include: { student: { select: { userId: true, firstName: true, lastName: true } } } },
-    },
-  });
-  if (!payment) throw new Error("Payment not found");
-  if (payment.postedAt) return payment;
+  const outcome = await prisma.$transaction(async (tx) => {
+    const db = tx as unknown as Prisma.TransactionClient;
+    const locked = await db.$queryRaw<Array<{
+      id: string;
+      postedAt: Date | null;
+      captureStatus: PaymentCaptureStatus;
+      reversalOfId: string | null;
+      reversedAt: Date | null;
+    }>>`
+      SELECT id, "postedAt", "captureStatus", "reversalOfId", "reversedAt"
+      FROM "payments"
+      WHERE id = ${opts.paymentId}
+      FOR UPDATE
+    `;
+    const row = locked[0];
+    if (!row) throw new Error("Payment not found");
+    const decision = paymentPostingDecision(row);
+    if (decision === "blocked") throw new Error("This payment cannot be posted");
 
-  const invoice = payment.invoice;
-  const amount = Number(payment.amount);
-  const outstanding = Number(invoice.total) - Number(invoice.amountPaid);
-  const { applied, credit } = splitPaymentAgainstInvoice(amount, outstanding);
-  const previousRelease = await getDocumentRelease(invoice.studentId);
-
-  const newAmountPaid = Number(invoice.amountPaid) + applied;
-  const newStatus = deriveInvoiceStatus(Number(invoice.total), newAmountPaid, invoice.dueDate, invoice.status);
-
-  await prisma.invoice.update({
-    where: { id: invoice.id },
-    data: { amountPaid: newAmountPaid, status: newStatus },
-  });
-
-  if (opts.allocations?.length) {
-    await allocatePaymentManual({
-      schoolId: invoice.schoolId,
-      paymentId: payment.id,
-      invoiceId: invoice.id,
-      allocations: opts.allocations,
-    });
-  } else if (applied > 0) {
-    await allocatePaymentToOldest({
-      schoolId: invoice.schoolId,
-      studentId: invoice.studentId,
-      paymentId: payment.id,
-      invoiceId: invoice.id,
-      amount: applied,
-    });
-  }
-
-  if (applied > 0) {
-    await postPaymentToStudentLedger({
-      schoolId: invoice.schoolId,
-      studentId: invoice.studentId,
-      paymentId: payment.id,
-      invoiceId: invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
-      amount: applied,
-      method: payment.method,
-      reference: payment.bankReference || payment.reference,
-      recordedById: opts.userId,
-    });
-  }
-
-  if (credit > 0.009) {
-    const number = await nextCreditNoteNumber(invoice.schoolId);
-    const ledger = await createStudentLedgerEntry({
-      schoolId: invoice.schoolId,
-      studentId: invoice.studentId,
-      type: StudentLedgerType.CREDIT,
-      description: `Overpayment credit from ${payment.receiptNumber}`,
-      amount: credit,
-      invoiceId: invoice.id,
-      paymentId: payment.id,
-      recordedById: opts.userId,
-      reference: number,
-    });
-    await prisma.creditNote.create({
-      data: {
-        schoolId: invoice.schoolId,
-        studentId: invoice.studentId,
-        number,
-        amount: credit,
-        reason: `Overpayment on ${invoice.invoiceNumber}`,
-        invoiceId: invoice.id,
-        ledgerEntryId: ledger.id,
-        createdById: opts.userId,
+    const payment = await db.payment.findUnique({
+      where: { id: opts.paymentId },
+      include: {
+        invoice: { include: { student: { select: { userId: true, firstName: true, lastName: true } } } },
       },
     });
-    await prisma.payment.update({
-      where: { id: payment.id },
-      data: { overpaymentCredit: credit },
-    });
-  }
+    if (!payment) throw new Error("Payment not found");
+    if (decision === "already_posted") return { payment, applied: false as const };
 
-  const posted = await prisma.payment.update({
-    where: { id: payment.id },
-    data: {
-      captureStatus: PaymentCaptureStatus.APPROVED,
-      postedAt: new Date(),
-      approvedAt: new Date(),
-      approvedById: opts.userId,
-    },
+    await db.$queryRaw`SELECT id FROM "invoices" WHERE id = ${payment.invoiceId} FOR UPDATE`;
+    const invoice = await db.invoice.findUnique({ where: { id: payment.invoiceId } });
+    if (!invoice) throw new Error("Invoice not found");
+
+    const existingLedger = await db.studentLedgerEntry.findFirst({
+      where: { paymentId: payment.id, type: StudentLedgerType.PAYMENT },
+      select: { id: true },
+    });
+    if (existingLedger) {
+      const posted = await db.payment.update({
+        where: { id: payment.id },
+        data: {
+          captureStatus: PaymentCaptureStatus.APPROVED,
+          postedAt: payment.postedAt ?? new Date(),
+          approvedAt: payment.approvedAt ?? new Date(),
+          approvedById: payment.approvedById ?? opts.userId,
+        },
+      });
+      return { payment: { ...payment, ...posted }, applied: false as const };
+    }
+
+    const amount = Number(payment.amount);
+    const outstanding = Number(invoice.total) - Number(invoice.amountPaid);
+    const { applied, credit } = splitPaymentAgainstInvoice(amount, outstanding);
+    const newAmountPaid = Number(invoice.amountPaid) + applied;
+    await db.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        amountPaid: newAmountPaid,
+        status: deriveInvoiceStatus(Number(invoice.total), newAmountPaid, invoice.dueDate, invoice.status),
+      },
+    });
+
+    if (opts.allocations?.length) {
+      await allocatePaymentManual({
+        schoolId: invoice.schoolId,
+        paymentId: payment.id,
+        invoiceId: invoice.id,
+        allocations: opts.allocations,
+        db,
+      });
+    } else if (applied > 0) {
+      await allocatePaymentToOldest({
+        schoolId: invoice.schoolId,
+        studentId: invoice.studentId,
+        paymentId: payment.id,
+        invoiceId: invoice.id,
+        amount: applied,
+        db,
+      });
+    }
+
+    if (applied > 0) {
+      await postPaymentToStudentLedger({
+        schoolId: invoice.schoolId,
+        studentId: invoice.studentId,
+        paymentId: payment.id,
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        amount: applied,
+        method: payment.method,
+        reference: payment.bankReference || payment.reference,
+        recordedById: opts.userId,
+        db,
+      });
+    }
+
+    if (credit > 0.009) {
+      const number = await nextCreditNoteNumber(invoice.schoolId, db);
+      const ledger = await createStudentLedgerEntry({
+        schoolId: invoice.schoolId,
+        studentId: invoice.studentId,
+        type: StudentLedgerType.CREDIT,
+        description: `Overpayment credit from ${payment.receiptNumber}`,
+        amount: credit,
+        invoiceId: invoice.id,
+        paymentId: payment.id,
+        recordedById: opts.userId,
+        reference: number,
+        db,
+      });
+      await db.creditNote.create({
+        data: {
+          schoolId: invoice.schoolId,
+          studentId: invoice.studentId,
+          number,
+          amount: credit,
+          reason: `Overpayment on ${invoice.invoiceNumber}`,
+          invoiceId: invoice.id,
+          ledgerEntryId: ledger.id,
+          createdById: opts.userId,
+        },
+      });
+      await db.payment.update({
+        where: { id: payment.id },
+        data: { overpaymentCredit: credit },
+      });
+    }
+
+    const posted = await db.payment.update({
+      where: { id: payment.id },
+      data: {
+        captureStatus: PaymentCaptureStatus.APPROVED,
+        postedAt: new Date(),
+        approvedAt: new Date(),
+        approvedById: opts.userId,
+      },
+    });
+    return { payment: { ...payment, ...posted, invoice: payment.invoice }, applied: true as const, amount, appliedAmount: applied, credit };
   });
+
+  const payment = outcome.payment;
+  if (!outcome.applied) return payment;
+
+  const invoice = payment.invoice;
+  const amount = outcome.amount;
+  const applied = outcome.appliedAmount;
+  const credit = outcome.credit;
+  const previousRelease = await getDocumentRelease(invoice.studentId);
 
   await logAudit({
     schoolId: invoice.schoolId,
@@ -175,7 +228,7 @@ export async function postApprovedPayment(opts: {
     actorId: opts.userId,
   });
 
-  return posted;
+  return payment;
 }
 
 export async function createManualPayment(opts: {
