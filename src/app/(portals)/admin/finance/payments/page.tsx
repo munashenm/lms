@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PaymentReceiptButton } from "@/components/finance/payment-receipt-button";
-import { PaymentReverseButton } from "@/components/finance/payment-reverse-button";
 import { PaymentReviewActions } from "@/components/finance/payment-review-actions";
 import { PAYMENT_METHOD_LABELS, PAYMENT_CAPTURE_STATUS_LABELS } from "@/lib/finance";
 import { formatDateTime, formatZAR } from "@/lib/utils";
@@ -76,9 +75,6 @@ export default async function AdminFinancePaymentsPage() {
                             </a>
                           ) : null}
                           <PaymentReceiptButton paymentId={p.id} />
-                          {!p.reversedAt && !p.reversalOfId && p.captureStatus === "APPROVED" ? (
-                            <PaymentReverseButton paymentId={p.id} />
-                          ) : null}
                           <PaymentReviewActions paymentId={p.id} status={p.captureStatus} canApprove={canApprove} />
                         </div>
                       </td>

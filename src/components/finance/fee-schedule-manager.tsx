@@ -32,8 +32,9 @@ export function FeeScheduleManager({ schoolId, items }: FeeScheduleManagerProps)
 
   async function createItem(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading("create");
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch(`/api/fee-schedule?schoolId=${encodeURIComponent(schoolId)}`, {
         method: "POST",
@@ -49,7 +50,7 @@ export function FeeScheduleManager({ schoolId, items }: FeeScheduleManagerProps)
       });
       if (!res.ok) throw new Error();
       toast.success("Fee item added");
-      e.currentTarget.reset();
+      formEl.reset();
       router.refresh();
     } catch {
       toast.error("Failed to add fee item");

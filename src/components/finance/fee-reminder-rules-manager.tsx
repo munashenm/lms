@@ -50,8 +50,9 @@ export function FeeReminderRulesManager({
 
   async function createRule(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading("create");
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch("/api/fee-reminder-rules", {
         method: "POST",
@@ -69,7 +70,7 @@ export function FeeReminderRulesManager({
         throw new Error(data.message || "Failed");
       }
       toast.success("Reminder rule added");
-      e.currentTarget.reset();
+      formEl.reset();
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to add rule");
@@ -161,7 +162,9 @@ export function FeeReminderRulesManager({
           <div>
             <CardTitle>Automated reminder rules</CardTitle>
             <p className="text-sm text-muted mt-1">
-              Schedule reminders relative to invoice due dates. Negative days =
+              Schedule reminders relative to invoice due dates. Due dates use the Johannesburg day,
+              and a missed send is retried for two extra days. A parent with a portal login also
+              gets an overdue or reminder notice there. Negative days =
               before due; positive = overdue. Templates support{" "}
               <code className="text-xs">{"{{studentName}}"}</code>,{" "}
               <code className="text-xs">{"{{balance}}"}</code>,{" "}

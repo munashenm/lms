@@ -42,8 +42,9 @@ export function TeacherReviewForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch("/api/me/reviews", {
         method: "POST",
@@ -62,7 +63,7 @@ export function TeacherReviewForm({
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.message ?? "Could not submit review");
       toast.success("Review submitted");
-      (e.target as HTMLFormElement).reset();
+      formEl.reset();
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not submit review");

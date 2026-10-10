@@ -22,7 +22,6 @@ export const ACTION_PERMISSIONS = [
   "finance.record_payment",
   "finance.payments.create",
   "finance.payments.approve",
-  "finance.reverse_payment",
   "finance.expenses.create",
   "finance.expenses.approve",
   "finance.send_statement",
@@ -83,7 +82,6 @@ export type LegacyPermission =
   | "finance.fees.manage"
   | "finance.payments.create"
   | "finance.payments.approve"
-  | "finance.payments.reverse"
   | "finance.receipts.view"
   | "finance.expenses.manage"
   | "finance.expenses.approve"
@@ -159,7 +157,6 @@ export const ACTION_TO_LEGACY: Record<ActionPermission, LegacyPermission[]> = {
   "finance.record_payment": ["finance.payments.create"],
   "finance.payments.create": ["finance.payments.create"],
   "finance.payments.approve": ["finance.payments.approve"],
-  "finance.reverse_payment": ["finance.payments.reverse"],
   "finance.expenses.create": ["finance.expenses.manage"],
   "finance.expenses.approve": ["finance.expenses.approve"],
   "finance.send_statement": ["finance:write"],
@@ -235,7 +232,6 @@ export const PERMISSION_GROUPS: Array<{
       "finance.record_payment",
       "finance.payments.create",
       "finance.payments.approve",
-      "finance.reverse_payment",
       "finance.expenses.create",
       "finance.expenses.approve",
       "finance.send_statement",
@@ -324,7 +320,6 @@ export const PERMISSION_LABELS: Record<ActionPermission, string> = {
   "finance.record_payment": "Record Payments",
   "finance.payments.create": "Create Manual Payments",
   "finance.payments.approve": "Verify / Approve Payments",
-  "finance.reverse_payment": "Reverse Payments",
   "finance.expenses.create": "Create Expenses",
   "finance.expenses.approve": "Approve Expenses",
   "finance.send_statement": "Send Statements",

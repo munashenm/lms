@@ -46,8 +46,9 @@ export function SmsConsole({
 
   async function send(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const payload: Record<string, string | undefined> = {
         message: String(form.get("message") ?? ""),
@@ -68,7 +69,7 @@ export function SmsConsole({
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? data.log?.error ?? "SMS failed");
       toast.success(data.count ? `SMS sent to ${data.count} recipients` : "SMS queued/sent");
-      e.currentTarget.reset();
+      formEl.reset();
       setAudience("INDIVIDUAL");
       load();
     } catch (err) {

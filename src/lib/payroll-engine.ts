@@ -9,6 +9,8 @@ export interface PayrollRules {
   pensionEmployerPercent?: number;
   medicalEmployeePercent?: number;
   sdlEmployerPercent?: number;
+  /** When set, UIF is calculated only on earnings up to this monthly amount. */
+  uifMonthlyCeiling?: number;
   [key: string]: unknown;
 }
 
@@ -121,10 +123,12 @@ export function calculateEmployeePay(input: SalaryInput, rules: PayrollRules = {
   }
 
   const grossPay = sumLines(earnings);
+  const uifCeiling = Number(rules.uifMonthlyCeiling ?? 0);
+  const uifBase = uifCeiling > 0 ? Math.min(grossPay, uifCeiling) : grossPay;
   const deductions: PayrollLine[] = [];
   const tax = pct(grossPay, rules.employeeTaxPercent);
   if (tax) deductions.push({ name: "Income tax", amount: tax });
-  const uifEmp = pct(grossPay, rules.uifEmployeePercent);
+  const uifEmp = pct(uifBase, rules.uifEmployeePercent);
   if (uifEmp) deductions.push({ name: "UIF (employee)", amount: uifEmp });
   const pensionEmp = pct(grossPay, rules.pensionEmployeePercent);
   if (pensionEmp) deductions.push({ name: "Pension / provident", amount: pensionEmp });
@@ -135,7 +139,7 @@ export function calculateEmployeePay(input: SalaryInput, rules: PayrollRules = {
   }
 
   const employer: PayrollLine[] = [];
-  const uifEr = pct(grossPay, rules.uifEmployerPercent);
+  const uifEr = pct(uifBase, rules.uifEmployerPercent);
   if (uifEr) employer.push({ name: "UIF (employer)", amount: uifEr });
   const pensionEr = pct(grossPay, rules.pensionEmployerPercent);
   if (pensionEr) employer.push({ name: "Pension (employer)", amount: pensionEr });
@@ -172,4 +176,5 @@ export const EMPTY_PAYROLL_RULES: PayrollRules = {
   pensionEmployerPercent: 0,
   medicalEmployeePercent: 0,
   sdlEmployerPercent: 0,
+  uifMonthlyCeiling: 0,
 };

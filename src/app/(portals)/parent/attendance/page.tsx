@@ -5,6 +5,8 @@ import { ChildFilter } from "@/components/finance/child-filter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { AttendanceAlertSettings } from "@/components/parent/attendance-alert-settings";
+import { johannesburgDayStart } from "@/lib/school-day";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
@@ -31,6 +33,12 @@ export default async function ParentAttendancePage({ searchParams }: PageProps) 
       })
     : [];
 
+  const today = johannesburgDayStart();
+  const alerts = records.filter((record) => {
+    const sameDay = johannesburgDayStart(record.date).getTime() === today.getTime();
+    return sameDay && (record.status === "ABSENT" || record.status === "SICK" || record.status === "LATE");
+  });
+
   const variant: Record<string, "success" | "danger" | "warning" | "secondary"> = {
     PRESENT: "success",
     ABSENT: "danger",
@@ -50,6 +58,30 @@ export default async function ParentAttendancePage({ searchParams }: PageProps) 
         selectedId={studentId}
         basePath="/parent/attendance"
       />
+
+      <AttendanceAlertSettings
+        children={(guardian?.students ?? [])
+          .filter((link) => filterIds.includes(link.student.id))
+          .map((link) => ({
+            id: link.student.id,
+            name: `${link.student.firstName} ${link.student.lastName}`,
+            notifyAbsent: link.notifyAbsent,
+            notifyLate: link.notifyLate,
+          }))}
+      />
+
+      {alerts.length > 0 ? (
+        <Card>
+          <CardContent className="space-y-2 pt-5">
+            <p className="text-sm font-medium">Today</p>
+            {alerts.map((record) => (
+              <p key={record.id} className="text-sm">
+                {record.student.firstName} {record.student.lastName} is marked {record.status.toLowerCase()}.
+              </p>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardContent className="p-0">

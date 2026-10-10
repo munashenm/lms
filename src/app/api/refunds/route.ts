@@ -32,7 +32,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!requireStaffPermission(session, "finance.payments.reverse") && !requireStaffPermission(session, "finance:write")) {
+  if (!requireStaffPermission(session, "finance.payments.create") && !requireStaffPermission(session, "finance:write")) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
   }
   const schoolId = await requireSchoolId(session!);

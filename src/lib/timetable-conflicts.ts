@@ -8,6 +8,7 @@ export interface TimetableSlotLike {
   startTime: string;
   endTime: string;
   room?: string | null;
+  subjectId?: string | null;
   class?: { name: string };
   teacher?: { firstName: string; lastName: string } | null;
 }

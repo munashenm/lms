@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
+import { payrollConfigurationChecks, ZA_UIF_MONTHLY_CEILING } from "@/lib/payroll-checks";
 
 const FIELDS = [
   ["employeeTaxPercent", "Income tax %"],
@@ -42,6 +43,7 @@ export function PayrollRulesForm(props: {
         effectiveFrom: form.get("effectiveFrom"),
       };
       for (const [key] of FIELDS) body[key] = Number(form.get(key) || 0);
+      body.uifMonthlyCeiling = Number(form.get("uifMonthlyCeiling") || 0);
       const res = await fetch("/api/payroll/rules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -62,14 +64,30 @@ export function PayrollRulesForm(props: {
       <CardHeader><CardTitle>Statutory rates (versioned)</CardTitle></CardHeader>
       <CardContent>
         <p className="text-sm text-muted mb-4">
-          Rates come only from this configuration. Tax tables are not hard-coded. Leave percents at 0 until your accountant supplies figures.
+          Rates come only from this configuration. Tax tables are not hard-coded. The checks below compare a ZA setup with the usual UIF, SDL and PAYE expectations.
         </p>
+        <ul className="mb-4 space-y-1 text-sm">
+          {payrollConfigurationChecks({
+            jurisdiction: String(rules.jurisdiction ?? props.current?.jurisdiction ?? "ZA"),
+            employeeTaxPercent: Number(rules.employeeTaxPercent ?? 0),
+            uifEmployeePercent: Number(rules.uifEmployeePercent ?? 0),
+            uifEmployerPercent: Number(rules.uifEmployerPercent ?? 0),
+            sdlEmployerPercent: Number(rules.sdlEmployerPercent ?? 0),
+            uifMonthlyCeiling: Number(rules.uifMonthlyCeiling ?? 0),
+          }).map((check) => (
+            <li key={check.message} className={check.level === "warning" ? "text-amber-800" : "text-muted"}>{check.message}</li>
+          ))}
+        </ul>
         <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2"><Label htmlFor="name">Name</Label><Input id="name" name="name" required defaultValue={props.current?.name ?? "ZA rates"} /></div>
           <div><Label htmlFor="jurisdiction">Jurisdiction</Label><Input id="jurisdiction" name="jurisdiction" defaultValue={props.current?.jurisdiction ?? "ZA"} /></div>
           <div>
             <Label htmlFor="effectiveFrom">Effective from</Label>
             <Input id="effectiveFrom" name="effectiveFrom" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
+          </div>
+          <div>
+            <Label htmlFor="uifMonthlyCeiling">UIF monthly ceiling (ZAR)</Label>
+            <Input id="uifMonthlyCeiling" name="uifMonthlyCeiling" type="number" step="0.01" min="0" defaultValue={Number(rules.uifMonthlyCeiling ?? ZA_UIF_MONTHLY_CEILING)} />
           </div>
           {FIELDS.map(([name, label]) => (
             <div key={name}>

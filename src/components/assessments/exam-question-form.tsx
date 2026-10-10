@@ -32,8 +32,9 @@ export function ExamQuestionForm({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     const options = [form.get("optionA"), form.get("optionB"), form.get("optionC"), form.get("optionD")]
       .map((v) => String(v ?? "").trim())
       .filter(Boolean);
@@ -54,7 +55,7 @@ export function ExamQuestionForm({
         throw new Error(data.message || "Failed");
       }
       toast.success("Question added");
-      (e.target as HTMLFormElement).reset();
+      formEl.reset();
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not add question");

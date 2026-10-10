@@ -22,8 +22,9 @@ export function LessonPlanForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch("/api/lesson-plans", {
         method: "POST",
@@ -43,7 +44,7 @@ export function LessonPlanForm({
       });
       if (!res.ok) throw new Error();
       toast.success("Lesson plan saved");
-      (e.target as HTMLFormElement).reset();
+      formEl.reset();
       router.refresh();
     } catch {
       toast.error("Could not save lesson plan");

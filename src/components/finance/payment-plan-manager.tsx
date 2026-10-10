@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatZAR } from "@/lib/utils";
-import { chargeOutstanding } from "@/lib/charge-reversal";
 import { InstalmentSchedule } from "@/components/finance/instalment-schedule";
 
 interface StudentOpt {
@@ -54,8 +53,9 @@ export function PaymentPlanManager(props: {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading("manual");
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     const count = Number(form.get("instalmentCount") || 1);
     try {
       const res = await fetch("/api/student-charges", {
@@ -74,7 +74,7 @@ export function PaymentPlanManager(props: {
       });
       if (!res.ok) throw new Error();
       toast.success("Charge posted to the student ledger");
-      e.currentTarget.reset();
+      formEl.reset();
       router.refresh();
     } catch {
       toast.error("Could not create charge");
@@ -85,8 +85,9 @@ export function PaymentPlanManager(props: {
 
   async function applyStructure(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading("structure");
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch("/api/student-charges", {
         method: "POST",
@@ -100,30 +101,10 @@ export function PaymentPlanManager(props: {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Failed");
       toast.success(data.skipped ? "That fee is already on the student ledger" : "Fee structure applied");
-      e.currentTarget.reset();
+      formEl.reset();
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not apply fee structure");
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  async function reverseCharge(id: string) {
-    if (!confirm("Reverse the unpaid remainder of this charge? Receipts are kept.")) return;
-    setLoading(id);
-    try {
-      const res = await fetch(`/api/student-charges/${id}/reverse`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || "Failed");
-      toast.success("Charge reversed on the ledger");
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not reverse charge");
     } finally {
       setLoading(null);
     }
@@ -219,50 +200,29 @@ export function PaymentPlanManager(props: {
         <CardHeader><CardTitle>Payment plans</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           {props.charges.length === 0 ? <p className="text-sm text-muted">No charges yet.</p> : null}
-          {props.charges.map((charge) => {
-            const outstanding = chargeOutstanding(
-              Number(charge.amount),
-              charge.instalments.map((row) => ({ amountPaid: Number(row.amountPaid) }))
-            );
-            return (
-              <div key={charge.id} className="border border-border rounded-md p-3">
-                <div className="flex flex-wrap justify-between gap-2 text-sm">
-                  <p className="font-medium">
-                    {charge.student.firstName} {charge.student.lastName} · {charge.description}
-                  </p>
-                  <p>{formatZAR(Number(charge.amount))} <Badge variant="secondary">{charge.source}</Badge></p>
-                </div>
-                {charge.invoice ? (
-                  <p className="text-xs text-muted mt-1">Invoice {charge.invoice.invoiceNumber}</p>
-                ) : null}
-                <div className="mt-2">
-                  <InstalmentSchedule
-                    instalments={charge.instalments.map((row) => ({
-                      ...row,
-                      amount: Number(row.amount),
-                      amountPaid: Number(row.amountPaid),
-                    }))}
-                    title="Instalments"
-                  />
-                </div>
-                {outstanding > 0 ? (
-                  <div className="mt-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={loading !== null}
-                      onClick={() => reverseCharge(charge.id)}
-                    >
-                      Reverse unpaid remainder ({formatZAR(outstanding)})
-                    </Button>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted mt-2">Fully paid. Reverse receipts from the invoice if needed.</p>
-                )}
+          {props.charges.map((charge) => (
+            <div key={charge.id} className="border border-border rounded-md p-3">
+              <div className="flex flex-wrap justify-between gap-2 text-sm">
+                <p className="font-medium">
+                  {charge.student.firstName} {charge.student.lastName} · {charge.description}
+                </p>
+                <p>{formatZAR(Number(charge.amount))} <Badge variant="secondary">{charge.source}</Badge></p>
               </div>
-            );
-          })}
+              {charge.invoice ? (
+                <p className="text-xs text-muted mt-1">Invoice {charge.invoice.invoiceNumber}</p>
+              ) : null}
+              <div className="mt-2">
+                <InstalmentSchedule
+                  instalments={charge.instalments.map((row) => ({
+                    ...row,
+                    amount: Number(row.amount),
+                    amountPaid: Number(row.amountPaid),
+                  }))}
+                  title="Instalments"
+                />
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>

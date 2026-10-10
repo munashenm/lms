@@ -90,8 +90,9 @@ export function EmployeeRecord(props: {
 
   async function changeSalary(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading("salary");
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch(`/api/employees/${props.employee.id}/salary`, {
         method: "POST",
@@ -107,7 +108,7 @@ export function EmployeeRecord(props: {
       });
       if (!res.ok) throw new Error();
       toast.success("Salary change recorded");
-      e.currentTarget.reset();
+      formEl.reset();
       router.refresh();
     } catch {
       toast.error("Could not save salary change");
@@ -188,8 +189,9 @@ export function EmployeeRecord(props: {
 
   async function addContract(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading("contract");
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch(`/api/employees/${props.employee.id}/contracts`, {
         method: "POST",
@@ -203,7 +205,7 @@ export function EmployeeRecord(props: {
       });
       if (!res.ok) throw new Error();
       toast.success("Contract recorded");
-      e.currentTarget.reset();
+      formEl.reset();
       router.refresh();
     } catch {
       toast.error("Could not save contract");

@@ -36,8 +36,9 @@ export function LearnerLeaveForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     if (studentId) form.set("studentId", studentId);
     try {
       const res = await fetch(endpoint, {
@@ -47,7 +48,7 @@ export function LearnerLeaveForm({
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.message ?? "Could not submit");
       toast.success("Leave request submitted");
-      (e.target as HTMLFormElement).reset();
+      formEl.reset();
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not submit");

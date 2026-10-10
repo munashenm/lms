@@ -83,6 +83,7 @@ export default async function BackupPage({ searchParams }: PageProps) {
         <p className="text-muted text-sm mt-1">
           {schoolName ? `${schoolName} — ` : ""}
           Automatic cloud backups and encrypted offline .lmsbackup packages. Credentials stay on the server.
+          A failed or overdue scheduled backup notifies school administrators.
         </p>
       </div>
       <BackupDashboard schoolId={requested ?? session.schoolId ?? undefined} />

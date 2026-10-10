@@ -2,7 +2,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentForm } from "./payment-form";
 import { PaymentReceiptButton } from "./payment-receipt-button";
-import { PaymentReverseButton } from "./payment-reverse-button";
 import { InvoicePdfButton } from "./invoice-pdf-button";
 import { FeeStatementButton } from "./fee-statement-button";
 import { InstalmentSchedule, type InstalmentView } from "./instalment-schedule";
@@ -210,9 +209,6 @@ export function InvoiceDetail({ invoice, showPaymentForm = true }: InvoiceDetail
                   </div>
                   <div className="flex items-center gap-2">
                     <PaymentReceiptButton paymentId={p.id} />
-                    {showPaymentForm && !p.reversedAt && !p.reversalOfId ? (
-                      <PaymentReverseButton paymentId={p.id} />
-                    ) : null}
                   </div>
                 </div>
               ))}

@@ -20,8 +20,9 @@ export function LedgerForm() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
 
     try {
       const res = await fetch("/api/ledger", {
@@ -32,8 +33,8 @@ export function LedgerForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       toast.success("Entry recorded");
+      formEl.reset();
       router.refresh();
-      (e.target as HTMLFormElement).reset();
     } catch {
       toast.error("Failed to record entry");
     } finally {

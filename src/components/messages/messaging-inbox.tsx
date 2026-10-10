@@ -56,13 +56,14 @@ export function MessagingInbox({
 
   async function send(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const form = e.currentTarget;
     setLoading(true);
     try {
-      const res = await fetch("/api/messages", { method: "POST", body: new FormData(e.currentTarget) });
+      const res = await fetch("/api/messages", { method: "POST", body: new FormData(form) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message ?? "Send failed");
       toast.success("Message sent");
-      e.currentTarget.reset();
+      form.reset();
       setReplyTo(null);
       load("sent");
       setBox("sent");

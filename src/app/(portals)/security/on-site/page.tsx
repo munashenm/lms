@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { listOnSitePeople, occupancyCounts } from "@/lib/gate/queries";
+import { attendanceOccupancyForSchool } from "@/lib/gate/attendance-match";
 import { zonedParts } from "@/lib/gate/engine";
 
 interface PageProps {
@@ -11,9 +12,10 @@ export default async function OnSitePage({ searchParams }: PageProps) {
   const session = await getSession();
   if (!session?.schoolId) redirect("/login");
   const { q } = await searchParams;
-  const [counts, live] = await Promise.all([
+  const [counts, live, attendance] = await Promise.all([
     occupancyCounts(session.schoolId),
     listOnSitePeople(session.schoolId, q),
+    attendanceOccupancyForSchool(session.schoolId),
   ]);
   return (
     <div className="space-y-6">
@@ -23,6 +25,10 @@ export default async function OnSitePage({ searchParams }: PageProps) {
         <Stat label="Learners on site" value={counts.learners} />
         <Stat label="Staff on site" value={counts.staff} />
         <Stat label="Visitors on site" value={counts.visitors} />
+      </div>
+      <div className="grid gap-3 lg:grid-cols-2 text-sm">
+        <p className="rounded-xl border border-border p-3">Marked present or late, not on site: {attendance.presentNotOnSite.length}</p>
+        <p className="rounded-xl border border-border p-3">On site but marked absent: {attendance.absentButOnSite.length}</p>
       </div>
       <form>
         <input name="q" defaultValue={q ?? ""} placeholder="Search name or number" className="h-12 w-full rounded-lg border border-border px-3" />

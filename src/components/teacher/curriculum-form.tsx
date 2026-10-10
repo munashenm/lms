@@ -22,8 +22,9 @@ export function CurriculumTopicForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch("/api/curriculum-topics", {
         method: "POST",
@@ -39,7 +40,7 @@ export function CurriculumTopicForm({
       });
       if (!res.ok) throw new Error();
       toast.success("Topic saved");
-      (e.target as HTMLFormElement).reset();
+      formEl.reset();
       router.refresh();
     } catch {
       toast.error("Could not save topic");

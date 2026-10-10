@@ -3,8 +3,8 @@ import { getSession } from "@/lib/auth";
 import { getGuardianForSession, DAYS_ORDER } from "@/lib/portal-data";
 import { prisma } from "@/lib/db";
 import { ChildFilter } from "@/components/finance/child-filter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDate } from "@/lib/utils";
+import { AcademicCalendarList } from "@/components/calendar/academic-calendar-list";
+import { calendarKindForAssessment, type CalendarEntry } from "@/lib/academic-calendar";
 import { getTerminology } from "@/lib/terminology";
 import { calendarAssessmentLabel } from "@/lib/learner-portal";
 import { linkedStudentIdsOrForbidden } from "@/lib/parent-scope";
@@ -27,7 +27,7 @@ export default async function ParentCalendarPage({ searchParams }: PageProps) {
 
   const instalmentIds = scoped.ok ? scoped.studentIds : [];
 
-  const [assessments, instalments, termRows, announcements] = schoolId
+  const [assessments, instalments, termRows, announcements, schoolEvents] = schoolId
     ? await Promise.all([
         prisma.assessment.findMany({
           where: {
@@ -67,12 +67,18 @@ export default async function ParentCalendarPage({ searchParams }: PageProps) {
           orderBy: { publishAt: "asc" },
           take: 20,
         }),
+        prisma.schoolEvent.findMany({
+          where: { schoolId, startsAt: { gte: now, lte: horizon } },
+          orderBy: { startsAt: "asc" },
+          take: 20,
+        }),
       ])
-    : [[], [], [], []];
+    : [[], [], [], [], []];
 
-  const events = [
+  const events: CalendarEntry[] = [
     ...assessments.map((a) => ({
       date: a.dueDate!,
+      kind: calendarKindForAssessment(a.type),
       label: calendarAssessmentLabel({
         type: a.type,
         title: a.title,
@@ -82,19 +88,27 @@ export default async function ParentCalendarPage({ searchParams }: PageProps) {
     })),
     ...instalments.map((row) => ({
       date: row.dueDate,
+      kind: "DEADLINE" as const,
       label: `Payment: ${row.charge.description}`,
       detail: `${row.charge.student.firstName} ${row.charge.student.lastName}`,
     })),
     ...termRows.flatMap((term) => [
-      { date: term.startDate, label: `${term.name} starts`, detail: null as string | null },
-      { date: term.endDate, label: `${term.name} ends`, detail: null as string | null },
+      { date: term.startDate, kind: "EVENT" as const, label: `${term.name} starts`, detail: null },
+      { date: term.endDate, kind: "EVENT" as const, label: `${term.name} ends`, detail: null },
     ]),
     ...announcements.map((a) => ({
       date: a.publishAt,
-      label: `Event/notice: ${a.title}`,
-      detail: null as string | null,
+      kind: "EVENT" as const,
+      label: a.title,
+      detail: "Notice",
     })),
-  ].sort((a, b) => a.date.getTime() - b.date.getTime());
+    ...schoolEvents.map((event) => ({
+      date: event.startsAt,
+      kind: "EVENT" as const,
+      label: event.title,
+      detail: "School event",
+    })),
+  ];
 
   return (
     <div className="space-y-6">
@@ -116,29 +130,7 @@ export default async function ParentCalendarPage({ searchParams }: PageProps) {
         basePath="/parent/calendar"
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Upcoming</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {events.length === 0 ? (
-            <p className="text-sm text-muted">Nothing scheduled in the next 60 days.</p>
-          ) : (
-            events.map((event, index) => (
-              <div
-                key={`${event.label}-${index}`}
-                className="flex justify-between gap-3 text-sm border-b border-border pb-2 last:border-0"
-              >
-                <div>
-                  <p className="font-medium">{event.label}</p>
-                  {event.detail ? <p className="text-xs text-muted">{event.detail}</p> : null}
-                </div>
-                <p className="text-muted shrink-0">{formatDate(event.date)}</p>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <AcademicCalendarList entries={events} />
     </div>
   );
 }

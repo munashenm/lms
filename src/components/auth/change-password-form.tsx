@@ -13,8 +13,9 @@ export function ChangePasswordForm() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
 
     try {
       const res = await fetch("/api/auth/change-password", {
@@ -29,7 +30,7 @@ export function ChangePasswordForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       toast.success("Password updated");
-      e.currentTarget.reset();
+      formEl.reset();
       if (data.redirect) {
         window.location.assign(data.redirect);
       }
