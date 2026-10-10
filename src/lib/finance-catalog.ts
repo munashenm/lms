@@ -1,4 +1,21 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
+
+type ReceiptDb = {
+  $queryRaw: Prisma.TransactionClient["$queryRaw"];
+};
+
+export function formatReceiptNumber(year: number, sequence: number): string {
+  return `RCP-${year}-${String(sequence).padStart(5, "0")}`;
+}
+
+/** Plain RCP-YYYY-##### only. Suffixed historical numbers such as -R are ignored. */
+export function plainReceiptSequence(receiptNumber: string, year: number): number | null {
+  const match = new RegExp(`^RCP-${year}-(\\d+)$`).exec(receiptNumber);
+  if (!match) return null;
+  const value = Number(match[1]);
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
 
 export const DEFAULT_EXPENSE_CATEGORIES = [
   "Salaries",
@@ -64,16 +81,27 @@ export async function ensureFinanceCatalog(schoolId: string) {
   }
 }
 
-export async function nextReceiptNumber(schoolId: string): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = `RCP-${year}-`;
-  const last = await prisma.payment.findFirst({
-    where: { schoolId, receiptNumber: { startsWith: prefix } },
-    orderBy: { receiptNumber: "desc" },
-    select: { receiptNumber: true },
-  });
-  const seq = last?.receiptNumber ? Number(last.receiptNumber.slice(prefix.length)) + 1 : 1;
-  return `${prefix}${String(Number.isFinite(seq) ? seq : 1).padStart(5, "0")}`;
+export async function nextReceiptNumber(schoolId: string, db: ReceiptDb = prisma, year = new Date().getFullYear()): Promise<string> {
+  const pattern = `^RCP-${year}-([0-9]+)$`;
+  const whole = `^RCP-${year}-[0-9]+$`;
+  const rows = await db.$queryRaw<Array<{ lastNumber: number }>>`
+    WITH seed AS (
+      SELECT COALESCE(MAX(CAST(substring("receiptNumber" FROM ${pattern}) AS INTEGER)), 0) AS n
+      FROM "payments"
+      WHERE "schoolId" = ${schoolId}
+        AND "receiptNumber" ~ ${whole}
+    )
+    INSERT INTO "receipt_sequences" ("schoolId", "year", "lastNumber")
+    SELECT ${schoolId}, ${year}, (SELECT n FROM seed) + 1
+    ON CONFLICT ("schoolId", "year") DO UPDATE
+    SET "lastNumber" = GREATEST("receipt_sequences"."lastNumber", (SELECT n FROM seed)) + 1
+    RETURNING "lastNumber"
+  `;
+  const sequence = Number(rows[0]?.lastNumber);
+  if (!Number.isInteger(sequence) || sequence < 1) {
+    throw new Error("Could not allocate a receipt number");
+  }
+  return formatReceiptNumber(year, sequence);
 }
 
 export async function nextCreditNoteNumber(schoolId: string): Promise<string> {
