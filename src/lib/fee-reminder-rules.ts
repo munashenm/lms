@@ -2,16 +2,30 @@ import {
   CommunicationCategory,
   CommunicationStatus,
   Prisma,
+  UserRole,
 } from "@prisma/client";
 import { prisma } from "./db";
 import { getOutstandingBalance } from "./finance";
 import { formatDate, formatZAR } from "./utils";
 import { sendLoggedEmail, sendLoggedSms } from "./communications";
-import { notifyUser } from "./notifications";
+import { notifySchoolRoles, notifyUser } from "./notifications";
 import { addUtcDays, johannesburgDayStart } from "./school-day";
 
 /** Retry a missed or failed reminder for this many extra Johannesburg days. */
 export const FEE_REMINDER_CATCHUP_DAYS = 2;
+
+export const FEE_REMINDER_FAILURE_NOTICE_TITLE = "Fee reminders need attention";
+export const FEE_REMINDER_FAILURE_NOTICE_HOURS = 20;
+
+export function feeReminderFailureMessage(failed: number): string {
+  const count = Math.max(0, Math.floor(failed));
+  const label = count === 1 ? "1 fee reminder could not be delivered" : `${count} fee reminders could not be delivered`;
+  return `${label}. The next scheduled run will retry them. People who already received a reminder are not contacted again.`;
+}
+
+export function feeReminderNoticeIsRecent(createdAt: Date, now: Date, hours = FEE_REMINDER_FAILURE_NOTICE_HOURS): boolean {
+  return now.getTime() - createdAt.getTime() < hours * 60 * 60 * 1000;
+}
 
 export function reminderDueWindows(asOf: Date, daysOffset: number, catchup = FEE_REMINDER_CATCHUP_DAYS) {
   const start = johannesburgDayStart(asOf);
@@ -59,6 +73,29 @@ export async function claimFeeReminderDispatch(data: {
 
 export async function releaseFeeReminderDispatch(ruleId: string, invoiceId: string, channel: string) {
   await prisma.feeReminderDispatch.deleteMany({ where: { ruleId, invoiceId, channel } });
+}
+
+/** One in-app notice per school while failures continue. Retries and restarts do not add another. */
+export async function notifyFeeReminderFailures(schoolId: string, failed: number, now = new Date()) {
+  if (failed <= 0) return false;
+  const recent = await prisma.notification.findFirst({
+    where: {
+      schoolId,
+      title: FEE_REMINDER_FAILURE_NOTICE_TITLE,
+      createdAt: { gte: new Date(now.getTime() - FEE_REMINDER_FAILURE_NOTICE_HOURS * 60 * 60 * 1000) },
+    },
+    select: { createdAt: true },
+  });
+  if (recent && feeReminderNoticeIsRecent(recent.createdAt, now)) return false;
+  await notifySchoolRoles({
+    schoolId,
+    roles: [UserRole.SCHOOL_ADMIN, UserRole.FINANCE_OFFICER],
+    title: FEE_REMINDER_FAILURE_NOTICE_TITLE,
+    message: feeReminderFailureMessage(failed),
+    type: "WARNING",
+    link: "/finance/reminders",
+  });
+  return true;
 }
 
 function startOfDay(date: Date): Date {
@@ -120,6 +157,7 @@ export async function runFeeReminderRules(params?: {
     summary.schools += 1;
 
     let schoolSent = 0;
+    let schoolFailed = 0;
     const limit = params?.limitPerSchool ?? 100;
 
     for (const rule of rules) {
@@ -218,6 +256,7 @@ export async function runFeeReminderRules(params?: {
           if (!contact) {
             await releaseFeeReminderDispatch(rule.id, invoice.id, channel);
             summary.failed += 1;
+            schoolFailed += 1;
             continue;
           }
 
@@ -262,6 +301,7 @@ ${vars.schoolName} Accounts Department`;
               } else {
                 await releaseFeeReminderDispatch(rule.id, invoice.id, channel);
                 summary.failed += 1;
+                schoolFailed += 1;
                 continue;
               }
             } else {
@@ -287,6 +327,7 @@ ${vars.schoolName} Accounts Department`;
               } else {
                 await releaseFeeReminderDispatch(rule.id, invoice.id, channel);
                 summary.failed += 1;
+                schoolFailed += 1;
                 continue;
               }
             }
@@ -300,6 +341,7 @@ ${vars.schoolName} Accounts Department`;
           } catch {
             await releaseFeeReminderDispatch(rule.id, invoice.id, channel);
             summary.failed += 1;
+            schoolFailed += 1;
           }
         }
 
@@ -333,9 +375,14 @@ ${vars.schoolName} Accounts Department`;
           } catch {
             await releaseFeeReminderDispatch(rule.id, invoice.id, "PORTAL");
             summary.failed += 1;
+            schoolFailed += 1;
           }
         }
       }
+    }
+
+    if (schoolFailed > 0) {
+      await notifyFeeReminderFailures(school.id, schoolFailed, asOf);
     }
   }
 
