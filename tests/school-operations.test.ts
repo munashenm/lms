@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { proposeTimetable } from "@/lib/timetable-generate";
 import { calculateEmployeePay } from "@/lib/payroll-engine";
-import { payrollConfigurationChecks, ZA_UIF_MONTHLY_CEILING } from "@/lib/payroll-checks";
+import { payrollConfigurationChecks, uifFinaliseBlockers, ZA_UIF_MONTHLY_CEILING } from "@/lib/payroll-checks";
 import { summarizeInvoices } from "@/lib/invoice-summary";
 import { calendarKindForAssessment, groupCalendarEntries, isHighlightedCalendarDate } from "@/lib/academic-calendar";
 import { attendanceOccupancyGaps } from "@/lib/attendance-occupancy";
@@ -89,6 +89,42 @@ describe("payroll configuration", () => {
     });
     expect(ready.some((check) => check.message.includes("UIF rates are 1%"))).toBe(true);
     expect(ready.some((check) => check.message.includes("flat percent"))).toBe(true);
+  });
+
+  it("blocks finalising a ZA run when UIF rates or the ceiling are missing", () => {
+    expect(uifFinaliseBlockers({ jurisdiction: "NA" })).toEqual([]);
+    expect(
+      uifFinaliseBlockers({
+        jurisdiction: "ZA",
+        uifEmployeePercent: 1,
+        uifEmployerPercent: 1,
+        uifMonthlyCeiling: ZA_UIF_MONTHLY_CEILING,
+      })
+    ).toEqual([]);
+    expect(
+      uifFinaliseBlockers({
+        jurisdiction: "ZA",
+        uifEmployeePercent: 1,
+        uifEmployerPercent: 1,
+        uifMonthlyCeiling: 15000,
+      })
+    ).toEqual([]);
+    const missing = uifFinaliseBlockers({
+      jurisdiction: "ZA",
+      uifEmployeePercent: 0,
+      uifEmployerPercent: 0,
+      uifMonthlyCeiling: 0,
+    });
+    expect(missing.some((message) => message.includes("1%"))).toBe(true);
+    expect(missing.some((message) => message.includes("ceiling"))).toBe(true);
+    expect(
+      uifFinaliseBlockers({
+        jurisdiction: "ZA",
+        uifEmployeePercent: 1,
+        uifEmployerPercent: 2,
+        uifMonthlyCeiling: ZA_UIF_MONTHLY_CEILING,
+      })[0]
+    ).toMatch(/1%/);
   });
 });
 

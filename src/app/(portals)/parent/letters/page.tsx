@@ -4,11 +4,9 @@ import { prisma } from "@/lib/db";
 import { ChildFilter } from "@/components/finance/child-filter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getDocumentReleases, summarizeDocumentReleases } from "@/lib/fee-clearance";
-import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
+import { DocumentsHoldNotice, HeldDocumentAction } from "@/components/documents/documents-hold-notice";
 import { ISSUED_LETTER_LABELS } from "@/lib/letter-labels";
 
 interface PageProps {
@@ -27,9 +25,9 @@ export default async function ParentLettersPage({ searchParams }: PageProps) {
     await getDocumentReleases(filterIds)
   );
 
-  const letters = releasedIds.length
+  const letters = filterIds.length
     ? await prisma.issuedLetter.findMany({
-        where: { studentId: { in: releasedIds } },
+        where: { studentId: { in: filterIds } },
         include: { student: { select: { firstName: true, lastName: true } } },
         orderBy: { issuedAt: "desc" },
       })
@@ -49,9 +47,9 @@ export default async function ParentLettersPage({ searchParams }: PageProps) {
         basePath="/parent/letters"
       />
       {blocked ? (
-        <DocumentsHoldNotice outstandingCents={blocked.outstandingCents} feesHref="/parent/fees" />
+        <DocumentsHoldNotice compact outstandingCents={blocked.outstandingCents} feesHref="/parent/fees" />
       ) : null}
-      {letters.length === 0 && !blocked ? (
+      {letters.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted">No letters issued yet.</CardContent>
         </Card>
@@ -70,12 +68,10 @@ export default async function ParentLettersPage({ searchParams }: PageProps) {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <Badge variant="secondary">{ISSUED_LETTER_LABELS[letter.type] ?? letter.type}</Badge>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`/api/letters/${letter.id}/pdf`}>
-                      <Download className="h-4 w-4" />
-                      PDF
-                    </a>
-                  </Button>
+                  <HeldDocumentAction
+                    released={releasedIds.includes(letter.studentId)}
+                    href={`/api/letters/${letter.id}/pdf`}
+                  />
                 </div>
               </CardContent>
             </Card>

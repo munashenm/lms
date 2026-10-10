@@ -9,6 +9,7 @@ import {
   type RGB,
 } from "pdf-lib";
 import { hexToPdfRgb, DEFAULT_ACCENT_COLOR, DEFAULT_PRIMARY_COLOR } from "./school-branding";
+import { readUploadByPathname } from "./uploads/storage";
 
 export type SchoolBrand = {
   name: string;
@@ -21,6 +22,10 @@ export type SchoolBrand = {
   postalCode?: string | null;
   logoUrl?: string | null;
   registrationNo?: string | null;
+  bankName?: string | null;
+  bankAccountName?: string | null;
+  bankAccountNumber?: string | null;
+  bankBranchCode?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
 };
@@ -49,6 +54,10 @@ export function toSchoolBrand(school: {
   postalCode?: string | null;
   logoUrl?: string | null;
   registrationNo?: string | null;
+  bankName?: string | null;
+  bankAccountName?: string | null;
+  bankAccountNumber?: string | null;
+  bankBranchCode?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
 }): SchoolBrand {
@@ -63,6 +72,10 @@ export function toSchoolBrand(school: {
     postalCode: school.postalCode,
     logoUrl: school.logoUrl,
     registrationNo: school.registrationNo,
+    bankName: school.bankName,
+    bankAccountName: school.bankAccountName,
+    bankAccountNumber: school.bankAccountNumber,
+    bankBranchCode: school.bankBranchCode,
     primaryColor: school.primaryColor,
     accentColor: school.accentColor,
   };
@@ -78,6 +91,16 @@ export function formatSchoolContactLine(brand: SchoolBrand): string {
   return [brand.phone, brand.email, brand.website].filter(Boolean).join(" · ");
 }
 
+/** EFT details for this institution. Empty fields are omitted so another school's account is never implied. */
+export function schoolBankingLines(brand: SchoolBrand): string[] {
+  return [
+    brand.bankName ? `Bank: ${brand.bankName}` : null,
+    brand.bankAccountName ? `Account name: ${brand.bankAccountName}` : null,
+    brand.bankAccountNumber ? `Account number: ${brand.bankAccountNumber}` : null,
+    brand.bankBranchCode ? `Branch code: ${brand.bankBranchCode}` : null,
+  ].filter((line): line is string => Boolean(line));
+}
+
 async function resolveLogoBytes(logoUrl: string): Promise<Uint8Array | null> {
   try {
     if (logoUrl.startsWith("http://") || logoUrl.startsWith("https://")) {
@@ -86,7 +109,12 @@ async function resolveLogoBytes(logoUrl: string): Promise<Uint8Array | null> {
       return new Uint8Array(await res.arrayBuffer());
     }
 
-    const relative = logoUrl.startsWith("/") ? logoUrl.slice(1) : logoUrl;
+    const pathname = logoUrl.startsWith("/") ? logoUrl : `/${logoUrl}`;
+    if (pathname.startsWith("/uploads/")) {
+      const stored = await readUploadByPathname(pathname);
+      if (stored) return new Uint8Array(stored);
+    }
+    const relative = pathname.slice(1);
     const filePath = path.join(/* turbopackIgnore: true */ process.cwd(), "public", relative);
     const buf = await readFile(filePath);
     return new Uint8Array(buf);

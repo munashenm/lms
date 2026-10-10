@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import { outstandingCentsFromInvoices, feesHoldMessage, isLearnerPortalRole, documentReleaseFrom, summarizeDocumentReleases } from "@/lib/fee-clearance";
+import { outstandingCentsFromInvoices, outstandingCentsForDocuments, feesHoldMessage, isLearnerPortalRole, documentReleaseFrom, summarizeDocumentReleases } from "@/lib/fee-clearance";
 import { defaultLetterBody, wrapPdfLines } from "@/lib/pdf-letter";
 import { schoolSettingsSchema, issuedLetterSchema } from "@/lib/validators";
 import { readPublicPdf } from "@/lib/pdf-response";
@@ -53,6 +53,14 @@ describe("fee clearance for academic documents", () => {
     expect(summary.releasedIds).toEqual(["a"]);
     expect(summary.blocked?.id).toBe("b");
     expect(summary.blocked?.outstandingCents).toBe(25000);
+  });
+
+  it("uses a bursary or credit on the learner ledger without treating a missing ledger as paid", () => {
+    expect(outstandingCentsForDocuments(150000, null)).toBe(150000);
+    expect(outstandingCentsForDocuments(150000, 150000)).toBe(150000);
+    expect(outstandingCentsForDocuments(150000, 0)).toBe(0);
+    expect(outstandingCentsForDocuments(150000, -25000)).toBe(0);
+    expect(outstandingCentsForDocuments(150000, 40000)).toBe(40000);
   });
 });
 
@@ -126,6 +134,19 @@ describe("academic pdf paths", () => {
 describe("school settings document hold", () => {
   it("accepts the fees-paid document release flag", () => {
     expect(schoolSettingsSchema.safeParse({ requireFeesPaidForDocuments: true }).success).toBe(true);
+  });
+
+  it("accepts institution banking details and rejects a short account number", () => {
+    expect(
+      schoolSettingsSchema.safeParse({
+        bankName: "First National Bank",
+        bankAccountName: "Sunrise High",
+        bankAccountNumber: "62123456789",
+        bankBranchCode: "250655",
+      }).success
+    ).toBe(true);
+    expect(schoolSettingsSchema.safeParse({ bankAccountNumber: "12" }).success).toBe(false);
+    expect(schoolSettingsSchema.safeParse({ bankBranchCode: "25" }).success).toBe(false);
   });
 
   it("accepts enrolment confirmation letters", () => {

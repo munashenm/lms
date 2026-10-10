@@ -4,12 +4,10 @@ import { prisma } from "@/lib/db";
 import { ChildFilter } from "@/components/finance/child-filter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getTerminology } from "@/lib/terminology";
 import { getDocumentReleases, summarizeDocumentReleases } from "@/lib/fee-clearance";
-import { DocumentsHoldNotice } from "@/components/documents/documents-hold-notice";
+import { DocumentsHoldNotice, HeldDocumentAction } from "@/components/documents/documents-hold-notice";
 
 interface PageProps {
   searchParams: Promise<{ studentId?: string }>;
@@ -29,9 +27,9 @@ export default async function ParentReportCardsPage({ searchParams }: PageProps)
     await getDocumentReleases(filterIds)
   );
 
-  const reportCards = releasedIds.length
+  const reportCards = filterIds.length
     ? await prisma.reportCard.findMany({
-        where: { studentId: { in: releasedIds }, publishedAt: { not: null } },
+        where: { studentId: { in: filterIds }, publishedAt: { not: null } },
         include: {
           academicYear: { select: { name: true } },
           term: { select: { name: true } },
@@ -55,10 +53,10 @@ export default async function ParentReportCardsPage({ searchParams }: PageProps)
       />
 
       {blocked ? (
-        <DocumentsHoldNotice outstandingCents={blocked.outstandingCents} feesHref="/parent/fees" />
+        <DocumentsHoldNotice compact outstandingCents={blocked.outstandingCents} feesHref="/parent/fees" />
       ) : null}
 
-      {reportCards.length === 0 && !blocked ? (
+      {reportCards.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted">
             No report cards available yet.
@@ -84,12 +82,10 @@ export default async function ParentReportCardsPage({ searchParams }: PageProps)
                   {rc.overallAverage && (
                     <Badge variant="default">{Number(rc.overallAverage)}%</Badge>
                   )}
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`/api/report-cards/${rc.id}/pdf`}>
-                      <Download className="h-4 w-4" />
-                      Download PDF
-                    </a>
-                  </Button>
+                  <HeldDocumentAction
+                    released={releasedIds.includes(rc.studentId)}
+                    href={`/api/report-cards/${rc.id}/pdf`}
+                  />
                 </div>
               </CardContent>
             </Card>

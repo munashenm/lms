@@ -5,6 +5,7 @@ import { hashSaId } from "./pii-crypto";
 import {
   formatSchoolAddress,
   formatSchoolContactLine,
+  schoolBankingLines,
   type SchoolBrand,
 } from "./pdf-branding";
 
@@ -195,6 +196,7 @@ export function invoiceSchoolDetailLines(brand: SchoolBrand): string[] {
     formatSchoolAddress(brand),
     formatSchoolContactLine(brand),
     brand.registrationNo ? `Registration: ${brand.registrationNo}` : null,
+    ...schoolBankingLines(brand),
   ].filter((line): line is string => Boolean(line));
 }
 
