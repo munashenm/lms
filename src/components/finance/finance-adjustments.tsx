@@ -41,11 +41,14 @@ export function FinanceAdjustments(props: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof data.message === "string" ? data.message : "Could not save");
       toast.success(ok);
       router.refresh();
-    } catch {
-      toast.error("Could not save");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : "Could not save");
+      return false;
     } finally {
       setLoading(null);
     }
@@ -59,15 +62,16 @@ export function FinanceAdjustments(props: {
           <CardContent>
             <form
               className="space-y-3"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                const form = new FormData(e.currentTarget);
-                post("/api/credit-notes", {
+                const formEl = e.currentTarget;
+                const form = new FormData(formEl);
+                const saved = await post("/api/credit-notes", {
                   studentId: form.get("studentId"),
                   amount: Number(form.get("amount")),
                   reason: form.get("reason"),
                 }, "cn", "Credit note posted to the student ledger");
-                e.currentTarget.reset();
+                if (saved) formEl.reset();
               }}
             >
               <StudentSelect students={props.students} />
@@ -82,16 +86,17 @@ export function FinanceAdjustments(props: {
           <CardContent>
             <form
               className="space-y-3"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                const form = new FormData(e.currentTarget);
-                post("/api/refunds", {
+                const formEl = e.currentTarget;
+                const form = new FormData(formEl);
+                const saved = await post("/api/refunds", {
                   studentId: form.get("studentId"),
                   paymentId: form.get("paymentId") || null,
                   amount: Number(form.get("amount")),
                   reason: form.get("reason"),
                 }, "rf", "Refund submitted for approval");
-                e.currentTarget.reset();
+                if (saved) formEl.reset();
               }}
             >
               <StudentSelect students={props.students} />
@@ -117,16 +122,17 @@ export function FinanceAdjustments(props: {
           <CardContent>
             <form
               className="space-y-3"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                const form = new FormData(e.currentTarget);
-                post("/api/student-aid", {
+                const formEl = e.currentTarget;
+                const form = new FormData(formEl);
+                const saved = await post("/api/student-aid", {
                   studentId: form.get("studentId"),
                   type: form.get("type"),
                   name: form.get("name"),
                   amount: Number(form.get("amount")),
                 }, "aid", "Aid posted to the student ledger");
-                e.currentTarget.reset();
+                if (saved) formEl.reset();
               }}
             >
               <StudentSelect students={props.students} />

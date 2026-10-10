@@ -31,8 +31,9 @@ export function RecurringExpenseManager(props: {
 
   async function create(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading("create");
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch("/api/recurring-expenses", {
         method: "POST",
@@ -50,7 +51,7 @@ export function RecurringExpenseManager(props: {
       });
       if (!res.ok) throw new Error();
       toast.success("Recurring expense saved");
-      e.currentTarget.reset();
+      formEl.reset();
       router.refresh();
     } catch {
       toast.error("Could not save");

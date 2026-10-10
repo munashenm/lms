@@ -30,8 +30,9 @@ export function TimesheetManager(props: {
 
   async function create(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading("create");
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     const periodStart = String(form.get("periodStart"));
     const periodEnd = String(form.get("periodEnd"));
     const hours = Number(form.get("hours") || 0);
@@ -50,7 +51,7 @@ export function TimesheetManager(props: {
       });
       if (!res.ok) throw new Error();
       toast.success("Timesheet saved as draft");
-      e.currentTarget.reset();
+      formEl.reset();
       router.refresh();
     } catch {
       toast.error("Could not save timesheet");

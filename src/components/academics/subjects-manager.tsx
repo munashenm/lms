@@ -33,11 +33,14 @@ export function SubjectsManager({ grades, subjects, courses }: SubjectsManagerPr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error();
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof body.message === "string" ? body.message : `Failed to create ${label}`);
       toast.success(`${label} created`);
       router.refresh();
-    } catch {
-      toast.error(`Failed to create ${label}`);
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : `Failed to create ${label}`);
+      return false;
     } finally {
       setLoading(null);
     }
@@ -49,11 +52,12 @@ export function SubjectsManager({ grades, subjects, courses }: SubjectsManagerPr
         <CardHeader><CardTitle className="text-base">Add Grade</CardTitle></CardHeader>
         <CardContent>
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              const f = new FormData(e.currentTarget);
-              submit("/api/grades", Object.fromEntries(f.entries()), "Grade");
-              e.currentTarget.reset();
+              const form = e.currentTarget;
+              const f = new FormData(form);
+              const saved = await submit("/api/grades", Object.fromEntries(f.entries()), "Grade");
+              if (saved) form.reset();
             }}
             className="space-y-3"
           >
@@ -76,11 +80,12 @@ export function SubjectsManager({ grades, subjects, courses }: SubjectsManagerPr
         <CardHeader><CardTitle className="text-base">Add Subject</CardTitle></CardHeader>
         <CardContent>
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              const f = new FormData(e.currentTarget);
-              submit("/api/subjects", Object.fromEntries(f.entries()), "Subject");
-              e.currentTarget.reset();
+              const form = e.currentTarget;
+              const f = new FormData(form);
+              const saved = await submit("/api/subjects", Object.fromEntries(f.entries()), "Subject");
+              if (saved) form.reset();
             }}
             className="space-y-3"
           >
@@ -110,11 +115,12 @@ export function SubjectsManager({ grades, subjects, courses }: SubjectsManagerPr
         <CardHeader><CardTitle className="text-base">Add Course / Module</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <form
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              const f = new FormData(e.currentTarget);
-              submit("/api/courses", Object.fromEntries(f.entries()), "Course");
-              e.currentTarget.reset();
+              const form = e.currentTarget;
+              const f = new FormData(form);
+              const saved = await submit("/api/courses", Object.fromEntries(f.entries()), "Course");
+              if (saved) form.reset();
             }}
             className="space-y-3"
           >
@@ -137,16 +143,17 @@ export function SubjectsManager({ grades, subjects, courses }: SubjectsManagerPr
 
           {courses.length > 0 && (
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                const f = new FormData(e.currentTarget);
+                const form = e.currentTarget;
+                const f = new FormData(form);
                 const courseId = f.get("courseId") as string;
-                submit(`/api/courses/${courseId}/modules`, {
+                const saved = await submit(`/api/courses/${courseId}/modules`, {
                   code: f.get("code"),
                   name: f.get("name"),
                   credits: f.get("credits"),
                 }, "Module");
-                e.currentTarget.reset();
+                if (saved) form.reset();
               }}
               className="space-y-3 pt-3 border-t border-border"
             >

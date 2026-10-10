@@ -33,8 +33,9 @@ export function ExpenseManager(props: {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch("/api/expenses", {
         method: "POST",
@@ -42,7 +43,7 @@ export function ExpenseManager(props: {
       });
       if (!res.ok) throw new Error();
       toast.success("Expense captured");
-      e.currentTarget.reset();
+      formEl.reset();
       router.refresh();
     } catch {
       toast.error("Could not save expense");

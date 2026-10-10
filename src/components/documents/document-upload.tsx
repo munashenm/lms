@@ -16,15 +16,16 @@ export function DocumentUpload() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
 
     try {
       const res = await fetch("/api/documents", { method: "POST", body: form });
       if (!res.ok) throw new Error();
       toast.success("Document uploaded");
+      formEl.reset();
       router.refresh();
-      (e.target as HTMLFormElement).reset();
     } catch {
       toast.error("Upload failed");
     } finally {

@@ -21,7 +21,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
   if (
-    !requireStaffPermission(session, "finance.payments.reverse") &&
+    !requireStaffPermission(session, "finance.payments.create") &&
     !requireStaffPermission(session, "finance:write")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });

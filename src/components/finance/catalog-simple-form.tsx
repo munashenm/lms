@@ -17,8 +17,9 @@ export function CatalogSimpleForm(props: {
   const [loading, setLoading] = useState(false);
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch(props.endpoint, {
         method: "POST",
@@ -27,7 +28,7 @@ export function CatalogSimpleForm(props: {
       });
       if (!res.ok) throw new Error();
       toast.success("Saved");
-      e.currentTarget.reset();
+      formEl.reset();
       router.refresh();
     } catch {
       toast.error("Save failed");

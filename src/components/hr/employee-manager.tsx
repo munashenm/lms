@@ -43,8 +43,9 @@ export function EmployeeManager(props: {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch("/api/employees", {
         method: "POST",
@@ -87,13 +88,13 @@ export function EmployeeManager(props: {
           toast.error(`Created, but some files were not saved: ${failed.join(", ")}`);
         }
       }
-      e.currentTarget.reset();
+      formEl.reset();
       if (employeeId) {
         router.push(`${employeeBasePath}/${employeeId}`);
       }
       router.refresh();
-    } catch {
-      toast.error("Could not create employee");
+    } catch (error) {
+      toast.error(error instanceof Error && error.message ? error.message : "Could not create employee");
     } finally {
       setLoading(false);
     }

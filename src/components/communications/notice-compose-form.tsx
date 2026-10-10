@@ -45,8 +45,9 @@ export function NoticeComposeForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch("/api/communications", {
         method: "POST",
@@ -75,7 +76,7 @@ export function NoticeComposeForm({
           ? `Notice queued. ${remaining} still sending — refresh the log shortly.`
           : "Notice sent. Check the log below for delivery status."
       );
-      e.currentTarget.reset();
+      formEl.reset();
       setAudience("PARENTS");
       router.refresh();
     } finally {

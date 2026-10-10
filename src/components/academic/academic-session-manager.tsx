@@ -74,8 +74,9 @@ export function AcademicSessionManager({
 
   async function createSession(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading("create-session");
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch("/api/academic-years", {
         method: "POST",
@@ -94,7 +95,7 @@ export function AcademicSessionManager({
         throw new Error(data.message || "Failed");
       }
       toast.success("Academic session created");
-      e.currentTarget.reset();
+      formEl.reset();
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create session");
@@ -126,8 +127,9 @@ export function AcademicSessionManager({
 
   async function createPeriod(e: React.FormEvent<HTMLFormElement>, academicYearId: string) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(`create-period-${academicYearId}`);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch("/api/terms", {
         method: "POST",
@@ -149,7 +151,7 @@ export function AcademicSessionManager({
         throw new Error(data.message || "Failed");
       }
       toast.success(`${periodLabel} created`);
-      e.currentTarget.reset();
+      formEl.reset();
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create period");

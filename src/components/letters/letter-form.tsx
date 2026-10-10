@@ -37,8 +37,9 @@ export function LetterForm({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
     try {
       const res = await fetch("/api/letters", {
         method: "POST",
@@ -56,7 +57,7 @@ export function LetterForm({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Could not generate letter");
       toast.success("Letter generated");
-      (e.target as HTMLFormElement).reset();
+      formEl.reset();
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not generate letter");

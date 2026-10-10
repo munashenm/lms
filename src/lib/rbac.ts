@@ -29,7 +29,7 @@ const ENTERPRISE_VIEW: Permission[] = [
 const FINANCE_ALL: Permission[] = [
   "finance:read", "finance:write",
   "finance.view", "finance.fees.manage", "finance.payments.create",
-  "finance.payments.reverse", "finance.receipts.view", "finance.expenses.manage",
+  "finance.receipts.view", "finance.expenses.manage",
   "finance.reports.view",
   "finance.payments.approve", "finance.expenses.create", "finance.expenses.approve",
   "finance.reports.export",

@@ -28,8 +28,9 @@ export function AnnouncementForm({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
 
     try {
       const res = await fetch("/api/announcements", {
@@ -45,8 +46,8 @@ export function AnnouncementForm({
       });
       if (!res.ok) throw new Error();
       toast.success("Announcement published");
+      formEl.reset();
       router.refresh();
-      (e.target as HTMLFormElement).reset();
     } catch {
       toast.error("Failed to publish announcement");
     } finally {

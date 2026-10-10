@@ -26,8 +26,9 @@ export function TimetableForm({ classes, subjects, teachers, defaultClassId }: T
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formEl = e.currentTarget;
     setLoading(true);
-    const form = new FormData(e.currentTarget);
+    const form = new FormData(formEl);
 
     try {
       const res = await fetch("/api/timetable", {
@@ -45,8 +46,8 @@ export function TimetableForm({ classes, subjects, teachers, defaultClassId }: T
         return;
       }
       toast.success("Timetable slot added");
+      formEl.reset();
       router.refresh();
-      (e.target as HTMLFormElement).reset();
     } catch {
       toast.error("Failed to add slot");
     } finally {
