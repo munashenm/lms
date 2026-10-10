@@ -18,7 +18,9 @@ export async function listScheduledJobStatus() {
       lastSuccessfulRun: state?.lastSuccessAt ?? null,
       lastFailure: state?.lastFailureAt ?? null,
       lastError: state?.lastError ?? null,
-      nextRun: job.automatic ? (state?.nextRunAt ?? nextDailyRunAt()) : null,
+      nextRun: !job.automatic
+        ? null
+        : (state?.nextRunAt ?? (job.cadence === "hourly" ? new Date(Date.now() + 60 * 60 * 1000) : nextDailyRunAt())),
     };
   });
 }

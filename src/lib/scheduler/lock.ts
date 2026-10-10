@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
 
-const LEASE_MS = 10 * 60 * 1000;
+const DEFAULT_LEASE_MS = 10 * 60 * 1000;
 
 export interface JobLease {
   jobKey: string;
@@ -9,9 +9,9 @@ export interface JobLease {
 }
 
 /** Returns a lease when this process owns the job. Expired leases can be taken. */
-export async function tryAcquireJobLease(jobKey: string): Promise<JobLease | null> {
+export async function tryAcquireJobLease(jobKey: string, leaseMs = DEFAULT_LEASE_MS): Promise<JobLease | null> {
   const owner = `${process.pid}:${randomUUID()}`;
-  const until = new Date(Date.now() + LEASE_MS);
+  const until = new Date(Date.now() + leaseMs);
   const changed = await prisma.$executeRaw`
     INSERT INTO "scheduler_job_states" ("jobKey", "lockedUntil", "lockedBy", "lastStartedAt", "updatedAt")
     VALUES (${jobKey}, ${until}, ${owner}, ${new Date()}, NOW())
