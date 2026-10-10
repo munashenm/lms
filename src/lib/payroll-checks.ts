@@ -13,6 +13,8 @@ export function payrollFormDefaults(saved: PayrollRules | null | undefined): Pay
   if (saved) return saved;
   return {
     jurisdiction: "ZA",
+    payeMethod: "SARS_TABLE",
+    medicalSchemeMembers: 0,
     employeeTaxPercent: 0,
     uifEmployeePercent: 1,
     uifEmployerPercent: 1,
@@ -28,6 +30,7 @@ export function payrollFormDefaults(saved: PayrollRules | null | undefined): Pay
 export function uifFinaliseBlockers(rules: PayrollRules): string[] {
   const jurisdiction = String(rules.jurisdiction ?? "ZA").toUpperCase();
   if (!jurisdiction.startsWith("ZA")) return [];
+  if (String(rules.payeMethod ?? "").toUpperCase() === "SARS_TABLE") return [];
   const blockers: string[] = [];
   const employee = Number(rules.uifEmployeePercent ?? 0);
   const employer = Number(rules.uifEmployerPercent ?? 0);
@@ -98,7 +101,13 @@ export function payrollConfigurationChecks(rules: PayrollRules): PayrollCheck[] 
     checks.push({ level: "ok", message: "SDL employer rate is 1%." });
   }
 
-  if (tax <= 0) {
+  if (String(rules.payeMethod ?? "").toUpperCase() === "SARS_TABLE") {
+    checks.push({
+      level: "ok",
+      message:
+        "PAYE uses the SARS table for the pay period, with the primary rebate. The secondary and tertiary rebates apply when the employee is 65 or 75 at the end of the tax year.",
+    });
+  } else if (tax <= 0) {
     checks.push({
       level: "warning",
       message: "PAYE is not configured. A flat percent is not the SARS tax table — confirm the rate with your accountant before a pay run.",

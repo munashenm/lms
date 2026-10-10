@@ -30,7 +30,6 @@ export function PayrollRulesForm(props: {
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const saved = props.current?.rules ?? {};
   const rules = payrollFormDefaults(props.current ? props.current.rules : null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -45,6 +44,8 @@ export function PayrollRulesForm(props: {
       };
       for (const [key] of FIELDS) body[key] = Number(form.get(key) || 0);
       body.uifMonthlyCeiling = Number(form.get("uifMonthlyCeiling") || 0);
+      body.payeMethod = form.get("payeMethod") === "SARS_TABLE" ? "SARS_TABLE" : "FLAT";
+      body.medicalSchemeMembers = Number(form.get("medicalSchemeMembers") || 0);
       const res = await fetch("/api/payroll/rules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -65,16 +66,17 @@ export function PayrollRulesForm(props: {
       <CardHeader><CardTitle>Statutory rates (versioned)</CardTitle></CardHeader>
       <CardContent>
         <p className="text-sm text-muted mb-4">
-          Rates come only from this configuration. Tax tables are not hard-coded. The checks below compare a ZA setup with the usual UIF, SDL and PAYE expectations.
+          Saving creates a new rule version. Existing pay runs keep the version they were calculated with. SARS tables apply only when this version says so, and the table is chosen from the pay period.
         </p>
         <ul className="mb-4 space-y-1 text-sm">
           {payrollConfigurationChecks({
-            jurisdiction: String(saved.jurisdiction ?? props.current?.jurisdiction ?? "ZA"),
-            employeeTaxPercent: Number(saved.employeeTaxPercent ?? 0),
-            uifEmployeePercent: Number(saved.uifEmployeePercent ?? 0),
-            uifEmployerPercent: Number(saved.uifEmployerPercent ?? 0),
-            sdlEmployerPercent: Number(saved.sdlEmployerPercent ?? 0),
-            uifMonthlyCeiling: Number(saved.uifMonthlyCeiling ?? 0),
+            jurisdiction: String(rules.jurisdiction ?? props.current?.jurisdiction ?? "ZA"),
+            payeMethod: typeof rules.payeMethod === "string" ? rules.payeMethod : undefined,
+            employeeTaxPercent: Number(rules.employeeTaxPercent ?? 0),
+            uifEmployeePercent: Number(rules.uifEmployeePercent ?? 0),
+            uifEmployerPercent: Number(rules.uifEmployerPercent ?? 0),
+            sdlEmployerPercent: Number(rules.sdlEmployerPercent ?? 0),
+            uifMonthlyCeiling: Number(rules.uifMonthlyCeiling ?? 0),
           }).map((check) => (
             <li key={check.message} className={check.level === "warning" ? "text-amber-800" : "text-muted"}>{check.message}</li>
           ))}
@@ -82,6 +84,17 @@ export function PayrollRulesForm(props: {
         <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2"><Label htmlFor="name">Name</Label><Input id="name" name="name" required defaultValue={props.current?.name ?? "ZA rates"} /></div>
           <div><Label htmlFor="jurisdiction">Jurisdiction</Label><Input id="jurisdiction" name="jurisdiction" defaultValue={props.current?.jurisdiction ?? "ZA"} /></div>
+          <div>
+            <Label htmlFor="payeMethod">PAYE method</Label>
+            <select id="payeMethod" name="payeMethod" defaultValue={String(rules.payeMethod ?? "FLAT")} className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm">
+              <option value="SARS_TABLE">SARS tax table and rebates</option>
+              <option value="FLAT">Flat percent</option>
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="medicalSchemeMembers">Medical scheme members</Label>
+            <Input id="medicalSchemeMembers" name="medicalSchemeMembers" type="number" step="1" min="0" max="30" defaultValue={Number(rules.medicalSchemeMembers ?? 0)} />
+          </div>
           <div>
             <Label htmlFor="effectiveFrom">Effective from</Label>
             <Input id="effectiveFrom" name="effectiveFrom" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
