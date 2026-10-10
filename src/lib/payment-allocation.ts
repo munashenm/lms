@@ -2,15 +2,25 @@ import { InstalmentStatus, Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { outstandingOf, roundMoney } from "./money";
 
+type AllocationDb = Prisma.TransactionClient;
+
+function allocationDb(db?: AllocationDb): AllocationDb {
+  return db ?? (prisma as unknown as AllocationDb);
+}
+
 export async function allocatePaymentToOldest(params: {
   schoolId: string;
   studentId: string;
   paymentId: string;
   invoiceId: string;
   amount: number;
+  db?: AllocationDb;
 }) {
+  const db = allocationDb(params.db);
+  const existing = await db.paymentAllocation.count({ where: { paymentId: params.paymentId } });
+  if (existing > 0) return { unallocated: 0, alreadyAllocated: true as const };
   let remaining = roundMoney(params.amount);
-  const instalments = await prisma.chargeInstalment.findMany({
+  const instalments = await db.chargeInstalment.findMany({
     where: {
       charge: { studentId: params.studentId, schoolId: params.schoolId, reversedAt: null },
       status: { in: [InstalmentStatus.PENDING, InstalmentStatus.PARTIAL] },
@@ -30,7 +40,7 @@ export async function allocatePaymentToOldest(params: {
       newPaid + 0.001 >= Number(inst.amount)
         ? InstalmentStatus.PAID
         : InstalmentStatus.PARTIAL;
-    await prisma.chargeInstalment.update({
+    await db.chargeInstalment.update({
       where: { id: inst.id },
       data: { amountPaid: newPaid, status },
     });
@@ -44,9 +54,9 @@ export async function allocatePaymentToOldest(params: {
   }
 
   if (allocations.length) {
-    await prisma.paymentAllocation.createMany({ data: allocations });
+    await db.paymentAllocation.createMany({ data: allocations });
   }
-  return { unallocated: remaining };
+  return { unallocated: remaining, alreadyAllocated: false as const };
 }
 
 export async function allocatePaymentManual(params: {
@@ -54,9 +64,13 @@ export async function allocatePaymentManual(params: {
   paymentId: string;
   invoiceId: string;
   allocations: Array<{ instalmentId: string; amount: number }>;
+  db?: AllocationDb;
 }) {
+  const db = allocationDb(params.db);
+  const existing = await db.paymentAllocation.count({ where: { paymentId: params.paymentId } });
+  if (existing > 0) return;
   for (const row of params.allocations) {
-    const inst = await prisma.chargeInstalment.findUnique({ where: { id: row.instalmentId } });
+    const inst = await db.chargeInstalment.findUnique({ where: { id: row.instalmentId } });
     if (!inst) continue;
     const applied = roundMoney(row.amount);
     const newPaid = roundMoney(Number(inst.amountPaid) + applied);
@@ -66,11 +80,11 @@ export async function allocatePaymentManual(params: {
         : applied > 0
           ? InstalmentStatus.PARTIAL
           : inst.status;
-    await prisma.chargeInstalment.update({
+    await db.chargeInstalment.update({
       where: { id: inst.id },
       data: { amountPaid: newPaid, status },
     });
-    await prisma.paymentAllocation.create({
+    await db.paymentAllocation.create({
       data: {
         schoolId: params.schoolId,
         paymentId: params.paymentId,

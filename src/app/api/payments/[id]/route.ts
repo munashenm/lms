@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { scopedId } from "@/lib/tenant";
 import { saveFinanceSlip } from "@/lib/finance-uploads";
 import { postApprovedPayment } from "@/lib/manual-payment";
+import { PAYMENT_REVIEW_ACTIONS } from "@/lib/finance";
 import { z } from "zod";
 import { requireLicenseMutation } from "@/lib/licensing/enforce";
 
@@ -15,7 +16,7 @@ interface Params {
 }
 
 const schema = z.object({
-  action: z.enum(["verify", "approve", "reject"]),
+  action: z.enum(PAYMENT_REVIEW_ACTIONS),
   reason: z.string().max(500).optional(),
 });
 
@@ -107,13 +108,11 @@ if (!session || !requireStaffPermission(session, "finance.payments.approve")) {
     return NextResponse.json({ payment: updated });
   }
 
-  if (
-    payment.captureStatus !== PaymentCaptureStatus.PENDING &&
-    payment.captureStatus !== PaymentCaptureStatus.VERIFIED
-  ) {
-    return NextResponse.json({ message: "Only pending or verified payments can be approved" }, { status: 400 });
+  try {
+    const posted = await postApprovedPayment({ paymentId: id, userId: session.userId });
+    return NextResponse.json({ payment: posted });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not approve payment";
+    return NextResponse.json({ message }, { status: 400 });
   }
-
-  const posted = await postApprovedPayment({ paymentId: id, userId: session.userId });
-  return NextResponse.json({ payment: posted });
 }
