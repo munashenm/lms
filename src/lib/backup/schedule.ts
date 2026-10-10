@@ -1,8 +1,7 @@
-import { BackupScheduleFrequency, BackupType } from "@prisma/client";
+import { BackupScheduleFrequency, BackupType, Prisma, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { runBackupJob } from "./engine";
 import { notifySchoolRoles } from "@/lib/notifications";
-import { UserRole } from "@prisma/client";
 import { sanitizeSchedulerError } from "@/lib/scheduler/catalog";
 
 const DEFAULTS: Record<BackupScheduleFrequency, number> = {
@@ -23,20 +22,48 @@ export function nextRunAt(frequency: BackupScheduleFrequency, from = new Date())
   return next;
 }
 
-export async function ensureDefaultSchedules(schoolId: string) {
+/**
+ * Creates any missing daily, weekly, or monthly schedule.
+ * An existing row is left unchanged, including when it is disabled or has a custom retain count.
+ */
+export async function ensureDefaultSchedules(schoolId: string): Promise<number> {
+  let created = 0;
   for (const frequency of Object.values(BackupScheduleFrequency)) {
-    await prisma.backupSchedule.upsert({
+    const existing = await prisma.backupSchedule.findUnique({
       where: { schoolId_frequency: { schoolId, frequency } },
-      update: {},
-      create: {
-        schoolId,
-        frequency,
-        retainCount: DEFAULTS[frequency],
-        enabled: frequency === BackupScheduleFrequency.DAILY,
-        nextRunAt: nextRunAt(frequency),
-      },
+      select: { id: true },
     });
+    if (existing) continue;
+    try {
+      await prisma.backupSchedule.create({
+        data: {
+          schoolId,
+          frequency,
+          retainCount: DEFAULTS[frequency],
+          enabled: frequency === BackupScheduleFrequency.DAILY,
+          nextRunAt: nextRunAt(frequency),
+        },
+      });
+      created += 1;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") continue;
+      throw error;
+    }
   }
+  return created;
+}
+
+/** Idempotent backfill. Does not update or delete schedules or backup files. */
+export async function provisionMissingBackupSchedules(schoolId?: string) {
+  const schools = await prisma.school.findMany({
+    where: schoolId ? { id: schoolId } : undefined,
+    select: { id: true },
+  });
+  let created = 0;
+  for (const school of schools) {
+    created += await ensureDefaultSchedules(school.id);
+  }
+  return { schools: schools.length, created };
 }
 
 export function scheduleFrequencyFromMetadata(metadata: unknown): string | null {
@@ -59,6 +86,7 @@ export function backupIdsToPrune(
 }
 
 export async function runDueBackupSchedules(now = new Date()) {
+  await provisionMissingBackupSchedules();
   const due = await prisma.backupSchedule.findMany({
     where: { enabled: true, nextRunAt: { lte: now } },
   });
