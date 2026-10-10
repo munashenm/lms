@@ -8,6 +8,7 @@ import { requireLicenseWrite } from "@/lib/licensing/enforce";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 import { assertSchoolFks } from "@/lib/tenant";
+import { feeStructureRuleError, normalizeYearlyDiscount, structuredAllowInstalments } from "@/lib/fee-pricing";
 
 const schema = z.object({
   name: z.string().min(1).max(200),
@@ -29,6 +30,9 @@ const schema = z.object({
   dueDayOfMonth: z.coerce.number().int().min(1).max(28).optional().nullable(),
   applyOnEnrolment: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  priceIsPerPeriod: z.boolean().optional(),
+  invoiceYearly: z.boolean().optional(),
+  yearlyDiscountPercent: z.coerce.number().min(0).max(100).optional().nullable(),
 });
 
 function canManage(session: NonNullable<Awaited<ReturnType<typeof getSession>>>) {
@@ -71,11 +75,32 @@ export async function POST(request: NextRequest) {
   if (fkError) {
     return NextResponse.json({ message: fkError }, { status: 400 });
   }
+  const discount = normalizeYearlyDiscount(parsed.data.yearlyDiscountPercent);
+  if (discount === "invalid") {
+    return NextResponse.json({ message: "Yearly discount must be between 0 and 100." }, { status: 400 });
+  }
+  const rule = {
+    chargeSource: parsed.data.chargeSource,
+    billingFrequency: parsed.data.billingFrequency,
+    priceIsPerPeriod: parsed.data.priceIsPerPeriod,
+    invoiceYearly: parsed.data.invoiceYearly,
+    yearlyDiscountPercent: discount,
+    allowInstalments: parsed.data.allowInstalments,
+    gradeId: parsed.data.gradeId,
+    courseId: parsed.data.courseId,
+    moduleId: parsed.data.moduleId,
+  };
+  const ruleError = feeStructureRuleError(rule);
+  if (ruleError) {
+    return NextResponse.json({ message: ruleError }, { status: 400 });
+  }
   const item = await prisma.feeStructure.create({
     data: {
       schoolId,
       ...parsed.data,
       amount: parsed.data.amount,
+      yearlyDiscountPercent: discount,
+      allowInstalments: structuredAllowInstalments(rule, parsed.data.allowInstalments),
       customScheduleJson: parsed.data.customScheduleJson ?? undefined,
     },
   });
